@@ -1,4 +1,4 @@
-# Crônicas da Ressonância — Ficha Digital v0.3-dev
+# Crônicas da Ressonância — Ficha Digital v0.3-pré-alpha
 
 Versão de desenvolvimento baseada na v0.2.1 estável.
 
