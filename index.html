@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171226">
+  <title>Ficha — Crônicas da Ressonância</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <span class="eyebrow">Pré-Alpha · Ficha v0.3-dev</span>
+      <h1>Crônicas da Ressonância</h1>
+      <p>Ficha digital de personagem</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn secondary" id="exportarFicha" type="button">Exportar</button>
+      <label class="btn secondary file-button">
+        Importar
+        <input id="importarFicha" type="file" accept="application/json" hidden>
+      </label>
+      <button class="btn danger" id="limparFicha" type="button">Limpar</button>
+    </div>
+  </header>
+
+  <main class="sheet-layout">
+    <section class="panel character-panel mobile-section active" data-mobile-section="resumo">
+      <div class="panel-title-row">
+        <div>
+          <span class="section-kicker">Personagem</span>
+          <h2>Informações</h2>
+        </div>
+        <span class="autosave-status" id="autosaveStatus">Salvo</span>
+      </div>
+
+      <div class="identity-top">
+        <label class="portrait-upload" title="Clique para escolher uma imagem">
+          <img id="fotoPreview" alt="Foto do personagem">
+          <span id="fotoPlaceholder">Adicionar foto</span>
+          <input id="fotoPersonagem" type="file" accept="image/*" hidden>
+        </label>
+
+        <div class="resources-grid">
+          <article class="resource-card pv-card" data-resource-card="pvAtual">
+            <div class="resource-heading">
+              <span>PV</span>
+              <small>Pontos de Vida</small>
+            </div>
+            <div class="resource-values">
+              <input id="pvAtual" type="number" min="0" value="0" aria-label="PV atual">
+              <span>/</span>
+              <input id="pvMax" type="number" min="0" value="0" aria-label="PV máximo">
+            </div>
+            <div class="resource-progress" aria-hidden="true"><span id="pvProgress"></span></div>
+            <div class="resource-steps" aria-label="Ajustes rápidos de PV">
+              <button type="button" data-resource="pvAtual" data-step="-10">−10</button>
+              <button type="button" data-resource="pvAtual" data-step="-1">−1</button>
+              <button type="button" data-resource="pvAtual" data-step="1">+1</button>
+              <button type="button" data-resource="pvAtual" data-step="10">+10</button>
+            </div>
+            <label class="temporary-health">PV temporários<input id="pvTemporarios" type="number" min="0" value="0"></label>
+          </article>
+
+          <article class="resource-card pn-card" data-resource-card="pnAtual">
+            <div class="resource-heading">
+              <span>PN</span>
+              <small>Pontos de Nexo</small>
+            </div>
+            <div class="resource-values">
+              <input id="pnAtual" type="number" min="0" value="0" aria-label="PN atual">
+              <span>/</span>
+              <input id="pnMax" type="number" min="0" value="0" aria-label="PN máximo">
+            </div>
+            <div class="resource-progress" aria-hidden="true"><span id="pnProgress"></span></div>
+            <div class="resource-steps" aria-label="Ajustes rápidos de PN">
+              <button type="button" data-resource="pnAtual" data-step="-10">−10</button>
+              <button type="button" data-resource="pnAtual" data-step="-1">−1</button>
+              <button type="button" data-resource="pnAtual" data-step="1">+1</button>
+              <button type="button" data-resource="pnAtual" data-step="10">+10</button>
+            </div>
+          </article>
+
+          <article class="resource-card ps-card" data-resource-card="psAtual">
+            <div class="resource-heading">
+              <span>PS</span>
+              <small>Pontos de Sanidade</small>
+            </div>
+            <div class="resource-values">
+              <input id="psAtual" type="number" min="0" value="20" aria-label="PS atual">
+              <span>/</span>
+              <input id="psMax" type="number" min="0" value="20" aria-label="PS máximo">
+            </div>
+            <div class="resource-progress" aria-hidden="true"><span id="psProgress"></span></div>
+            <div class="resource-steps" aria-label="Ajustes rápidos de PS">
+              <button type="button" data-resource="psAtual" data-step="-10">−10</button>
+              <button type="button" data-resource="psAtual" data-step="-1">−1</button>
+              <button type="button" data-resource="psAtual" data-step="1">+1</button>
+              <button type="button" data-resource="psAtual" data-step="10">+10</button>
+            </div>
+          </article>
+
+          <article class="resource-card defense-card">
+            <div class="resource-heading">
+              <span>DEF</span>
+              <small>Defesa total</small>
+            </div>
+            <strong id="defesaTotal">11</strong>
+            <small class="defense-formula">10 + Agilidade + Reflexos + equipamento</small>
+          </article>
+        </div>
+      </div>
+
+      <section class="resource-adjuster" aria-labelledby="ajusteRapidoTitulo">
+          <div class="adjuster-title">
+            <div>
+              <span class="section-kicker">Combate</span>
+              <h3 id="ajusteRapidoTitulo">Ajuste rápido</h3>
+            </div>
+            <button class="btn secondary small" id="restaurarRecurso" type="button">Restaurar máximo</button>
+          </div>
+          <div class="adjuster-grid">
+            <label>Recurso
+              <select id="ajusteRecurso">
+                <option value="pvAtual">PV</option>
+                <option value="pnAtual">PN</option>
+                <option value="psAtual">PS</option>
+              </select>
+            </label>
+            <label>Valor
+              <input id="ajusteValor" type="number" min="0" inputmode="numeric" placeholder="Ex.: 12">
+            </label>
+            <button class="btn danger adjust-action" id="reduzirRecurso" type="button">Reduzir</button>
+            <button class="btn adjust-action" id="recuperarRecurso" type="button">Recuperar</button>
+          </div>
+          <p class="adjuster-feedback" id="ajusteFeedback" aria-live="polite">Em PV, o dano consome primeiro os PV temporários.</p>
+      </section>
+
+      <div class="form-grid character-info-grid">
+        <label>Nome<input id="nome" type="text" placeholder="Nome do personagem"></label>
+        <label>Patente<input id="patente" type="text" placeholder="Patente"></label>
+        <label>Idade<input id="idade" type="number" min="0" placeholder="Idade"></label>
+        <label>Tipo de Nexo
+          <select id="tipoNexo">
+            <option value="">Selecione</option>
+            <option>Nexo Comum</option>
+            <option>Nexo Defeituoso</option>
+            <option>Nexo Amaldiçoado</option>
+            <option>Nexo Abençoado</option>
+          </select>
+        </label>
+        <label>Nível<input id="nivel" type="number" min="1" max="11" value="1"></label>
+        <label>Assinatura<input id="assinatura" type="text" placeholder="Assinatura"></label>
+        <label>Classe
+          <select id="classe">
+            <option value="">Selecione</option>
+            <option>Vanguarda</option>
+            <option>Atirador</option>
+            <option>Arcano</option>
+            <option>Guardião</option>
+          </select>
+        </label>
+        <label>Forma de Conjuração<input id="formaConjuracao" type="text" placeholder="Como o poder se manifesta"></label>
+      </div>
+
+      <aside class="class-automation-status" id="classAutomationStatus" aria-live="polite">
+        <strong>Automação de classe</strong>
+        <span>Selecione uma classe para calcular PV, PN e PS máximos e adicionar a habilidade inicial.</span>
+      </aside>
+
+      <div class="divider"></div>
+
+      <div class="panel-title-row compact attributes-title-row">
+        <div>
+          <span class="section-kicker">Capacidades</span>
+          <h2>Atributos</h2>
+        </div>
+        <div class="attribute-points" id="attributePointsPanel">
+          <span>Ponto inicial disponível</span>
+          <strong id="attributePointsAvailable">1</strong>
+        </div>
+      </div>
+      <p class="attribute-points-help" id="attributePointsHelp">Todos começam em 1. No nível 1, distribua apenas 1 ponto adicional.</p>
+
+      <div class="attributes-layout">
+        <div class="attribute-card force" data-attribute-card="forca">
+          <span>Força</span>
+          <div class="attribute-control">
+            <button type="button" class="attribute-step" data-attribute="forca" data-step="-1" aria-label="Diminuir Força">−</button>
+            <input id="forca" type="number" min="1" max="6" value="1" aria-label="Força">
+            <button type="button" class="attribute-step" data-attribute="forca" data-step="1" aria-label="Aumentar Força">+</button>
+          </div>
+        </div>
+        <div class="attribute-card vigor" data-attribute-card="vigor">
+          <span>Vigor</span>
+          <div class="attribute-control">
+            <button type="button" class="attribute-step" data-attribute="vigor" data-step="-1" aria-label="Diminuir Vigor">−</button>
+            <input id="vigor" type="number" min="1" max="6" value="1" aria-label="Vigor">
+            <button type="button" class="attribute-step" data-attribute="vigor" data-step="1" aria-label="Aumentar Vigor">+</button>
+          </div>
+        </div>
+        <div class="attribute-card agilidade" data-attribute-card="agilidade">
+          <span>Agilidade</span>
+          <div class="attribute-control">
+            <button type="button" class="attribute-step" data-attribute="agilidade" data-step="-1" aria-label="Diminuir Agilidade">−</button>
+            <input id="agilidade" type="number" min="1" max="6" value="1" aria-label="Agilidade">
+            <button type="button" class="attribute-step" data-attribute="agilidade" data-step="1" aria-label="Aumentar Agilidade">+</button>
+          </div>
+        </div>
+        <div class="attribute-card intelecto" data-attribute-card="intelecto">
+          <span>Intelecto</span>
+          <div class="attribute-control">
+            <button type="button" class="attribute-step" data-attribute="intelecto" data-step="-1" aria-label="Diminuir Intelecto">−</button>
+            <input id="intelecto" type="number" min="1" max="6" value="1" aria-label="Intelecto">
+            <button type="button" class="attribute-step" data-attribute="intelecto" data-step="1" aria-label="Aumentar Intelecto">+</button>
+          </div>
+        </div>
+        <div class="attribute-card presenca" data-attribute-card="presenca">
+          <span>Presença</span>
+          <div class="attribute-control">
+            <button type="button" class="attribute-step" data-attribute="presenca" data-step="-1" aria-label="Diminuir Presença">−</button>
+            <input id="presenca" type="number" min="1" max="6" value="1" aria-label="Presença">
+            <button type="button" class="attribute-step" data-attribute="presenca" data-step="1" aria-label="Aumentar Presença">+</button>
+          </div>
+        </div>
+      </div>
+
+      <label class="field-block defense-modifier">
+        Bônus de Defesa por equipamentos e outros efeitos
+        <input id="bonusDefesaEquipamento" type="number" value="0">
+      </label>
+    </section>
+
+    <section class="panel skills-panel mobile-section" data-mobile-section="pericias">
+      <div class="panel-title-row">
+        <div>
+          <span class="section-kicker">Domínios</span>
+          <h2>Perícias</h2>
+        </div>
+      </div>
+      <p class="panel-help">Escolha o grau de domínio. O bônus é preenchido automaticamente.</p>
+      <div class="skills-list" id="listaPericias"></div>
+    </section>
+
+    <section class="content-column mobile-section" data-mobile-section="conteudo">
+      <article class="panel content-panel equipment-panel">
+        <div class="panel-title-row">
+          <div>
+            <span class="section-kicker">Inventário</span>
+            <h2>Equipamentos</h2>
+          </div>
+          <button class="btn small" id="adicionarEquipamento" type="button">+ Adicionar</button>
+        </div>
+        <div class="equipment-summary">
+          <label>Totalis<input id="totalis" type="number" min="0" value="200"></label>
+          <label>Proteção principal<input id="protecaoPrincipal" type="text" placeholder="Nome da proteção"></label>
+        </div>
+        <div class="card-list" id="listaEquipamentos"></div>
+      </article>
+
+      <article class="panel content-panel abilities-panel">
+        <div class="panel-title-row">
+          <div>
+            <span class="section-kicker">Treinamento</span>
+            <h2>Habilidades de Classe</h2>
+          </div>
+          <button class="btn small" id="adicionarHabilidade" type="button">+ Adicionar</button>
+        </div>
+        <div class="card-list" id="listaHabilidades"></div>
+      </article>
+
+      <article class="panel content-panel manifestations-panel">
+        <div class="panel-title-row">
+          <div>
+            <span class="section-kicker">Assinatura</span>
+            <h2>Manifestações</h2>
+          </div>
+          <button class="btn small" id="adicionarManifestacao" type="button">+ Adicionar</button>
+        </div>
+        <div class="manifestation-grid" id="listaManifestacoes"></div>
+      </article>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="Navegação da ficha">
+    <button class="active" data-mobile-target="resumo" type="button">Resumo</button>
+    <button data-mobile-target="pericias" type="button">Perícias</button>
+    <button data-mobile-target="conteudo" type="button">Conteúdo</button>
+  </nav>
+
+  <template id="templateEquipamento">
+    <details class="editable-card" open>
+      <summary>
+        <span class="card-title">Novo equipamento</span>
+        <button class="icon-button remove-card" type="button" aria-label="Remover equipamento">×</button>
+      </summary>
+      <div class="editable-card-body form-grid">
+        <label>Nome<input data-field="nome" type="text" placeholder="Arma, item ou proteção"></label>
+        <label>Tipo<input data-field="tipo" type="text" placeholder="Arma, item geral..."></label>
+        <label>Dano<input data-field="dano" type="text" placeholder="Ex.: 2d6"></label>
+        <label>Alcance<input data-field="alcance" type="text" placeholder="Curto, médio..."></label>
+        <label>Munição<input data-field="municao" type="text" placeholder="Atual / máxima"></label>
+        <label>Modificações<input data-field="modificacoes" type="text" placeholder="Modificações instaladas"></label>
+        <label class="span-2">Descrição<textarea data-field="descricao" rows="3" placeholder="Propriedades e anotações"></textarea></label>
+      </div>
+    </details>
+  </template>
+
+  <template id="templateHabilidade">
+    <details class="editable-card" open>
+      <summary>
+        <span class="card-title">Nova habilidade</span>
+        <button class="icon-button remove-card" type="button" aria-label="Remover habilidade">×</button>
+      </summary>
+      <div class="editable-card-body form-grid">
+        <label>Nome<input data-field="nome" type="text" placeholder="Nome da habilidade"></label>
+        <label>Nível<input data-field="nivel" type="number" min="1" max="11" placeholder="1"></label>
+        <label>Custo<input data-field="custo" type="text" placeholder="Ex.: 2 PN"></label>
+        <label>Ação<input data-field="acao" type="text" placeholder="Livre, padrão..."></label>
+        <label>Frequência<input data-field="frequencia" type="text" placeholder="Uma vez por rodada..."></label>
+        <label>Alcance<input data-field="alcance" type="text" placeholder="Próprio, curto..."></label>
+        <label>Duração<input data-field="duracao" type="text" placeholder="Instantânea, 3 rodadas..."></label>
+        <label class="span-2">Efeito<textarea data-field="efeito" rows="4" placeholder="Descrição completa da habilidade"></textarea></label>
+      </div>
+    </details>
+  </template>
+
+  <template id="templateManifestacao">
+    <details class="editable-card manifestation-card" open>
+      <summary>
+        <span class="card-title">Nova Manifestação</span>
+        <button class="icon-button use-manifestation" type="button" title="Descontar custo de PN">Usar</button>
+        <button class="icon-button remove-card" type="button" aria-label="Remover manifestação">×</button>
+      </summary>
+      <div class="editable-card-body form-grid">
+        <label>Nome<input data-field="nome" type="text" placeholder="Nome da Manifestação"></label>
+        <label>Custo em PN<input data-field="custo" type="number" min="0" value="0"></label>
+        <label>Ação<input data-field="acao" type="text" placeholder="Padrão, movimento..."></label>
+        <label>Alcance<input data-field="alcance" type="text" placeholder="Próprio, curto..."></label>
+        <label>Alvo ou área<input data-field="alvo" type="text" placeholder="Uma criatura, cone..."></label>
+        <label>Duração<input data-field="duracao" type="text" placeholder="Instantânea, sustentada..."></label>
+        <label>Teste<input data-field="teste" type="text" placeholder="Atributo e perícia"></label>
+        <label>Tipo<input data-field="tipo" type="text" placeholder="Ofensiva, defensiva..."></label>
+        <label class="span-2">Descrição<textarea data-field="descricao" rows="3" placeholder="Como ela se manifesta"></textarea></label>
+        <label class="span-2">Efeito<textarea data-field="efeito" rows="4" placeholder="Efeito mecânico"></textarea></label>
+        <label class="span-2">Limitações<textarea data-field="limitacoes" rows="3" placeholder="Requisitos e restrições"></textarea></label>
+      </div>
+    </details>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
