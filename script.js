@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'cronicasRessonanciaFichaV3Dev';
+const STORAGE_KEY = 'cronicasRessonanciaFichaV3PreAlpha';
 const LEGACY_STORAGE_KEY = 'cronicasRessonanciaFichaV1';
 const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 
@@ -108,7 +108,7 @@ const simpleFieldIds = [
 ];
 
 const state = {
-  schemaVersion: '0.3-dev',
+  schemaVersion: '0.3-pre-alpha',
   photo: '',
   fields: {},
   skills: {},
@@ -143,7 +143,7 @@ function setStatus(text, mode = 'saved') {
 }
 
 function captureState() {
-  state.schemaVersion = '0.3-dev';
+  state.schemaVersion = '0.3-pre-alpha';
 
   for (const id of simpleFieldIds) {
     state.fields[id] = document.getElementById(id)?.value ?? '';
@@ -299,7 +299,7 @@ function restoreResourceToMaximum(resourceId) {
 function restoreState(saved) {
   isRestoring = true;
   Object.assign(state, saved || {});
-  state.schemaVersion = '0.3-dev';
+  state.schemaVersion = '0.3-pre-alpha';
   state.fields ||= {};
   state.skills ||= {};
   state.equipment ||= [];
@@ -535,7 +535,7 @@ function updateAttributePointsUI(message = '') {
     panel.classList.add('manual-mode');
     panel.querySelector('span').textContent = 'Progressão de atributos';
     availableElement.textContent = 'Manual';
-    help.textContent = message || 'A distribuição inicial já terminou. Nesta versão dev, aumentos de níveis posteriores permanecem em edição manual.';
+    help.textContent = message || 'A distribuição inicial já terminou. Nesta Pré-Alpha, aumentos de níveis posteriores permanecem em edição manual.';
   }
 
   updateAttributeButtons();

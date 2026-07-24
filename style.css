@@ -620,7 +620,7 @@ textarea { resize: vertical; }
 .adjuster-feedback[data-kind="error"] { color: var(--danger); }
 .resource-card.resource-empty { opacity: 0.82; }
 
-/* v0.3-dev — automação de classe e distribuição inicial */
+/* v0.3 Pré-Alpha — automação de classe e distribuição inicial */
 .class-automation-status {
   display: grid;
   gap: 0.3rem;
