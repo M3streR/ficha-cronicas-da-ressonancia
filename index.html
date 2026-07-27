@@ -7,22 +7,78 @@
   <title>Ficha — Crônicas da Ressonância</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="manager-view-open">
+  <main class="character-manager" id="characterManagerView" aria-labelledby="characterManagerTitle">
+    <header class="manager-hero">
+      <span class="eyebrow">Pré-Alpha · Ficha v1.0</span>
+      <h1>Crônicas da Ressonância</h1>
+    </header>
+
+    <section class="manager-library" aria-labelledby="characterManagerTitle">
+      <div class="manager-section-heading">
+        <div>
+          <span class="section-kicker">Arquivo de personagens</span>
+          <h2 id="characterManagerTitle" tabindex="-1">Meus personagens</h2>
+          <p class="manager-storage-note">Os personagens ficam salvos neste navegador.</p>
+        </div>
+      </div>
+      <button class="btn secondary" id="managerImportCharacter" type="button">Importar personagem</button>
+      <input id="managerImportFile" type="file" accept=".json,application/json" hidden>
+
+      <div class="character-gallery" id="characterGallery" aria-live="polite">
+        <button class="create-character-card" id="managerCreateCharacter" type="button">
+          <span class="create-character-symbol" aria-hidden="true">+</span>
+          <strong>Criar novo personagem</strong>
+          <span>Começar uma ficha vazia</span>
+        </button>
+        <div class="character-card-list" id="characterCardList"></div>
+      </div>
+
+      <p class="manager-empty-state" id="managerEmptyState" hidden>Nenhum personagem foi encontrado.</p>
+    </section>
+  </main>
+
+  <div class="character-sheet-view" id="characterSheetView" hidden>
   <header class="app-header">
     <div>
-      <span class="eyebrow">Pré-Alpha · Ficha v0.3</span>
+      <span class="eyebrow">Pré-Alpha · Ficha v1.0</span>
       <h1>Crônicas da Ressonância</h1>
       <p>Ficha digital de personagem</p>
     </div>
     <div class="header-actions">
+      <button class="btn secondary back-to-characters" id="voltarPersonagens" type="button">Voltar aos personagens</button>
       <button class="btn secondary" id="exportarFicha" type="button">Exportar</button>
       <label class="btn secondary file-button">
         Importar
         <input id="importarFicha" type="file" accept="application/json" hidden>
       </label>
-      <button class="btn danger" id="limparFicha" type="button">Limpar</button>
+      <button class="btn danger" id="excluirPersonagem" type="button">Excluir personagem</button>
     </div>
   </header>
+
+  <aside class="mobile-resource-bar" id="mobileResourceBar" aria-label="Recursos rápidos do personagem">
+    <div class="mobile-resource-values" id="mobileResourceValues">
+      <button class="mobile-resource-item pv" type="button" data-quick-resource="pvAtual" aria-label="Abrir ajuste rápido de Pontos de Vida">
+        <span class="mobile-resource-label">PV</span>
+        <span class="mobile-resource-numbers"><output id="mobilePvAtual">0</output><span>/</span><output id="mobilePvMax">0</output></span>
+      </button>
+      <button class="mobile-resource-item pn" type="button" data-quick-resource="pnAtual" aria-label="Abrir ajuste rápido de Pontos de Nexo">
+        <span class="mobile-resource-label">PN</span>
+        <span class="mobile-resource-numbers"><output id="mobilePnAtual">0</output><span>/</span><output id="mobilePnMax">0</output></span>
+      </button>
+      <button class="mobile-resource-item ps" type="button" data-quick-resource="psAtual" aria-label="Abrir ajuste rápido de Pontos de Sanidade">
+        <span class="mobile-resource-label">PS</span>
+        <span class="mobile-resource-numbers"><output id="mobilePsAtual">20</output><span>/</span><output id="mobilePsMax">20</output></span>
+      </button>
+      <button class="mobile-resource-item defense" type="button" data-quick-defense aria-label="Ir para Defesa">
+        <span class="mobile-resource-label">DEF</span>
+        <output class="mobile-resource-numbers" id="mobileDefesa">11</output>
+      </button>
+    </div>
+    <button class="mobile-resource-toggle" id="mobileResourceToggle" type="button" aria-expanded="true" aria-controls="mobileResourceValues" aria-label="Recolher barra de recursos">
+      <span aria-hidden="true">⌃</span>
+    </button>
+  </aside>
 
   <main class="sheet-layout">
     <section class="panel character-panel mobile-section active" data-mobile-section="resumo">
@@ -31,7 +87,9 @@
           <span class="section-kicker">Personagem</span>
           <h2>Informações</h2>
         </div>
-        <span class="autosave-status" id="autosaveStatus">Salvo</span>
+        <div class="save-summary">
+          <span class="autosave-status" id="autosaveStatus" role="status" aria-live="polite">Salvo neste navegador</span>
+        </div>
       </div>
 
       <div class="identity-top">
@@ -100,7 +158,7 @@
             </div>
           </article>
 
-          <article class="resource-card defense-card">
+          <article class="resource-card defense-card" tabindex="-1">
             <div class="resource-heading">
               <span>DEF</span>
               <small>Defesa total</small>
@@ -117,30 +175,67 @@
               <span class="section-kicker">Combate</span>
               <h3 id="ajusteRapidoTitulo">Ajuste rápido</h3>
             </div>
-            <button class="btn secondary small" id="restaurarRecurso" type="button">Restaurar máximo</button>
+            <div class="mobile-adjuster-context" aria-live="polite">
+              <strong id="mobileAdjusterTitle">Ajustar PV</strong>
+              <span><output id="mobileAdjusterCurrent">0</output> / <output id="mobileAdjusterMaximum">0</output></span>
+            </div>
+            <button class="btn secondary small" id="restaurarRecurso" type="button">
+              <span class="desktop-action-label">Restaurar máximo</span>
+              <span class="mobile-action-label" id="mobileRestoreLabel">Restaurar PV ao máximo</span>
+            </button>
           </div>
           <div class="adjuster-grid">
-            <label>Recurso
+            <label class="adjuster-resource-picker">Recurso
               <select id="ajusteRecurso">
                 <option value="pvAtual">PV</option>
                 <option value="pnAtual">PN</option>
                 <option value="psAtual">PS</option>
               </select>
             </label>
-            <label>Valor
+            <label class="adjuster-value-field">Valor
               <input id="ajusteValor" type="number" min="0" inputmode="numeric" placeholder="Ex.: 12">
             </label>
+            <div class="adjuster-presets" aria-label="Valores rápidos">
+              <button type="button" data-adjuster-value="1" aria-label="Definir valor como 1">1</button>
+              <button type="button" data-adjuster-value="5" aria-label="Definir valor como 5">5</button>
+              <button type="button" data-adjuster-value="10" aria-label="Definir valor como 10">10</button>
+              <button type="button" data-adjuster-clear>Limpar</button>
+            </div>
             <button class="btn danger adjust-action" id="reduzirRecurso" type="button">Reduzir</button>
             <button class="btn adjust-action" id="recuperarRecurso" type="button">Recuperar</button>
           </div>
           <p class="adjuster-feedback" id="ajusteFeedback" aria-live="polite">Em PV, o dano consome primeiro os PV temporários.</p>
       </section>
 
+      <section class="active-effects" id="activeEffectsSection" aria-labelledby="activeEffectsTitle">
+        <div class="active-effects-summary">
+          <div class="active-effects-heading">
+            <span class="section-kicker" id="activeEffectsTitle">Efeitos ativos</span>
+            <output id="activeEffectsCount" aria-label="Quantidade de efeitos ativos">0</output>
+          </div>
+          <div class="active-effects-markers" id="activeEffectsMarkers">
+            <span class="active-effects-none">Nenhum efeito ativo</span>
+          </div>
+          <div class="active-effects-actions">
+            <button class="icon-button active-effect-add" id="adicionarEfeito" type="button" aria-label="Adicionar efeito" title="Adicionar efeito">+</button>
+            <button class="icon-button active-effects-toggle" id="alternarEfeitos" type="button" aria-expanded="false" aria-controls="activeEffectsExpanded" aria-label="Expandir efeitos ativos">⌄</button>
+          </div>
+        </div>
+        <div class="active-effects-expanded" id="activeEffectsExpanded" hidden>
+          <div class="active-effects-expanded-header">
+            <span>Efeitos cadastrados</span>
+            <button class="btn secondary small" id="adicionarEfeitoExpandido" type="button">+ Adicionar efeito</button>
+          </div>
+          <div class="active-effects-list" id="listaEfeitosAtivos"></div>
+          <p class="active-effects-empty" id="activeEffectsEmpty">Nenhum efeito ativo.</p>
+        </div>
+      </section>
+
       <div class="form-grid character-info-grid">
-        <label>Nome<input id="nome" type="text" placeholder="Nome do personagem"></label>
-        <label>Patente<input id="patente" type="text" placeholder="Patente"></label>
-        <label>Idade<input id="idade" type="number" min="0" placeholder="Idade"></label>
-        <label>Tipo de Nexo
+        <label class="identity-name-field">Nome<input id="nome" type="text" placeholder="Nome do personagem"></label>
+        <label class="identity-patent-field">Patente<input id="patente" type="text" placeholder="Patente"></label>
+        <label class="identity-age-field">Idade<input id="idade" type="number" min="0" placeholder="Idade"></label>
+        <label class="identity-nexus-field">Tipo de Nexo
           <select id="tipoNexo">
             <option value="">Selecione</option>
             <option>Nexo Comum</option>
@@ -149,9 +244,9 @@
             <option>Nexo Abençoado</option>
           </select>
         </label>
-        <label>Nível<input id="nivel" type="number" min="1" max="11" value="1"></label>
-        <label>Assinatura<input id="assinatura" type="text" placeholder="Assinatura"></label>
-        <label>Classe
+        <label class="identity-level-field">Nível<input id="nivel" type="number" min="1" max="11" value="1"></label>
+        <label class="identity-highlight identity-signature-field">Assinatura<input id="assinatura" type="text" placeholder="Assinatura"></label>
+        <label class="identity-highlight identity-class-field">Classe
           <select id="classe">
             <option value="">Selecione</option>
             <option>Vanguarda</option>
@@ -160,7 +255,7 @@
             <option>Guardião</option>
           </select>
         </label>
-        <label>Forma de Conjuração<input id="formaConjuracao" type="text" placeholder="Como o poder se manifesta"></label>
+        <label class="identity-casting-field">Forma de Conjuração<input id="formaConjuracao" type="text" placeholder="Como o poder se manifesta"></label>
       </div>
 
       <aside class="class-automation-status" id="classAutomationStatus" aria-live="polite">
@@ -187,7 +282,7 @@
           <span>Força</span>
           <div class="attribute-control">
             <button type="button" class="attribute-step" data-attribute="forca" data-step="-1" aria-label="Diminuir Força">−</button>
-            <input id="forca" type="number" min="1" max="6" value="1" aria-label="Força">
+            <input id="forca" type="number" min="1" max="5" value="1" aria-label="Força">
             <button type="button" class="attribute-step" data-attribute="forca" data-step="1" aria-label="Aumentar Força">+</button>
           </div>
         </div>
@@ -195,7 +290,7 @@
           <span>Vigor</span>
           <div class="attribute-control">
             <button type="button" class="attribute-step" data-attribute="vigor" data-step="-1" aria-label="Diminuir Vigor">−</button>
-            <input id="vigor" type="number" min="1" max="6" value="1" aria-label="Vigor">
+            <input id="vigor" type="number" min="1" max="5" value="1" aria-label="Vigor">
             <button type="button" class="attribute-step" data-attribute="vigor" data-step="1" aria-label="Aumentar Vigor">+</button>
           </div>
         </div>
@@ -203,7 +298,7 @@
           <span>Agilidade</span>
           <div class="attribute-control">
             <button type="button" class="attribute-step" data-attribute="agilidade" data-step="-1" aria-label="Diminuir Agilidade">−</button>
-            <input id="agilidade" type="number" min="1" max="6" value="1" aria-label="Agilidade">
+            <input id="agilidade" type="number" min="1" max="5" value="1" aria-label="Agilidade">
             <button type="button" class="attribute-step" data-attribute="agilidade" data-step="1" aria-label="Aumentar Agilidade">+</button>
           </div>
         </div>
@@ -211,7 +306,7 @@
           <span>Intelecto</span>
           <div class="attribute-control">
             <button type="button" class="attribute-step" data-attribute="intelecto" data-step="-1" aria-label="Diminuir Intelecto">−</button>
-            <input id="intelecto" type="number" min="1" max="6" value="1" aria-label="Intelecto">
+            <input id="intelecto" type="number" min="1" max="5" value="1" aria-label="Intelecto">
             <button type="button" class="attribute-step" data-attribute="intelecto" data-step="1" aria-label="Aumentar Intelecto">+</button>
           </div>
         </div>
@@ -219,7 +314,7 @@
           <span>Presença</span>
           <div class="attribute-control">
             <button type="button" class="attribute-step" data-attribute="presenca" data-step="-1" aria-label="Diminuir Presença">−</button>
-            <input id="presenca" type="number" min="1" max="6" value="1" aria-label="Presença">
+            <input id="presenca" type="number" min="1" max="5" value="1" aria-label="Presença">
             <button type="button" class="attribute-step" data-attribute="presenca" data-step="1" aria-label="Aumentar Presença">+</button>
           </div>
         </div>
@@ -238,16 +333,58 @@
           <h2>Perícias</h2>
         </div>
       </div>
+      <div class="skill-filters" aria-label="Filtros de perícias">
+        <label class="skill-search">
+          <span>Buscar por nome</span>
+          <span class="skill-search-control">
+            <input id="skillSearch" type="search" placeholder="Ex.: Investigação" autocomplete="off">
+            <button id="clearSkillSearch" type="button" aria-label="Limpar busca de perícias" disabled>×</button>
+          </span>
+        </label>
+        <div class="skill-filter-row">
+          <div class="skill-domain-filter" role="group" aria-label="Filtrar por domínio">
+            <button class="active" type="button" data-skill-domain="all" aria-pressed="true">Todas</button>
+            <button type="button" data-skill-domain="trained" aria-pressed="false">Com domínio</button>
+          </div>
+          <label class="skill-attribute-filter">
+            <span>Atributo</span>
+            <select id="skillAttributeFilter">
+              <option value="all">Todos os atributos</option>
+              <option value="forca">Força</option>
+              <option value="agilidade">Agilidade</option>
+              <option value="intelecto">Intelecto</option>
+              <option value="presenca">Presença</option>
+              <option value="vigor">Vigor</option>
+            </select>
+          </label>
+        </div>
+        <p class="skill-filter-count" id="skillFilterCount" aria-live="polite">Exibindo 25 de 25 perícias</p>
+      </div>
       <p class="panel-help">Escolha o grau de domínio. O bônus é preenchido automaticamente.</p>
       <div class="skills-list" id="listaPericias"></div>
     </section>
 
     <section class="content-column mobile-section" data-mobile-section="conteudo">
-      <article class="panel content-panel equipment-panel">
+      <nav class="content-mobile-tabs" role="tablist" aria-label="Áreas de conteúdo">
+        <button id="contentTabEquipamentos" role="tab" type="button" aria-selected="true" aria-controls="contentPanelEquipamentos" data-content-target="equipamentos">Equipamentos</button>
+        <button id="contentTabHabilidades" role="tab" type="button" aria-selected="false" aria-controls="contentPanelHabilidades" data-content-target="habilidades" tabindex="-1">Habilidades</button>
+        <button id="contentTabManifestacoes" role="tab" type="button" aria-selected="false" aria-controls="contentPanelManifestacoes" data-content-target="manifestacoes" tabindex="-1">Manifestações</button>
+      </nav>
+
+      <article class="panel content-panel equipment-panel content-subsection active" id="contentPanelEquipamentos" role="tabpanel" aria-labelledby="contentTabEquipamentos" data-content-section="equipamentos">
         <div class="panel-title-row">
           <div>
             <span class="section-kicker">Inventário</span>
             <h2>Equipamentos</h2>
+          </div>
+          <button class="content-notes-button" id="abrirAnotacoes" type="button" title="Abrir anotações" aria-label="Abrir anotações">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6.5 3.5h8a2 2 0 0 1 2 2v6.25M6.5 3.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1.25M6.5 3.5v17M9 7h4.5M9 10.5h3M14.25 16.75l4.9-4.9a1.4 1.4 0 0 1 2 2l-4.9 4.9-2.75.75.75-2.75Z"/>
+            </svg>
+          </button>
+          <div class="favorite-filter" role="group" aria-label="Filtrar Equipamentos">
+            <button class="active" type="button" data-favorite-filter="equipment" data-favorite-mode="all" aria-pressed="true">Todos</button>
+            <button type="button" data-favorite-filter="equipment" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
           </div>
           <button class="btn small" id="adicionarEquipamento" type="button">+ Adicionar</button>
         </div>
@@ -256,29 +393,59 @@
           <label>Proteção principal<input id="protecaoPrincipal" type="text" placeholder="Nome da proteção"></label>
         </div>
         <div class="card-list" id="listaEquipamentos"></div>
+        <p class="favorite-empty-state" data-favorite-empty="equipment" hidden>Nenhum favorito nesta seção.</p>
       </article>
 
-      <article class="panel content-panel abilities-panel">
+      <article class="panel content-panel abilities-panel content-subsection" id="contentPanelHabilidades" role="tabpanel" aria-labelledby="contentTabHabilidades" data-content-section="habilidades">
         <div class="panel-title-row">
           <div>
             <span class="section-kicker">Treinamento</span>
             <h2>Habilidades de Classe</h2>
           </div>
+          <div class="favorite-filter" role="group" aria-label="Filtrar Habilidades">
+            <button class="active" type="button" data-favorite-filter="ability" data-favorite-mode="all" aria-pressed="true">Todos</button>
+            <button type="button" data-favorite-filter="ability" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
+          </div>
           <button class="btn small" id="adicionarHabilidade" type="button">+ Adicionar</button>
         </div>
         <div class="card-list" id="listaHabilidades"></div>
+        <p class="favorite-empty-state" data-favorite-empty="ability" hidden>Nenhum favorito nesta seção.</p>
       </article>
 
-      <article class="panel content-panel manifestations-panel">
+      <article class="panel content-panel manifestations-panel content-subsection" id="contentPanelManifestacoes" role="tabpanel" aria-labelledby="contentTabManifestacoes" data-content-section="manifestacoes">
         <div class="panel-title-row">
           <div>
             <span class="section-kicker">Assinatura</span>
             <h2>Manifestações</h2>
           </div>
+          <div class="favorite-filter" role="group" aria-label="Filtrar Manifestações">
+            <button class="active" type="button" data-favorite-filter="manifestation" data-favorite-mode="all" aria-pressed="true">Todos</button>
+            <button type="button" data-favorite-filter="manifestation" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
+          </div>
           <button class="btn small" id="adicionarManifestacao" type="button">+ Adicionar</button>
         </div>
         <div class="manifestation-grid" id="listaManifestacoes"></div>
+        <p class="favorite-empty-state" data-favorite-empty="manifestation" hidden>Nenhum favorito nesta seção.</p>
       </article>
+    </section>
+  </main>
+
+  <main class="notes-view" id="notesView" aria-labelledby="notesViewTitle" hidden>
+    <section class="panel notes-panel">
+      <header class="notes-page-header">
+        <button class="btn secondary" id="voltarDaAnotacoes" type="button">← Voltar para a ficha</button>
+        <button class="btn" id="adicionarAnotacao" type="button">+ Nova anotação</button>
+      </header>
+      <div class="notes-title-block">
+        <span class="section-kicker">Caderno do personagem</span>
+        <h2 id="notesViewTitle" tabindex="-1">Anotações</h2>
+      </div>
+      <div class="notes-list" id="listaAnotacoes"></div>
+      <div class="notes-empty-state" id="notesEmptyState" hidden>
+        <strong>Nenhuma anotação ainda.</strong>
+        <span>Registre pistas, lembretes e informações importantes deste personagem.</span>
+        <button class="btn secondary" id="adicionarPrimeiraAnotacao" type="button">+ Nova anotação</button>
+      </div>
     </section>
   </main>
 
@@ -287,11 +454,27 @@
     <button data-mobile-target="pericias" type="button">Perícias</button>
     <button data-mobile-target="conteudo" type="button">Conteúdo</button>
   </nav>
+  </div>
+
+  <div class="global-notification" id="globalNotification" role="status" aria-live="polite" hidden></div>
+
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <section class="app-modal" id="appModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+      <button class="modal-close" id="modalClose" type="button" aria-label="Fechar">×</button>
+      <h2 id="modalTitle"></h2>
+      <div class="modal-description" id="modalDescription"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </section>
+  </div>
 
   <template id="templateEquipamento">
     <details class="editable-card" open>
       <summary>
-        <span class="card-title">Novo equipamento</span>
+        <span class="card-summary">
+          <span class="card-title">Novo equipamento</span>
+          <span class="card-meta" aria-hidden="true"></span>
+        </span>
+        <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover equipamento">×</button>
       </summary>
       <div class="editable-card-body form-grid">
@@ -309,7 +492,11 @@
   <template id="templateHabilidade">
     <details class="editable-card" open>
       <summary>
-        <span class="card-title">Nova habilidade</span>
+        <span class="card-summary">
+          <span class="card-title">Nova habilidade</span>
+          <span class="card-meta" aria-hidden="true"></span>
+        </span>
+        <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover habilidade">×</button>
       </summary>
       <div class="editable-card-body form-grid">
@@ -328,8 +515,13 @@
   <template id="templateManifestacao">
     <details class="editable-card manifestation-card" open>
       <summary>
-        <span class="card-title">Nova Manifestação</span>
+        <span class="card-summary">
+          <span class="card-title">Nova Manifestação</span>
+          <span class="card-meta" aria-hidden="true"></span>
+          <span class="card-status" aria-live="polite"></span>
+        </span>
         <button class="icon-button use-manifestation" type="button" title="Descontar custo de PN">Usar</button>
+        <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover manifestação">×</button>
       </summary>
       <div class="editable-card-body form-grid">
@@ -344,6 +536,28 @@
         <label class="span-2">Descrição<textarea data-field="descricao" rows="3" placeholder="Como ela se manifesta"></textarea></label>
         <label class="span-2">Efeito<textarea data-field="efeito" rows="4" placeholder="Efeito mecânico"></textarea></label>
         <label class="span-2">Limitações<textarea data-field="limitacoes" rows="3" placeholder="Requisitos e restrições"></textarea></label>
+      </div>
+      <p class="card-feedback"></p>
+    </details>
+  </template>
+
+  <template id="templateAnotacao">
+    <details class="editable-card note-card">
+      <summary>
+        <span class="card-summary note-summary">
+          <span class="card-title note-summary-title">Anotação sem título</span>
+          <span class="note-preview">Anotação vazia.</span>
+        </span>
+        <button class="icon-button note-pin-button" type="button" aria-pressed="false" aria-label="Fixar anotação">☆</button>
+        <button class="icon-button remove-card note-remove-button" type="button" aria-label="Excluir anotação">×</button>
+      </summary>
+      <div class="editable-card-body note-card-body">
+        <label>Título<input class="note-title-input" type="text" maxlength="160" placeholder="Título da anotação"></label>
+        <label>Conteúdo<textarea class="note-content-input" rows="8" placeholder="Escreva sua anotação"></textarea></label>
+        <p class="note-dates">
+          <span>Criada em <time class="note-created-at"></time></span>
+          <span>Alterada em <time class="note-updated-at"></time></span>
+        </p>
       </div>
     </details>
   </template>
