@@ -1737,7 +1737,9 @@ function restoreState(saved) {
       : (initialFieldValues[id] ?? '');
   }
 
-  document.getElementById('nivel').value = integerBetween(document.getElementById('nivel').value, 1, 11);
+  const levelInput = document.getElementById('nivel');
+  levelInput.value = integerBetween(levelInput.value, 1, 11);
+  levelInput.dataset.lastValidValue = levelInput.value;
   const normalizedAttributeIds = normalizeAttributesForLevel();
 
   setPhoto(state.photo);
@@ -2952,7 +2954,19 @@ function bindSimpleFields() {
     const element = document.getElementById(id);
     if (!element || ATTRIBUTE_IDS.includes(id)) return;
 
+    if (id === 'nivel') {
+      element.dataset.lastValidValue = String(integerBetween(element.value, 1, 11));
+      element.addEventListener('blur', () => {
+        if (element.value !== '') return;
+        const restoredLevel = integerBetween(element.dataset.lastValidValue, 1, 11);
+        element.value = restoredLevel;
+        element.dataset.lastValidValue = String(restoredLevel);
+      });
+    }
+
     element.addEventListener('input', () => {
+      if (id === 'nivel' && element.value === '') return;
+
       if (id === 'agilidade' || id === 'bonusDefesaEquipamento') recalculateDefense();
 
       if (resourceLabels[id]) {
@@ -2967,6 +2981,7 @@ function bindSimpleFields() {
 
       if (id === 'nivel') {
         element.value = integerBetween(element.value, 1, 11);
+        element.dataset.lastValidValue = element.value;
         const normalizedAttributeIds = normalizeAttributesForLevel();
         updateAttributePointsUI(normalizedAttributeIds.length
           ? 'Ao sair do nível 11, atributos acima de 5 foram ajustados ao limite atual.'
