@@ -1,4 +1,6 @@
-# Crônicas da Ressonância — Ficha Digital v1.0 Pré-Alpha
+# Crônicas da Ressonância — Ficha Digital v1.1.2 Pré-Alpha
+
+Compilação 1.1.2: inclui Acrobacia e Fortitude, ambas associadas a Vigor.
 
 Primeira versão pública de testes da ficha digital de **Crônicas da Ressonância**.
 

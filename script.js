@@ -1,3 +1,4 @@
+// Compilação da aplicação: 1.1.2
 const STORAGE_KEY = 'cronicasRessonanciaFichaV3PreAlpha';
 const LEGACY_STORAGE_KEY = 'cronicasRessonanciaFichaV1';
 const CONTENT_SECTION_SESSION_KEY = 'cronicasRessonanciaContentSection';
