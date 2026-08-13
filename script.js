@@ -14,10 +14,10 @@ const LARGE_IMAGE_BYTES = 1.5 * 1024 * 1024;
 const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 
 const pericias = [
-  ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
+  ['Acrobacia', 'Vigor'], ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
   ['Carisma', 'Presença'], ['Ciências', 'Intelecto'], ['Combate', 'Força'],
   ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'], ['Enganação', 'Presença'],
-  ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
+  ['Fortitude', 'Vigor'], ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
   ['Intuição', 'Presença'], ['Investigação', 'Intelecto'], ['Medicina', 'Intelecto'],
   ['Percepção', 'Presença'], ['Pilotagem', 'Agilidade'], ['Pontaria', 'Agilidade'],
   ['Profissão', 'Intelecto'], ['Reflexos', 'Agilidade'], ['Ressonância', 'Intelecto'],
