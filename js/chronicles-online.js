@@ -297,6 +297,7 @@
       edit.disabled = online && !owner;
       edit.title = online && !owner ? 'Somente o Mestre pode editar esta Crônica online.' : '';
     }
+    global.ChroniclesSharing?.applyDetailMode(chronicle);
   }
 
   function getErrorMessage(error) {
