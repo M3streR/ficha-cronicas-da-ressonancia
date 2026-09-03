@@ -197,6 +197,7 @@ function createAccountUI() {
         renderDialog();
         try {
           await signOut();
+          pending = false;
           closeDialog();
         } catch (error) {
           pending = false;
@@ -291,6 +292,7 @@ function createAccountUI() {
         if (submittedMode === 'signup') {
           const data = await signUp(credentials.email, credentials.password);
           if (data.session) {
+            pending = false;
             closeDialog();
           } else {
             pending = false;
@@ -298,6 +300,7 @@ function createAccountUI() {
           }
         } else {
           await signIn(credentials.email, credentials.password);
+          pending = false;
           closeDialog();
         }
       } catch (error) {
