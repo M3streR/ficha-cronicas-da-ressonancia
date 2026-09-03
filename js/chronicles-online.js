@@ -317,10 +317,13 @@
 
     const overrides = {
       async listChronicles() {
-        const [local, online] = await Promise.all([
-          localStorageApi.listChronicles(),
-          listOnlineChronicles()
-        ]);
+        const local = await localStorageApi.listChronicles();
+        let online = [];
+        try {
+          online = await listOnlineChronicles();
+        } catch (error) {
+          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);
+        }
         return [
           ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),
           ...online
