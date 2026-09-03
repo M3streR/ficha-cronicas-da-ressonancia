@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/chronicles-workspace.css?v=6-combates-1">
   <link rel="stylesheet" href="css/account-auth.css?v=1">
   <link rel="stylesheet" href="css/chronicles-online.css?v=1">
+  <link rel="stylesheet" href="css/chronicles-sharing.css?v=1">
 </head>
 <body class="manager-view-open">
   <main class="character-manager environment-root" id="characterManagerView" data-active-environment="characters" aria-label="Gerenciador de Crônicas da Ressonância">
@@ -316,7 +317,8 @@
                   <div class="chronicle-actions-list">
                     <button class="chronicle-context-action" id="editChronicleAction" type="button">Editar Crônica</button>
                     <button class="chronicle-context-action master-shield" id="openMasterShield" type="button">Escudo do Mestre</button>
-                    <button class="chronicle-context-action" type="button" aria-describedby="chronicleActionsUnavailable" disabled>Convidar Participantes <small>Em breve</small></button>
+                    <button class="chronicle-context-action" id="makeChronicleOnlineAction" type="button" hidden>Tornar Crônica Online</button>
+                    <button class="chronicle-context-action" id="inviteChronicleAction" type="button" hidden>Convidar Participantes</button>
                   </div>
                 </aside>
               </div>
@@ -1041,6 +1043,7 @@
   <script type="module" src="js/supabase-client.js?v=1"></script>
   <script src="js/chronicles-storage.js?v=6-combates-1"></script>
   <script src="js/chronicles-online.js?v=1"></script>
+  <script src="js/chronicles-sharing.js?v=1"></script>
   <script src="js/confrontations.js?v=6-combates-1"></script>
   <script src="js/master-access.js?v=6-combates-1"></script>
   <script src="js/roll-history-view.js?v=6-rolador-1"></script>
