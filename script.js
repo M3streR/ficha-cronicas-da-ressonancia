@@ -1746,8 +1746,10 @@ globalThis.ChroniclesLocalCharacters = Object.freeze({
   list() {
     const directory = getChronicleCharacterDirectory();
     if (directory.unavailable) throw new Error('LOCAL_CHARACTER_DIRECTORY_UNAVAILABLE');
+    const manager = readCharacterManager();
     return directory.entries.map(entry => ({
       ...entry,
+      thumbnail: manager?.characters?.[entry.id]?.thumbnail || '',
       character: readStoredCharacter(entry.id)
     }));
   }
