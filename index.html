@@ -5,43 +5,414 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
   <title>Ficha — Crônicas da Ressonância</title>
-  <link rel="stylesheet" href="style.css?v=1.1.2">
+  <link rel="stylesheet" href="style.css?v=alpha-watermark-1">
+  <link rel="stylesheet" href="css/chronicles-workspace.css?v=6-combates-1">
 </head>
 <body class="manager-view-open">
-  <main class="character-manager" id="characterManagerView" aria-labelledby="characterManagerTitle">
-    <header class="manager-hero">
-      <span class="eyebrow">Pré-Alpha · Ficha v1.1.2</span>
-      <h1>Crônicas da Ressonância</h1>
-    </header>
+  <main class="character-manager environment-root" id="characterManagerView" data-active-environment="characters" aria-label="Gerenciador de Crônicas da Ressonância">
+    <div class="manager-app-shell">
+      <header class="manager-topbar manager-environment-brand">
+        <h1>Crônicas da Ressonância</h1>
+      </header>
 
-    <section class="manager-library" aria-labelledby="characterManagerTitle">
-      <div class="manager-section-heading">
-        <div>
-          <span class="section-kicker">Arquivo de personagens</span>
-          <h2 id="characterManagerTitle" tabindex="-1">Meus personagens</h2>
-          <p class="manager-storage-note">Os personagens ficam salvos neste navegador.</p>
+      <div class="manager-workspace">
+        <aside class="manager-sidebar manager-environment-switcher">
+          <nav class="manager-navigation" aria-label="Navegação principal">
+            <button class="manager-nav-item active" type="button" data-manager-section="characters" aria-controls="managerCharactersPanel" aria-current="page">Personagens</button>
+            <button class="manager-nav-item" type="button" data-manager-section="chronicles" aria-controls="managerChroniclesPanel">Crônicas</button>
+          </nav>
+        </aside>
+
+        <div class="manager-content manager-environment-stage">
+          <section class="manager-section manager-environment manager-environment-characters manager-characters-panel" id="managerCharactersPanel" data-manager-panel="characters" aria-label="Personagens" tabindex="-1">
+            <div class="manager-content-actions">
+              <button class="btn secondary" id="managerImportCharacter" type="button">Importar Personagem</button>
+              <input id="managerImportFile" type="file" accept=".json,application/json" hidden>
+            </div>
+
+            <div class="character-gallery" id="characterCardList" aria-label="Personagens salvos" aria-live="polite">
+              <button class="create-character-card" id="managerCreateCharacter" type="button">
+                <span class="create-character-symbol" aria-hidden="true">+</span>
+                <strong>Criar novo personagem</strong>
+                <span>Começar uma ficha vazia</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="manager-section manager-environment manager-environment-chronicles" id="managerChroniclesPanel" data-manager-panel="chronicles" aria-labelledby="managerChroniclesTitle" tabindex="-1" hidden>
+            <div class="chronicles-index-view" id="chroniclesIndexView">
+              <header class="chronicles-archive-header">
+                <div class="chronicles-title-block">
+                  <span class="chronicles-kicker">Arquivo narrativo</span>
+                  <h2 id="managerChroniclesTitle">Crônicas</h2>
+                  <p>Histórias, capítulos e registros que atravessam a Ressonância.</p>
+                </div>
+
+                <button class="new-chronicle-entry" id="openChronicleCreation" type="button">
+                  <span class="new-chronicle-symbol" aria-hidden="true">+</span>
+                  <span class="new-chronicle-copy">
+                    <small>Novo registro</small>
+                    <strong>Nova Crônica</strong>
+                    <span>Iniciar uma nova história</span>
+                  </span>
+                </button>
+              </header>
+
+              <section class="chronicles-records" aria-labelledby="chroniclesRecordsTitle">
+                <div class="chronicles-records-heading">
+                  <div>
+                    <span class="chronicles-kicker">Índice</span>
+                  <h3 id="chroniclesRecordsTitle" tabindex="-1">Registros</h3>
+                  </div>
+                  <span class="chronicles-record-count" id="chroniclesRecordCount" aria-label="Nenhum registro">00</span>
+                </div>
+
+                <div class="chronicles-record-grid" id="chroniclesRecordGrid" aria-live="polite"></div>
+
+                <div class="chronicles-empty-state" id="chroniclesEmptyState">
+                  <strong>Nenhuma Crônica registrada.</strong>
+                  <span>Quando o arquivo for iniciado, suas histórias aparecerão aqui.</span>
+                </div>
+              </section>
+            </div>
+
+            <section class="chronicle-create-view" id="chronicleCreateView" aria-labelledby="chronicleCreateTitle" hidden>
+              <button class="chronicle-create-back" id="backToChroniclesIndex" type="button">← Voltar para Crônicas</button>
+
+              <header class="chronicle-create-heading">
+                <span class="chronicles-kicker" id="chronicleFormKicker">Novo registro narrativo</span>
+                <h2 id="chronicleCreateTitle" tabindex="-1">Nova Crônica</h2>
+                <p id="chronicleFormDescription">Defina a apresentação inicial da história. O interior da Crônica será desenvolvido em uma próxima etapa.</p>
+              </header>
+
+              <form class="chronicle-create-form" id="chronicleCreateForm" novalidate>
+                <section class="chronicle-cover-section" aria-labelledby="chronicleCoverTitle">
+                  <div class="chronicle-form-section-heading">
+                    <div>
+                      <span class="chronicles-kicker">Capa</span>
+                      <h3 id="chronicleCoverTitle">Imagem da Crônica</h3>
+                    </div>
+                    <span>Opcional · enquadramento 16:9</span>
+                  </div>
+
+                  <div class="chronicle-cover-preview" id="chronicleCoverPreview" data-has-cover="false">
+                    <img id="chronicleCoverPreviewImage" alt="Prévia da capa selecionada" hidden>
+                    <div class="chronicle-cover-placeholder" id="chronicleCoverPlaceholder">
+                      <span aria-hidden="true">◇</span>
+                      <strong>Nenhuma capa selecionada</strong>
+                      <small>A imagem será ajustada para uma composição horizontal.</small>
+                    </div>
+                  </div>
+
+                  <div class="chronicle-cover-actions">
+                    <label class="btn secondary chronicle-cover-select">
+                      <span id="chronicleCoverSelectLabel">Adicionar imagem</span>
+                      <input id="chronicleCoverInput" type="file" accept="image/*" hidden>
+                    </label>
+                    <button class="btn secondary" id="removeChronicleCover" type="button" hidden>Remover imagem</button>
+                    <span class="chronicle-cover-status" id="chronicleCoverStatus" aria-live="polite"></span>
+                  </div>
+                </section>
+
+                <div class="chronicle-create-fields">
+                  <label class="chronicle-form-field" for="chronicleName">
+                    <span>Nome da Crônica <strong aria-hidden="true">*</strong></span>
+                    <input id="chronicleName" name="name" type="text" maxlength="120" autocomplete="off" required>
+                  </label>
+
+                  <label class="chronicle-form-field" for="chronicleSynopsis">
+                    <span>Sinopse <small>Opcional</small></span>
+                    <textarea id="chronicleSynopsis" name="synopsis" rows="5" maxlength="1200" placeholder="Uma apresentação breve da história..."></textarea>
+                  </label>
+
+                  <fieldset class="chronicle-type-fieldset" id="chronicleTypeFieldset">
+                    <legend>Tipo de Crônica <strong aria-hidden="true">*</strong></legend>
+                    <div class="chronicle-type-options">
+                      <label>
+                        <input type="radio" name="chronicleType" value="campaign">
+                        <span>Campanha</span>
+                      </label>
+                      <label>
+                        <input type="radio" name="chronicleType" value="oneshot">
+                        <span>One-shot</span>
+                      </label>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <p class="chronicle-form-feedback" id="chronicleFormFeedback" role="status" aria-live="polite"></p>
+
+                <div class="chronicle-create-submit-row">
+                  <button class="btn" id="createChronicleButton" type="submit">Criar Crônica</button>
+                </div>
+
+                <section class="chronicle-danger-zone" id="chronicleDangerZone" aria-labelledby="chronicleDangerTitle" hidden>
+                  <div>
+                    <span class="chronicles-kicker">Zona destrutiva</span>
+                    <h3 id="chronicleDangerTitle">Excluir Crônica</h3>
+                    <p>Remove definitivamente este registro e sua capa deste navegador.</p>
+                  </div>
+                  <button class="btn danger" id="deleteChronicleButton" type="button">Excluir Crônica</button>
+                </section>
+              </form>
+            </section>
+
+            <section class="chronicle-detail-view" id="chronicleDetailView" aria-labelledby="chronicleDetailTitle" hidden>
+              <button class="chronicle-detail-back" id="backFromChronicleDetail" type="button">← Voltar para Crônicas</button>
+
+              <header class="chronicle-detail-masthead">
+                <figure class="chronicle-detail-cover" id="chronicleDetailCover">
+                  <img id="chronicleDetailCoverImage" alt="" hidden>
+                  <div class="chronicle-detail-cover-placeholder" id="chronicleDetailCoverPlaceholder" aria-hidden="true">
+                    <span>◇</span>
+                  </div>
+                </figure>
+
+                <div class="chronicle-detail-identity">
+                  <div class="chronicle-detail-metadata">
+                    <span id="chronicleDetailIndex">01</span>
+                    <span aria-hidden="true">·</span>
+                    <span id="chronicleDetailType">Campanha</span>
+                  </div>
+                  <span class="chronicles-kicker">Registro ativo</span>
+                  <h2 id="chronicleDetailTitle" tabindex="-1"></h2>
+                  <p id="chronicleDetailSynopsis" hidden></p>
+                </div>
+              </header>
+
+              <div class="chronicle-detail-workspace">
+                <main class="chronicle-detail-main">
+                  <div class="chronicle-detail-navigation-row">
+                    <div class="chronicle-detail-tabs" role="tablist" aria-label="Áreas da Crônica">
+                      <button id="chronicleTabOverview" type="button" role="tab" aria-selected="true" aria-controls="chroniclePanelOverview" tabindex="0" data-chronicle-detail-tab="overview">
+                        <span aria-hidden="true">01</span>
+                        Visão Geral
+                      </button>
+                      <button id="chronicleTabCast" type="button" role="tab" aria-selected="false" aria-controls="chroniclePanelCast" tabindex="-1" data-chronicle-detail-tab="cast">
+                        <span aria-hidden="true">02</span>
+                        Elenco
+                      </button>
+                      <button id="chronicleTabParticipants" type="button" role="tab" aria-selected="false" aria-controls="chroniclePanelParticipants" tabindex="-1" data-chronicle-detail-tab="participants">
+                        <span aria-hidden="true">03</span>
+                        Participantes
+                      </button>
+                      <button id="chronicleTabEncounters" type="button" role="tab" aria-selected="false" aria-controls="chroniclePanelEncounters" tabindex="-1" data-chronicle-detail-tab="encounters">
+                        <span aria-hidden="true">04</span>
+                        Confrontos
+                      </button>
+                    </div>
+
+                    <button class="chronicle-mobile-actions-trigger" id="openChronicleActions" type="button" aria-expanded="false" aria-controls="chronicleActionsPanel">Ações</button>
+                  </div>
+
+                  <section class="chronicle-detail-panel chronicle-overview-panel" id="chroniclePanelOverview" role="tabpanel" aria-labelledby="chronicleTabOverview" tabindex="0" data-chronicle-detail-panel="overview">
+                    <header class="chronicle-overview-heading">
+                      <span class="chronicles-kicker">Arquivo</span>
+                      <h3>Registro da Crônica</h3>
+                    </header>
+                    <dl class="chronicle-overview-metadata" aria-label="Informações da Crônica">
+                      <div>
+                        <dt>Tipo</dt>
+                        <dd id="chronicleOverviewType"></dd>
+                      </div>
+                      <div>
+                        <dt>Criação</dt>
+                        <dd id="chronicleOverviewCreatedAt"></dd>
+                      </div>
+                      <div>
+                        <dt>Última alteração</dt>
+                        <dd id="chronicleOverviewUpdatedAt"></dd>
+                      </div>
+                    </dl>
+                  </section>
+                  <section class="chronicle-detail-panel chronicle-cast-panel" id="chroniclePanelCast" role="tabpanel" aria-labelledby="chronicleTabCast" tabindex="0" data-chronicle-detail-panel="cast" hidden>
+                    <div class="chronicle-cast-consult" id="chronicleCastConsultView">
+                      <header class="chronicle-cast-heading">
+                        <div>
+                          <h3>Elenco</h3>
+                        </div>
+                        <span class="chronicle-cast-count" id="chronicleCastCount" aria-label="Nenhum personagem no Elenco">00</span>
+                        <button class="btn secondary" id="manageChronicleCast" type="button">Gerenciar Elenco</button>
+                      </header>
+
+                      <p class="chronicle-cast-feedback" id="chronicleCastFeedback" role="status" aria-live="polite"></p>
+                      <div class="chronicle-cast-list" id="chronicleCastList" aria-label="Personagens vinculados"></div>
+
+                      <div class="chronicle-cast-empty" id="chronicleCastEmpty" hidden>
+                        <span class="chronicle-cast-empty-mark" aria-hidden="true">◇</span>
+                        <div>
+                          <strong>Nenhum personagem vinculado</strong>
+                          <p>Conecte personagens existentes a esta Crônica sem criar cópias das fichas.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="chronicle-cast-manager" id="chronicleCastManagerView" hidden>
+                      <header class="chronicle-cast-heading chronicle-cast-manager-heading">
+                        <div>
+                          <span class="chronicles-kicker">Organizar vínculos</span>
+                          <h3>Gerenciar Elenco</h3>
+                        </div>
+                        <span class="chronicle-cast-selection-count" id="chronicleCastSelectionCount" aria-live="polite">0 selecionados</span>
+                      </header>
+
+                      <label class="chronicle-cast-search">
+                        <span>Buscar personagem</span>
+                        <input id="chronicleCastSearch" type="search" placeholder="Buscar personagem..." autocomplete="off">
+                      </label>
+
+                      <p class="chronicle-cast-feedback" id="chronicleCastManagerFeedback" role="status" aria-live="polite"></p>
+                      <div class="chronicle-cast-selection-list" id="chronicleCastSelectionList" role="group" aria-label="Selecionar personagens para o Elenco"></div>
+                      <p class="chronicle-cast-no-results" id="chronicleCastNoResults" hidden>Nenhum personagem corresponde à busca.</p>
+
+                      <div class="chronicle-cast-manager-actions">
+                        <button class="btn secondary" id="cancelChronicleCastManagement" type="button">Cancelar</button>
+                        <button class="btn" id="saveChronicleCast" type="button">Salvar Elenco</button>
+                      </div>
+                    </div>
+                  </section>
+                  <section class="chronicle-detail-panel chronicle-participants-panel" id="chroniclePanelParticipants" role="tabpanel" aria-labelledby="chronicleTabParticipants" tabindex="0" data-chronicle-detail-panel="participants" hidden>
+                    <header class="chronicle-participants-heading">
+                      <div><h3>Participantes</h3></div>
+
+                    </header>
+                    <p class="chronicle-participants-feedback" id="chronicleParticipantsFeedback" role="status" aria-live="polite"></p>
+                    <form class="chronicle-participant-editor" id="chronicleParticipantForm" aria-labelledby="chronicleParticipantFormTitle" novalidate hidden>
+                      <h4 id="chronicleParticipantFormTitle">Adicionar participante</h4>
+                      <label for="chronicleParticipantName">Nome</label>
+                      <input id="chronicleParticipantName" type="text" maxlength="120" required autocomplete="off" enterkeyhint="done" aria-describedby="chronicleParticipantNameHelp chronicleParticipantFormFeedback">
+                      <span class="chronicle-participant-help" id="chronicleParticipantNameHelp">Obrigatório · até 120 caracteres.</span>
+                      <p class="chronicle-participants-feedback" id="chronicleParticipantFormFeedback" role="status" aria-live="polite"></p>
+                      <div class="chronicle-participant-form-actions">
+                        <button class="btn secondary" id="cancelChronicleParticipant" type="button">Cancelar</button>
+                        <button class="btn" id="saveChronicleParticipant" type="submit">Salvar participante</button>
+                      </div>
+                    </form>
+                    <div class="chronicle-participants-empty" id="chronicleParticipantsEmpty" hidden>
+                      <p>Nenhum participante foi adicionado a esta Crônica.</p>
+                    </div>
+                    <ol class="chronicle-participants-list" id="chronicleParticipantsList" aria-label="Participantes desta Crônica"></ol>
+                  </section>
+                  <section class="chronicle-detail-panel" id="chroniclePanelEncounters" role="tabpanel" aria-labelledby="chronicleTabEncounters" tabindex="0" data-chronicle-detail-panel="encounters" hidden>
+                    <header class="confrontation-index-heading"><div><h3>Confrontos</h3></div></header>
+                    <p id="confrontationIndexFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
+                    
+                    <div id="confrontationEmpty" class="confrontation-empty" hidden><p>Nenhum Confronto ativo nesta Crônica.</p></div>
+                    <ol id="confrontationIndex" class="confrontation-index" aria-label="Confrontos desta Crônica"></ol>
+                  </section>
+                </main>
+
+                <aside class="chronicle-actions-panel" id="chronicleActionsPanel" aria-labelledby="chronicleActionsTitle">
+                  <header class="chronicle-actions-heading">
+                    <div>
+                      <h3 id="chronicleActionsTitle">Ações da Crônica</h3>
+                    </div>
+                    <button class="chronicle-actions-close" id="closeChronicleActions" type="button" aria-label="Fechar ações">×</button>
+                  </header>
+
+                  <p class="sr-only" id="chronicleActionsUnavailable">Esta ação estará disponível em uma próxima etapa.</p>
+                  <div class="chronicle-actions-list">
+                    <button class="chronicle-context-action" id="editChronicleAction" type="button">Editar Crônica</button>
+                    <button class="chronicle-context-action master-shield" id="openMasterShield" type="button">Escudo do Mestre</button>
+                    <button class="chronicle-context-action" type="button" aria-describedby="chronicleActionsUnavailable" disabled>Convidar Participantes <small>Em breve</small></button>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="chronicle-actions-backdrop" id="chronicleActionsBackdrop" hidden></div>
+            </section>
+            <section id="chronicleMasterShieldView" class="master-shield-view" aria-labelledby="masterShieldTitle" hidden>
+              <div class="master-module-actions"><button type="button" class="btn secondary" id="backFromMasterShield">← Voltar para a Crônica</button><button type="button" class="btn secondary" id="lockMasterShield" hidden>Bloquear Escudo</button></div>
+              <header class="master-shield-heading">
+                <p class="master-shield-eyebrow">Arquivo reservado · armazenamento local</p>
+                <h2 id="masterShieldTitle" tabindex="-1">Escudo do Mestre</h2>
+                <p id="masterShieldChronicleName" class="master-shield-context"></p>
+                <p class="master-shield-metadata"><span id="masterShieldChronicleType"></span><span id="masterShieldChronicleDate"></span></p>
+              </header>
+              <div id="masterShieldAccess"></div>
+              <div id="masterShieldPrivate" hidden>
+                <p id="masterShieldFeedback" class="master-shield-feedback" role="status" aria-live="polite"></p>
+                <div id="masterDashboard" class="master-dashboard">
+                  <button type="button" data-master-module="hunters"><strong>Caçadores</strong><span id="masterHuntersSummary">Consulta do Elenco</span></button>
+                  <button type="button" data-master-module="combats"><strong>Combates</strong><span id="masterCombatsSummary">Preparar e iniciar Confrontos</span></button>
+                </div>
+                <div id="masterModule" hidden>
+                  <button type="button" class="btn secondary" id="backToMasterDashboard">← Painel do Mestre</button>
+                  <h3 id="masterModuleTitle" tabindex="-1"></h3>
+                  <section id="masterHuntersModule" hidden><p id="masterShieldCastFeedback" role="status"></p><ul id="masterShieldCastList"></ul></section>
+                  <section id="masterCombatsModule" hidden>
+                    <div id="masterCombatsOverview">
+                      <header class="master-combats-heading"><p>Monte a composição, salve e inicie na aba Confrontos.</p><button type="button" class="btn" id="createMasterConfrontation">Criar Confronto</button></header>
+                      <p id="masterShieldConfrontationsFeedback" role="status"></p>
+                      <ul id="masterShieldConfrontationsList"></ul>
+                    </div>
+                    <div id="masterCombatEditorHost"></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+            <section id="confrontationView" class="confrontation-view" aria-labelledby="confrontationTitle" hidden>
+              <button id="backFromConfrontation" type="button" class="chronicle-detail-back">← Voltar para Confrontos</button>
+              <header class="confrontation-masthead">
+                <div><span class="chronicles-kicker" id="confrontationChronicleName"></span><span class="confrontation-eyebrow">Confronto</span><h2 id="confrontationTitle" tabindex="-1"></h2><p id="confrontationDescription" hidden></p></div>
+                <div class="confrontation-row-actions"><button id="editConfrontation" type="button" class="btn secondary">Editar Confronto</button><button id="startConfrontation" type="button" class="btn" hidden>Iniciar Confronto</button><button id="endConfrontation" type="button" class="btn secondary" hidden>Encerrar Confronto</button></div>
+              </header>
+              <p id="confrontationFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
+              <div id="confrontationEditorHost"></div><p id="confrontationPreparationHelp" class="confrontation-help" hidden>Monte a composição abaixo. Nada será gravado até Salvar Confronto.</p>
+              <div class="confrontation-workspace">
+                <main class="confrontation-combatants" aria-labelledby="combatantsTitle">
+                  <header class="confrontation-combatants-heading"><span class="chronicles-kicker">Frentes da batalha</span><h3 id="combatantsTitle">Combatentes</h3></header>
+                  <section class="confrontation-characters" aria-labelledby="confrontationCharactersTitle">
+                    <header class="confrontation-section-heading"><h4 id="confrontationCharactersTitle">Caçadores do Elenco</h4><button class="btn secondary" id="selectConfrontationCharacters" type="button">Selecionar Caçadores</button></header>
+                    <form id="confrontationSelectionForm" class="confrontation-editor" aria-labelledby="confrontationSelectionTitle" hidden>
+                      <h5 id="confrontationSelectionTitle">Selecionar Caçadores do Elenco</h5>
+                      <label for="confrontationCharacterSearch">Buscar personagem</label><input id="confrontationCharacterSearch" type="search" placeholder="Buscar personagem..." autocomplete="off">
+                      <p id="confrontationSelectionCount" class="confrontation-help" aria-live="polite"></p>
+                      <div id="confrontationSelectionList" class="confrontation-selection-list" role="group" aria-label="Personagens disponíveis"></div>
+                      <p id="confrontationSelectionFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
+                      <div class="confrontation-form-actions"><button class="btn secondary" id="cancelConfrontationSelection" type="button">Cancelar</button><button class="btn" type="submit">Salvar seleção</button></div>
+                    </form>
+                    <div id="confrontationCharacters" class="confrontation-character-list"></div>
+                  </section>
+                  <section class="confrontation-adversaries" aria-labelledby="confrontationAdversariesTitle">
+                    <header class="confrontation-section-heading"><h4 id="confrontationAdversariesTitle">Adversários</h4><button class="btn secondary" id="addConfrontationAdversary" type="button">Adicionar adversário</button></header>
+                    <form id="confrontationAdversaryForm" class="confrontation-editor" aria-labelledby="confrontationAdversaryFormTitle" novalidate hidden>
+                      <h5 id="confrontationAdversaryFormTitle">Adicionar adversário</h5>
+                      <label for="confrontationAdversaryName">Nome <span class="confrontation-help">obrigatório · até 120 caracteres</span></label><input id="confrontationAdversaryName" required maxlength="120" autocomplete="off" aria-describedby="confrontationAdversaryFeedback">
+                      <div class="confrontation-numeric-fields">
+                        <label>PV atual<input id="confrontationAdversaryPVCurrent" type="number" min="0" step="1" inputmode="numeric" aria-describedby="confrontationPVHelp confrontationAdversaryFeedback"></label>
+                        <label>PV máximo<input id="confrontationAdversaryPVMax" type="number" min="1" step="1" inputmode="numeric" aria-describedby="confrontationPVHelp confrontationAdversaryFeedback"></label>
+                        <label>DEF<input id="confrontationAdversaryDefense" type="number" step="1" inputmode="numeric" aria-describedby="confrontationAdversaryFeedback"></label>
+                      </div>
+                      <p id="confrontationPVHelp" class="confrontation-help">PV e DEF são opcionais. Informe os dois valores de PV ou deixe ambos vazios. Edição manual, sem automações.</p>
+                      <p id="confrontationAdversaryFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
+                      <div class="confrontation-form-actions"><button class="btn secondary" id="cancelConfrontationAdversary" type="button">Cancelar</button><button class="btn" type="submit">Salvar adversário</button></div>
+                    </form>
+                    <ol id="confrontationAdversaries" class="confrontation-adversary-list" aria-label="Adversários do Confronto"></ol>
+                  </section>
+                </main>
+              </div>
+              <div id="confrontationCompositionActions" class="confrontation-form-actions" hidden><button id="cancelConfrontationComposition" type="button" class="btn secondary">Cancelar</button><button id="saveConfrontationComposition" type="button" class="btn">Salvar Confronto</button></div>
+            </section>
+            <form id="confrontationForm" class="confrontation-editor" aria-labelledby="confrontationFormTitle" novalidate hidden>
+              <h3 id="confrontationFormTitle">Novo Confronto</h3>
+              <label for="confrontationName">Nome <span class="confrontation-help">obrigatório · até 120 caracteres</span></label><input id="confrontationName" required maxlength="120" autocomplete="off" aria-describedby="confrontationFormFeedback">
+              <label for="confrontationDescriptionInput">Descrição <span class="confrontation-help">opcional · até 1.200 caracteres</span></label><textarea id="confrontationDescriptionInput" maxlength="1200" rows="3" aria-describedby="confrontationFormFeedback"></textarea>
+              <p id="confrontationFormFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
+              <div class="confrontation-form-actions" id="confrontationMetadataActions"><button class="btn secondary" id="cancelConfrontationForm" type="button">Cancelar</button><button class="btn" id="saveConfrontation" type="submit">Criar Confronto</button></div>
+              <div class="confrontation-danger-zone" id="confrontationDangerZone" hidden><p>Excluir remove este Confronto e seus adversários. As fichas originais permanecem intactas.</p><button class="btn danger" id="deleteConfrontation" type="button">Excluir Confronto</button></div>
+            </form>
+          </section>
+
         </div>
       </div>
-      <button class="btn secondary" id="managerImportCharacter" type="button">Importar personagem</button>
-      <input id="managerImportFile" type="file" accept=".json,application/json" hidden>
-
-      <div class="character-gallery" id="characterGallery" aria-live="polite">
-        <button class="create-character-card" id="managerCreateCharacter" type="button">
-          <span class="create-character-symbol" aria-hidden="true">+</span>
-          <strong>Criar novo personagem</strong>
-          <span>Começar uma ficha vazia</span>
-        </button>
-        <div class="character-card-list" id="characterCardList"></div>
-      </div>
-
-      <p class="manager-empty-state" id="managerEmptyState" hidden>Nenhum personagem foi encontrado.</p>
-    </section>
+    </div>
   </main>
 
   <div class="character-sheet-view" id="characterSheetView" hidden>
   <header class="app-header">
     <div>
-      <span class="eyebrow">Pré-Alpha · Ficha v1.1.2</span>
+      <span class="eyebrow">Alpha · Ficha v1.0</span>
       <h1>Crônicas da Ressonância</h1>
       <p>Ficha digital de personagem</p>
     </div>
@@ -92,7 +463,7 @@
         </div>
       </div>
 
-      <div class="identity-top">
+      <div class="identity-top status-panel">
         <label class="portrait-upload" title="Clique para escolher uma imagem">
           <img id="fotoPreview" alt="Foto do personagem">
           <span id="fotoPlaceholder">Adicionar foto</span>
@@ -105,12 +476,14 @@
               <span>PV</span>
               <small>Pontos de Vida</small>
             </div>
-            <div class="resource-values">
-              <input id="pvAtual" type="number" min="0" value="0" aria-label="PV atual">
-              <span>/</span>
-              <input id="pvMax" type="number" min="0" value="0" aria-label="PV máximo">
+            <div class="resource-readout">
+              <div class="resource-values">
+                <input id="pvAtual" type="number" min="0" value="0" aria-label="PV atual">
+                <span>/</span>
+                <input id="pvMax" type="number" min="0" value="0" aria-label="PV máximo">
+              </div>
+              <div class="resource-progress" aria-hidden="true"><span id="pvProgress"></span></div>
             </div>
-            <div class="resource-progress" aria-hidden="true"><span id="pvProgress"></span></div>
             <div class="resource-steps" aria-label="Ajustes rápidos de PV">
               <button type="button" data-resource="pvAtual" data-step="-10">−10</button>
               <button type="button" data-resource="pvAtual" data-step="-1">−1</button>
@@ -125,12 +498,14 @@
               <span>PN</span>
               <small>Pontos de Nexo</small>
             </div>
-            <div class="resource-values">
-              <input id="pnAtual" type="number" min="0" value="0" aria-label="PN atual">
-              <span>/</span>
-              <input id="pnMax" type="number" min="0" value="0" aria-label="PN máximo">
+            <div class="resource-readout">
+              <div class="resource-values">
+                <input id="pnAtual" type="number" min="0" value="0" aria-label="PN atual">
+                <span>/</span>
+                <input id="pnMax" type="number" min="0" value="0" aria-label="PN máximo">
+              </div>
+              <div class="resource-progress" aria-hidden="true"><span id="pnProgress"></span></div>
             </div>
-            <div class="resource-progress" aria-hidden="true"><span id="pnProgress"></span></div>
             <div class="resource-steps" aria-label="Ajustes rápidos de PN">
               <button type="button" data-resource="pnAtual" data-step="-10">−10</button>
               <button type="button" data-resource="pnAtual" data-step="-1">−1</button>
@@ -144,12 +519,14 @@
               <span>PS</span>
               <small>Pontos de Sanidade</small>
             </div>
-            <div class="resource-values">
-              <input id="psAtual" type="number" min="0" value="20" aria-label="PS atual">
-              <span>/</span>
-              <input id="psMax" type="number" min="0" value="20" aria-label="PS máximo">
+            <div class="resource-readout">
+              <div class="resource-values">
+                <input id="psAtual" type="number" min="0" value="20" aria-label="PS atual">
+                <span>/</span>
+                <input id="psMax" type="number" min="0" value="20" aria-label="PS máximo">
+              </div>
+              <div class="resource-progress" aria-hidden="true"><span id="psProgress"></span></div>
             </div>
-            <div class="resource-progress" aria-hidden="true"><span id="psProgress"></span></div>
             <div class="resource-steps" aria-label="Ajustes rápidos de PS">
               <button type="button" data-resource="psAtual" data-step="-10">−10</button>
               <button type="button" data-resource="psAtual" data-step="-1">−1</button>
@@ -159,52 +536,49 @@
           </article>
 
           <article class="resource-card defense-card" tabindex="-1">
-            <div class="resource-heading">
-              <span>DEF</span>
-              <small>Defesa total</small>
+            <div class="defense-value">
+              <span class="defense-label">DEF</span>
+              <strong id="defesaTotal">11</strong>
             </div>
-            <strong id="defesaTotal">11</strong>
-            <small class="defense-formula">10 + Agilidade + Reflexos + equipamento</small>
+            <small class="defense-formula">10 + Agilidade + Reflexos + modificadores aplicáveis</small>
           </article>
         </div>
       </div>
 
-      <section class="resource-adjuster" aria-labelledby="ajusteRapidoTitulo">
-          <div class="adjuster-title">
-            <div>
-              <span class="section-kicker">Combate</span>
-              <h3 id="ajusteRapidoTitulo">Ajuste rápido</h3>
-            </div>
-            <div class="mobile-adjuster-context" aria-live="polite">
-              <strong id="mobileAdjusterTitle">Ajustar PV</strong>
-              <span><output id="mobileAdjusterCurrent">0</output> / <output id="mobileAdjusterMaximum">0</output></span>
-            </div>
-            <button class="btn secondary small" id="restaurarRecurso" type="button">
-              <span class="desktop-action-label">Restaurar máximo</span>
-              <span class="mobile-action-label" id="mobileRestoreLabel">Restaurar PV ao máximo</span>
-            </button>
-          </div>
-          <div class="adjuster-grid">
-            <label class="adjuster-resource-picker">Recurso
-              <select id="ajusteRecurso">
-                <option value="pvAtual">PV</option>
-                <option value="pnAtual">PN</option>
-                <option value="psAtual">PS</option>
-              </select>
-            </label>
-            <label class="adjuster-value-field">Valor
-              <input id="ajusteValor" type="number" min="0" inputmode="numeric" placeholder="Ex.: 12">
-            </label>
-            <div class="adjuster-presets" aria-label="Valores rápidos">
-              <button type="button" data-adjuster-value="1" aria-label="Definir valor como 1">1</button>
-              <button type="button" data-adjuster-value="5" aria-label="Definir valor como 5">5</button>
-              <button type="button" data-adjuster-value="10" aria-label="Definir valor como 10">10</button>
-              <button type="button" data-adjuster-clear>Limpar</button>
-            </div>
-            <button class="btn danger adjust-action" id="reduzirRecurso" type="button">Reduzir</button>
-            <button class="btn adjust-action" id="recuperarRecurso" type="button">Recuperar</button>
-          </div>
-          <p class="adjuster-feedback" id="ajusteFeedback" aria-live="polite">Em PV, o dano consome primeiro os PV temporários.</p>
+      <section class="identity-section" aria-labelledby="identitySectionTitle">
+        <div class="section-blade-heading">
+          <span class="section-kicker">Personagem</span>
+          <h3 id="identitySectionTitle">Identidade</h3>
+        </div>
+
+        <div class="form-grid character-info-grid">
+          <label class="identity-name-field"><span>Nome</span><input id="nome" type="text" placeholder="Nome do personagem"></label>
+          <label class="identity-class-field"><span>Classe</span>
+            <select id="classe">
+              <option value="">Selecione</option>
+              <option>Vanguarda</option>
+              <option>Atirador</option>
+              <option>Arcano</option>
+              <option>Guardião</option>
+            </select>
+          </label>
+          <label class="identity-level-field"><span>Nível</span><input id="nivel" type="number" min="1" max="11" value="1"></label>
+          <label class="identity-signature-field"><span>Assinatura</span><input id="assinatura" type="text" placeholder="Assinatura"></label>
+          <label class="identity-nexus-field"><span>Tipo de Nexo</span>
+            <select id="tipoNexo">
+              <option value="">Selecione</option>
+              <option>Nexo Comum</option>
+              <option>Nexo Defeituoso</option>
+              <option>Nexo Amaldiçoado</option>
+              <option>Nexo Abençoado</option>
+            </select>
+          </label>
+          <label class="identity-patent-field"><span>Patente</span><input id="patente" type="text" placeholder="Patente"></label>
+          <label class="identity-age-field"><span>Idade</span><input id="idade" type="number" min="0" placeholder="Idade"></label>
+          <label class="identity-casting-field"><span>Forma de Conjuração</span><input id="formaConjuracao" type="text" placeholder="Como o poder se manifesta"></label>
+        </div>
+
+        <aside class="class-automation-status" id="classAutomationStatus" aria-live="polite" hidden></aside>
       </section>
 
       <section class="active-effects" id="activeEffectsSection" aria-labelledby="activeEffectsTitle">
@@ -231,37 +605,67 @@
         </div>
       </section>
 
-      <div class="form-grid character-info-grid">
-        <label class="identity-name-field">Nome<input id="nome" type="text" placeholder="Nome do personagem"></label>
-        <label class="identity-patent-field">Patente<input id="patente" type="text" placeholder="Patente"></label>
-        <label class="identity-age-field">Idade<input id="idade" type="number" min="0" placeholder="Idade"></label>
-        <label class="identity-nexus-field">Tipo de Nexo
-          <select id="tipoNexo">
-            <option value="">Selecione</option>
-            <option>Nexo Comum</option>
-            <option>Nexo Defeituoso</option>
-            <option>Nexo Amaldiçoado</option>
-            <option>Nexo Abençoado</option>
-          </select>
-        </label>
-        <label class="identity-level-field">Nível<input id="nivel" type="number" min="1" max="11" value="1"></label>
-        <label class="identity-highlight identity-signature-field">Assinatura<input id="assinatura" type="text" placeholder="Assinatura"></label>
-        <label class="identity-highlight identity-class-field">Classe
-          <select id="classe">
-            <option value="">Selecione</option>
-            <option>Vanguarda</option>
-            <option>Atirador</option>
-            <option>Arcano</option>
-            <option>Guardião</option>
-          </select>
-        </label>
-        <label class="identity-casting-field">Forma de Conjuração<input id="formaConjuracao" type="text" placeholder="Como o poder se manifesta"></label>
-      </div>
+      <section class="character-utilities" id="characterUtilitySection" aria-labelledby="characterUtilityTitle">
+        <div class="character-utilities-summary">
+          <div>
+            <span class="section-kicker">Ferramentas</span>
+            <h3 id="characterUtilityTitle">Controle de Combate</h3>
+          </div>
+          <button class="icon-button character-utilities-toggle" id="alternarFerramentasPersonagem" type="button" aria-expanded="false" aria-controls="characterUtilityExpanded" aria-label="Expandir Controle de Combate">⌄</button>
+        </div>
 
-      <aside class="class-automation-status" id="classAutomationStatus" aria-live="polite">
-        <strong>Automação de classe</strong>
-        <span>Selecione uma classe para calcular PV, PN e PS máximos e adicionar a habilidade inicial.</span>
-      </aside>
+        <div class="character-utilities-expanded" id="characterUtilityExpanded" hidden>
+          <section class="resource-adjuster" aria-labelledby="ajusteRapidoTitulo">
+            <div class="adjuster-title">
+              <div>
+                <span class="section-kicker">Recursos</span>
+                <h3 id="ajusteRapidoTitulo">Ajuste de recurso</h3>
+              </div>
+              <div class="mobile-adjuster-context" aria-live="polite">
+                <strong id="mobileAdjusterTitle">Ajustar PV</strong>
+                <span><output id="mobileAdjusterCurrent">0</output> / <output id="mobileAdjusterMaximum">0</output></span>
+              </div>
+              <button class="btn secondary small" id="restaurarRecurso" type="button">
+                <span class="desktop-action-label">Restaurar máximo</span>
+                <span class="mobile-action-label" id="mobileRestoreLabel">Restaurar PV ao máximo</span>
+              </button>
+            </div>
+            <div class="adjuster-grid">
+              <label class="adjuster-resource-picker">Recurso
+                <select id="ajusteRecurso">
+                  <option value="pvAtual">PV</option>
+                  <option value="pnAtual">PN</option>
+                  <option value="psAtual">PS</option>
+                </select>
+              </label>
+              <label class="adjuster-value-field">Valor
+                <input id="ajusteValor" type="number" min="0" inputmode="numeric" placeholder="Ex.: 12">
+              </label>
+              <div class="adjuster-presets" aria-label="Valores rápidos">
+                <button type="button" data-adjuster-value="1" aria-label="Definir valor como 1">1</button>
+                <button type="button" data-adjuster-value="5" aria-label="Definir valor como 5">5</button>
+                <button type="button" data-adjuster-value="10" aria-label="Definir valor como 10">10</button>
+                <button type="button" data-adjuster-clear>Limpar</button>
+              </div>
+              <button class="btn danger adjust-action" id="reduzirRecurso" type="button">Reduzir</button>
+              <button class="btn adjust-action" id="recuperarRecurso" type="button">Recuperar</button>
+            </div>
+            <p class="adjuster-feedback" id="ajusteFeedback" aria-live="polite">Em PV, o dano consome primeiro os PV temporários.</p>
+          </section>
+
+          <section class="character-modifiers" aria-labelledby="characterModifiersTitle">
+            <div class="character-modifiers-heading">
+              <span class="section-kicker" id="characterModifiersTitle">Modificadores</span>
+              <p>Valores adicionais utilizados pelos cálculos da ficha.</p>
+            </div>
+            <label class="field-block defense-modifier">
+              <span>DEF extra</span>
+              <input id="bonusDefesaEquipamento" type="number" value="0" aria-describedby="defenseModifierHelp">
+              <small id="defenseModifierHelp">Equipamentos e outros efeitos</small>
+            </label>
+          </section>
+        </div>
+      </section>
 
       <div class="divider"></div>
 
@@ -320,10 +724,6 @@
         </div>
       </div>
 
-      <label class="field-block defense-modifier">
-        Bônus de Defesa por equipamentos e outros efeitos
-        <input id="bonusDefesaEquipamento" type="number" value="0">
-      </label>
     </section>
 
     <section class="panel skills-panel mobile-section" data-mobile-section="pericias">
@@ -389,7 +789,6 @@
           <button class="btn small" id="adicionarEquipamento" type="button">+ Adicionar</button>
         </div>
         <div class="equipment-summary">
-          <label>Totalis<input id="totalis" type="number" min="0" value="200"></label>
           <label>Proteção principal<input id="protecaoPrincipal" type="text" placeholder="Nome da proteção"></label>
         </div>
         <div class="card-list" id="listaEquipamentos"></div>
@@ -413,16 +812,25 @@
       </article>
 
       <article class="panel content-panel manifestations-panel content-subsection" id="contentPanelManifestacoes" role="tabpanel" aria-labelledby="contentTabManifestacoes" data-content-section="manifestacoes">
-        <div class="panel-title-row">
-          <div>
+        <div class="panel-title-row manifestation-title-row">
+          <div class="manifestation-title-copy">
             <span class="section-kicker">Assinatura</span>
             <h2>Manifestações</h2>
           </div>
-          <div class="favorite-filter" role="group" aria-label="Filtrar Manifestações">
-            <button class="active" type="button" data-favorite-filter="manifestation" data-favorite-mode="all" aria-pressed="true">Todos</button>
-            <button type="button" data-favorite-filter="manifestation" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
+          <div class="resonance-threshold" aria-label="Limiar de Ressonância">
+            <span class="resonance-threshold-label">
+              <span class="resonance-threshold-label-full">Limiar de Ressonância</span>
+              <span class="resonance-threshold-label-short" aria-hidden="true">LR</span>
+            </span>
+            <output id="limiarRessonancia" aria-live="polite" aria-label="Limiar de Ressonância calculado">—</output>
           </div>
-          <button class="btn small" id="adicionarManifestacao" type="button">+ Adicionar</button>
+          <div class="manifestation-header-actions">
+            <div class="favorite-filter" role="group" aria-label="Filtrar Manifestações">
+              <button class="active" type="button" data-favorite-filter="manifestation" data-favorite-mode="all" aria-pressed="true">Todos</button>
+              <button type="button" data-favorite-filter="manifestation" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
+            </div>
+            <button class="btn small" id="adicionarManifestacao" type="button">+ Adicionar</button>
+          </div>
         </div>
         <div class="manifestation-grid" id="listaManifestacoes"></div>
         <p class="favorite-empty-state" data-favorite-empty="manifestation" hidden>Nenhum favorito nesta seção.</p>
@@ -454,6 +862,61 @@
     <button data-mobile-target="pericias" type="button">Perícias</button>
     <button data-mobile-target="conteudo" type="button">Conteúdo</button>
   </nav>
+
+  <div class="quick-dice-tool" id="quickDiceTool">
+    <button class="quick-dice-toggle" id="quickDiceToggle" type="button" aria-label="Abrir Rolagem Rápida" aria-controls="quickDicePanel" aria-expanded="false" aria-haspopup="dialog">
+      <span aria-hidden="true">🎲</span>
+    </button>
+
+    <section class="quick-dice-panel" id="quickDicePanel" role="dialog" aria-modal="false" aria-labelledby="quickDiceTitle" hidden>
+      <header class="quick-dice-header">
+        <div>
+          <span class="section-kicker">Ferramenta global</span>
+          <h2 id="quickDiceTitle">Rolagem Rápida</h2>
+        </div>
+        <button class="quick-dice-close" id="quickDiceClose" type="button" aria-label="Fechar Rolagem Rápida">×</button>
+      </header>
+
+      <div id="quickDiceContext" hidden><label class="dice-destination">Destino da rolagem<select id="quickRollDestination"><option value="">Somente ficha</option></select></label></div>
+      <form class="quick-dice-form" id="quickDiceForm" novalidate>
+        <label for="quickDiceExpression">Expressão</label>
+        <div class="quick-dice-input-row">
+          <input id="quickDiceExpression" type="text" inputmode="text" enterkeyhint="go" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="32" placeholder="Ex.: 1d20+3" aria-describedby="quickDiceHint quickDiceError">
+          <button class="btn quick-dice-roll" id="quickDiceRoll" type="submit">Rolar</button>
+        </div>
+        <small id="quickDiceHint">Use XdY, XdY+N ou XdY-N.</small>
+      </form>
+
+      <p class="quick-dice-error" id="quickDiceError" hidden></p>
+      <div class="quick-dice-result" id="quickDiceResult" hidden>
+        <p class="quick-dice-calculation" id="quickDiceCalculation"></p>
+        <dl class="quick-dice-breakdown">
+          <div>
+            <dt>Dados</dt>
+            <dd id="quickDiceRolls"></dd>
+          </div>
+          <div id="quickDiceModifierRow" hidden>
+            <dt>Modificador</dt>
+            <dd id="quickDiceModifier"></dd>
+          </div>
+        </dl>
+        <div class="quick-dice-total">
+          <span>Total</span>
+          <output id="quickDiceTotal"></output>
+        </div>
+      </div>
+      <p id="quickDiceHistoryFeedback" role="status" aria-live="polite"></p>
+      <button id="quickDiceRetry" type="button" class="btn secondary" hidden>Tentar salvar pendentes</button>
+      <div id="quickDiceHistoryControls" hidden>
+        <button id="quickDiceHistoryToggle" type="button" class="btn secondary" aria-expanded="false" aria-controls="quickDiceHistorySection">Ver histórico de rolagens</button>
+        <section id="quickDiceHistorySection" aria-label="Histórico de rolagens do personagem" hidden>
+          <p class="roll-history-help">Até 500 rolagens deste personagem. Exportar a ficha não inclui o histórico.</p>
+          <div id="quickRollHistory"></div>
+        </section>
+      </div>
+      <p class="sr-only" id="quickDiceAnnouncement" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+  </div>
   </div>
 
   <div class="global-notification" id="globalNotification" role="status" aria-live="polite" hidden></div>
@@ -468,7 +931,7 @@
   </div>
 
   <template id="templateEquipamento">
-    <details class="editable-card" open>
+    <details class="editable-card equipment-card" open>
       <summary>
         <span class="card-summary">
           <span class="card-title">Novo equipamento</span>
@@ -477,20 +940,29 @@
         <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover equipamento">×</button>
       </summary>
-      <div class="editable-card-body form-grid">
+      <div class="editable-card-body form-grid equipment-card-body">
         <label>Nome<input data-field="nome" type="text" placeholder="Arma, item ou proteção"></label>
         <label>Tipo<input data-field="tipo" type="text" placeholder="Arma, item geral..."></label>
         <label>Dano<input data-field="dano" type="text" placeholder="Ex.: 2d6"></label>
         <label>Alcance<input data-field="alcance" type="text" placeholder="Curto, médio..."></label>
         <label>Munição<input data-field="municao" type="text" placeholder="Atual / máxima"></label>
-        <label>Modificações<input data-field="modificacoes" type="text" placeholder="Modificações instaladas"></label>
+        <label>Modificações (texto livre)<input data-field="modificacoes" type="text" placeholder="Anotações de modificações"></label>
         <label class="span-2">Descrição<textarea data-field="descricao" rows="3" placeholder="Propriedades e anotações"></textarea></label>
+        <section class="equipment-catalog-modifications span-2" hidden>
+          <div class="equipment-modifications-heading">
+            <span>Modificações</span>
+            <strong class="equipment-modifications-count">0 / 2</strong>
+          </div>
+          <p class="equipment-modifications-empty">Nenhuma modificação instalada.</p>
+          <div class="equipment-modifications-list"></div>
+          <button class="btn secondary equipment-add-modification" type="button">+ Adicionar modificação</button>
+        </section>
       </div>
     </details>
   </template>
 
   <template id="templateHabilidade">
-    <details class="editable-card" open>
+    <details class="editable-card ability-card" open>
       <summary>
         <span class="card-summary">
           <span class="card-title">Nova habilidade</span>
@@ -499,7 +971,7 @@
         <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover habilidade">×</button>
       </summary>
-      <div class="editable-card-body form-grid">
+      <div class="editable-card-body form-grid ability-card-body">
         <label>Nome<input data-field="nome" type="text" placeholder="Nome da habilidade"></label>
         <label>Nível<input data-field="nivel" type="number" min="1" max="11" placeholder="1"></label>
         <label>Custo<input data-field="custo" type="text" placeholder="Ex.: 2 PN"></label>
@@ -524,7 +996,7 @@
         <button class="icon-button favorite-card-button" type="button" aria-pressed="false" aria-label="Adicionar aos favoritos">☆</button>
         <button class="icon-button remove-card" type="button" aria-label="Remover manifestação">×</button>
       </summary>
-      <div class="editable-card-body form-grid">
+      <div class="editable-card-body form-grid manifestation-card-body">
         <label>Nome<input data-field="nome" type="text" placeholder="Nome da Manifestação"></label>
         <label>Custo em PN<input data-field="custo" type="number" min="0" value="0"></label>
         <label>Ação<input data-field="acao" type="text" placeholder="Padrão, movimento..."></label>
@@ -533,9 +1005,9 @@
         <label>Duração<input data-field="duracao" type="text" placeholder="Instantânea, sustentada..."></label>
         <label>Teste<input data-field="teste" type="text" placeholder="Atributo e perícia"></label>
         <label>Tipo<input data-field="tipo" type="text" placeholder="Ofensiva, defensiva..."></label>
-        <label class="span-2">Descrição<textarea data-field="descricao" rows="3" placeholder="Como ela se manifesta"></textarea></label>
-        <label class="span-2">Efeito<textarea data-field="efeito" rows="4" placeholder="Efeito mecânico"></textarea></label>
-        <label class="span-2">Limitações<textarea data-field="limitacoes" rows="3" placeholder="Requisitos e restrições"></textarea></label>
+        <label class="span-2 manifestation-description-field">Descrição<textarea data-field="descricao" rows="3" placeholder="Como ela se manifesta"></textarea></label>
+        <label class="span-2 manifestation-effect-field">Efeito<textarea data-field="efeito" rows="4" placeholder="Efeito mecânico"></textarea></label>
+        <label class="span-2 manifestation-limitations-field">Limitações<textarea data-field="limitacoes" rows="3" placeholder="Requisitos e restrições"></textarea></label>
       </div>
       <p class="card-feedback"></p>
     </details>
@@ -562,6 +1034,14 @@
     </details>
   </template>
 
-  <script src="script.js?v=1.1.2"></script>
+  <span class="site-watermark">Created by FR0D</span>
+
+  <script src="js/chronicles-storage.js?v=6-combates-1"></script>
+  <script src="js/confrontations.js?v=6-combates-1"></script>
+  <script src="js/master-access.js?v=6-combates-1"></script>
+  <script src="js/roll-history-view.js?v=6-rolador-1"></script>
+  <script src="js/roll-history.js?v=6-rolador-1"></script>
+  <script src="js/master-shield.js?v=6-combates-1"></script>
+  <script src="script.js?v=6-combates-1"></script>
 </body>
 </html>
