@@ -1,0 +1,75 @@
+OK — Upgrade v1 → v5 preserva todos os metadados
+OK — Upgrade preserva o Blob da capa byte a byte
+OK — Banco v5 preserva chave composta e ambos os índices do Elenco
+OK — Crônica antiga começa com Elenco vazio
+OK — Adição múltipla e mesmo personagem em duas Crônicas
+OK — Vínculos contêm exclusivamente os dois IDs
+OK — Seleção idêntica não altera updatedAt nem duplica vínculos
+OK — Conflito de updatedAt impede sobrescrita
+OK — Conflito mantém vínculos anteriores
+OK — ID inválido é rejeitado antes de gravar
+OK — Registro ausente não gera novos vínculos
+OK — Falha injetada após escrita parcial aborta a transação
+OK — Rollback restaura vínculos e updatedAt
+OK — Persistência de Elenco não altera as fichas
+OK — Falha na exclusão aborta a transação
+OK — Falha de exclusão mantém metadados, capa e vínculos
+OK — Exclusão com capa remove as três entidades atomicamente
+OK — Consulta renderiza dados reais dos personagens
+OK — Gerenciamento abre com controles habilitados
+OK — Busca por nome ignora acento e caixa
+OK — Busca não inclui Assinatura ou outros campos
+OK — Cancelar alterações abre confirmação
+OK — Cancelamento não persiste alterações
+OK — Gerenciamento abre com controles habilitados
+OK — Salvar adiciona e remove vários vínculos
+OK — Remoção em uma Crônica não afeta outra
+OK — Gerenciamento abre com controles habilitados
+OK — Busca é reiniciada ao reabrir
+OK — Conflito mantém seleção e gerenciamento abertos
+OK — Gerenciamento abre com controles habilitados
+OK — Falha de transação mantém seleção e permite nova tentativa
+OK — Nova renderização lê nome e nível atuais, sem cópias
+OK — Duplicação usa novo ID e não herda vínculos
+OK — Importação usa novo ID e não herda vínculos
+OK — Excluir personagem preserva referências indisponíveis nas duas Crônicas
+OK — Importado e duplicado não religam referência órfã
+OK — Gerenciamento abre com controles habilitados
+OK — Limpeza manual remove somente o vínculo escolhido
+OK — Elenco vazio exibe CTA apropriado
+OK — CTA vazio abre o mesmo gerenciamento
+OK — Gerenciamento abre com controles habilitados
+OK — Navegação para o próprio índice também protege seleção não salva
+OK — Carregamento atrasado não reabre gerenciamento após troca de aba
+OK — Gerenciamento abre com controles habilitados
+OK — Duplo Salvar executa uma transação e saída durante gravação é protegida
+OK — Regressão: editar preserva capa e atualiza masthead
+OK — Regressão: Visão Geral apresenta dados reais
+OK — Editar metadados preserva Elenco
+OK — Regressão: criar e listar Crônica
+OK — Confirmação de exclusão identifica a Crônica
+OK — Regressão: excluir Crônica remove vínculos e retorna ao índice
+OK — Exclusão atômica elimina registro e referências órfãs
+OK — Consulta sem overflow horizontal em 1440px
+OK — Gerenciamento abre com controles habilitados
+OK — Lista longa, nomes extensos e toque em 1440px
+OK — Lista tem rolagem própria e ações fora dela em 1440px
+OK — Consulta sem overflow horizontal em 768px
+OK — Gerenciamento abre com controles habilitados
+OK — Lista longa, nomes extensos e toque em 768px
+OK — Lista tem rolagem própria e ações fora dela em 768px
+OK — Ações em bottom sheet em 768px
+OK — Foco volta à área visível em 768px
+OK — Consulta sem overflow horizontal em 390px
+OK — Gerenciamento abre com controles habilitados
+OK — Lista longa, nomes extensos e toque em 390px
+OK — Lista tem rolagem própria e ações fora dela em 390px
+OK — Ações em bottom sheet em 390px
+OK — Foco volta à área visível em 390px
+OK — Consulta sem overflow horizontal em 320px
+OK — Gerenciamento abre com controles habilitados
+OK — Lista longa, nomes extensos e toque em 320px
+OK — Lista tem rolagem própria e ações fora dela em 320px
+OK — Ações em bottom sheet em 320px
+OK — Foco volta à área visível em 320px
+OK — Elenco, Participantes e Confrontos coexistem; duas ações futuras permanecem indisponíveis

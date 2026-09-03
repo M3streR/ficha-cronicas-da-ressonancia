@@ -1,0 +1,171 @@
+{
+  "low": {
+    "kind": "topographic",
+    "regions": 7,
+    "profile": "low",
+    "qualityError": "",
+    "pendingQuality": false,
+    "vertices": 15012,
+    "triangles": 28861,
+    "minHeight": 0.008,
+    "maxHeight": 0.42929153442382817,
+    "baseY": 1.95,
+    "cartographicTexture": false
+  },
+  "desktopHigh": {
+    "frameCount": 26,
+    "projectionError": 7.021666937153402e-16,
+    "bridgeContinuityError": 0.000028121186897235417,
+    "projectionSamples": 1345,
+    "atlas": {
+      "kind": "topographic",
+      "regions": 7,
+      "profile": "high",
+      "qualityError": "",
+      "pendingQuality": false,
+      "vertices": 70631,
+      "triangles": 140099,
+      "minHeight": 0.008,
+      "maxHeight": 0.43296794891357426,
+      "baseY": 1.95,
+      "cartographicTexture": false
+    },
+    "pendingQuality": false,
+    "pendingFrame": false,
+    "disposed": false,
+    "contextLost": false,
+    "managedResources": 11,
+    "camera": "orthographic",
+    "rendererMemory": {
+      "geometries": 17,
+      "textures": 5
+    },
+    "render": {
+      "frame": 26,
+      "calls": 17,
+      "triangles": 140273,
+      "points": 0,
+      "lines": 10514
+    },
+    "pixelRatio": 1
+  },
+  "mobileMetrics": [
+    {
+      "width": 390,
+      "zoom": {
+        "frameCount": 28,
+        "projectionError": 7.021666937153402e-16,
+        "bridgeContinuityError": 0.000028121186897235417,
+        "projectionSamples": 1367,
+        "atlas": {
+          "kind": "topographic",
+          "regions": 7,
+          "profile": "medium",
+          "qualityError": "",
+          "pendingQuality": false,
+          "vertices": 33878,
+          "triangles": 66593,
+          "minHeight": 0.008,
+          "maxHeight": 0.43559150695800786,
+          "baseY": 1.95,
+          "cartographicTexture": false
+        },
+        "pendingQuality": false,
+        "pendingFrame": false,
+        "disposed": false,
+        "contextLost": false,
+        "managedResources": 11,
+        "camera": "orthographic",
+        "rendererMemory": {
+          "geometries": 17,
+          "textures": 5
+        },
+        "render": {
+          "frame": 28,
+          "calls": 25,
+          "triangles": 128307,
+          "points": 0,
+          "lines": 10514
+        },
+        "pixelRatio": 1
+      }
+    },
+    {
+      "width": 320,
+      "zoom": {
+        "frameCount": 31,
+        "projectionError": 7.021666937153402e-16,
+        "bridgeContinuityError": 0.000028121186897235417,
+        "projectionSamples": 1367,
+        "atlas": {
+          "kind": "topographic",
+          "regions": 7,
+          "profile": "medium",
+          "qualityError": "",
+          "pendingQuality": false,
+          "vertices": 33878,
+          "triangles": 66593,
+          "minHeight": 0.008,
+          "maxHeight": 0.43559150695800786,
+          "baseY": 1.95,
+          "cartographicTexture": false
+        },
+        "pendingQuality": false,
+        "pendingFrame": false,
+        "disposed": false,
+        "contextLost": false,
+        "managedResources": 11,
+        "camera": "orthographic",
+        "rendererMemory": {
+          "geometries": 17,
+          "textures": 5
+        },
+        "render": {
+          "frame": 31,
+          "calls": 25,
+          "triangles": 128307,
+          "points": 0,
+          "lines": 10514
+        },
+        "pixelRatio": 1
+      }
+    }
+  ],
+  "idle": {
+    "frameCount": 33,
+    "projectionError": 7.021666937153402e-16,
+    "bridgeContinuityError": 0.000028121186897235417,
+    "projectionSamples": 1396,
+    "atlas": {
+      "kind": "topographic",
+      "regions": 7,
+      "profile": "low",
+      "qualityError": "",
+      "pendingQuality": false,
+      "vertices": 15012,
+      "triangles": 28861,
+      "minHeight": 0.008,
+      "maxHeight": 0.42929153442382817,
+      "baseY": 1.95,
+      "cartographicTexture": false
+    },
+    "pendingQuality": false,
+    "pendingFrame": false,
+    "disposed": false,
+    "contextLost": false,
+    "managedResources": 11,
+    "camera": "orthographic",
+    "rendererMemory": {
+      "geometries": 17,
+      "textures": 5
+    },
+    "render": {
+      "frame": 33,
+      "calls": 30,
+      "triangles": 55747,
+      "points": 0,
+      "lines": 10514
+    },
+    "pixelRatio": 1
+  }
+}

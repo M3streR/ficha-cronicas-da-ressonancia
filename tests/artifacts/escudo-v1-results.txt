@@ -1,0 +1,90 @@
+OK — v1 → v5: Crônica antiga não recebe nota automaticamente
+OK — v1 → v5: oitava store, chave única e nenhum índice extra
+OK — v1 → v5 preserva chronicleCovers
+OK — v1 → v5 preserva chronicles
+OK — v2 → v5: Crônica antiga não recebe nota automaticamente
+OK — v2 → v5: oitava store, chave única e nenhum índice extra
+OK — v2 → v5 preserva chronicleCastLinks
+OK — v2 → v5 preserva chronicleCovers
+OK — v2 → v5 preserva chronicles
+OK — v3 → v5: Crônica antiga não recebe nota automaticamente
+OK — v3 → v5: oitava store, chave única e nenhum índice extra
+OK — v3 → v5 preserva chronicleCastLinks
+OK — v3 → v5 preserva chronicleCovers
+OK — v3 → v5 preserva chronicleParticipants
+OK — v3 → v5 preserva chronicles
+OK — v4 → v5: Crônica antiga não recebe nota automaticamente
+OK — v4 → v5: oitava store, chave única e nenhum índice extra
+OK — v4 → v5 preserva chronicleCastLinks
+OK — v4 → v5 preserva chronicleConfrontations
+OK — v4 → v5 preserva chronicleCovers
+OK — v4 → v5 preserva chronicleParticipants
+OK — v4 → v5 preserva chronicles
+OK — v4 → v5 preserva confrontationAdversaries
+OK — v4 → v5 preserva confrontationCharacterLinks
+OK — Salvar vazio sem mudança não cria registro
+OK — Nota preserva texto e somente três campos
+OK — Nota não altera nem aparece nos dados públicos
+OK — Salvar igual preserva versão
+OK — 50.001 caracteres rejeitados sem truncamento
+OK — 50.000 caracteres aceitos
+OK — Limpar texto mantém registro versionado
+OK — Versão antiga não sobrescreve nota
+OK — Duas primeiras gravações: apenas uma vence
+OK — Duas edições concorrentes: apenas uma vence
+OK — Notas isoladas por Crônica
+OK — Alteração pública não causa conflito privado
+OK — Abort após escrita de nota propaga falha
+OK — Rollback mantém nota anterior
+OK — Falha ao apagar nota aborta cascata
+OK — Rollback da cascata preserva todas as oito stores
+OK — Registro inválido não vira nota vazia nem é sobrescrito
+OK — Exclusão da Crônica remove também nota inválida
+OK — Foco no título ao abrir
+OK — Elenco resolve dados atuais, somente leitura
+OK — Participantes com nomes repetidos preservados
+OK — Confrontos limitados inicialmente a cinco
+OK — Mostrar todos funciona sem persistência
+OK — Nota carregada sem duplicar capa
+OK — Aviso de saída somente quando há rascunho
+OK — Continuar editando preserva texto
+OK — Navegação protegida mantém rascunho
+OK — Navegação protegida mantém rascunho
+OK — Navegação protegida mantém rascunho
+OK — Navegação protegida mantém rascunho
+OK — Salvar pela interface mantém timestamp público
+OK — Aviso de saída removido após salvar
+OK — Interface não trunca 50.001 caracteres
+OK — Conflito preserva integralmente o rascunho
+OK — Saída limpa DOM privado e restaura foco desktop
+OK — Reabrir carrega versão salva
+OK — Falha mantém texto e editor utilizável
+OK — Clique duplo e saída durante salvamento bloqueados
+OK — Falha de consulta não bloqueia nota nem outras consultas
+OK — Resposta atrasada não repovoa DOM privado
+OK — Atalho abre aba existente e limpa nota
+OK — Atalho reutiliza tela operacional sem incorporar combate
+OK — 1440px: sem overflow horizontal
+OK — 1440px: toque e escrita confortáveis
+OK — 768px: sem overflow horizontal
+OK — 768px: toque e escrita confortáveis
+OK — 390px: sem overflow horizontal
+OK — 390px: toque e escrita confortáveis
+OK — 390px: notas primeiro e consultas recolhidas
+OK — 390px: foco restaurado ao botão Ações
+OK — 320px: sem overflow horizontal
+OK — 320px: toque e escrita confortáveis
+OK — 320px: notas primeiro e consultas recolhidas
+OK — 320px: foco restaurado ao botão Ações
+OK — Crônica excluída não é recriada e rascunho permanece
+OK — Exclusão sem órfãos em chronicles
+OK — Exclusão sem órfãos em chronicleCovers
+OK — Exclusão sem órfãos em chronicleCastLinks
+OK — Exclusão sem órfãos em chronicleParticipants
+OK — Exclusão sem órfãos em chronicleConfrontations
+OK — Exclusão sem órfãos em confrontationCharacterLinks
+OK — Exclusão sem órfãos em confrontationAdversaries
+OK — Exclusão sem órfãos em chronicleMasterNotes
+OK — Cascata preserva personagens e outras Crônicas
+OK — Escudo pronto; Abrir Sessão e Convidar Participantes continuam indisponíveis
+OK — Recarga real da aplicação preserva nota e identidade da Crônica

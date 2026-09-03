@@ -1,0 +1,97 @@
+OK — Upgrade v1 → v5 preserva Crônica e schema 1
+OK — Upgrade v1 → v5 preserva Blob da capa
+OK — Upgrade v1 → v5 preserva Elenco
+OK — Upgrade v1 → v5 preserva Participantes
+OK — Banco v5 possui exatamente oito stores
+OK — Vínculo tem chave composta e somente índice confrontationId
+OK — Confrontos e adversários têm IDs e um índice não exclusivo cada
+OK — Upgrade v2 → v5 preserva Crônica e schema 1
+OK — Upgrade v2 → v5 preserva Blob da capa
+OK — Upgrade v2 → v5 preserva Elenco
+OK — Upgrade v2 → v5 preserva Participantes
+OK — Banco v5 possui exatamente oito stores
+OK — Vínculo tem chave composta e somente índice confrontationId
+OK — Confrontos e adversários têm IDs e um índice não exclusivo cada
+OK — Upgrade v3 → v5 preserva Crônica e schema 1
+OK — Upgrade v3 → v5 preserva Blob da capa
+OK — Upgrade v3 → v5 preserva Elenco
+OK — Upgrade v3 → v5 preserva Participantes
+OK — Banco v5 possui exatamente oito stores
+OK — Vínculo tem chave composta e somente índice confrontationId
+OK — Confrontos e adversários têm IDs e um índice não exclusivo cada
+OK — Confronto contém somente seis campos
+OK — Nomes repetidos e listagem por criação mais recente
+OK — Validação de nome e descrição
+OK — Confronto não inclui Elenco automaticamente
+OK — Novas inclusões fora do Elenco são recusadas
+OK — Mesmo personagem pode pertencer a dois Confrontos
+OK — Vínculos persistem somente IDs
+OK — Remoção do Elenco preserva vínculo existente
+OK — Conflito da seleção não apaga vínculos
+OK — Campos numéricos ausentes não são inventados
+OK — PV em par e números inválidos recusados
+OK — Adversário mantém ID; PV acima do máximo não é reduzido
+OK — Adversário sem mudanças não altera data
+OK — Conflito individual de adversário
+OK — Remover campos opcionais não persiste zeros nem null
+OK — Salvar Confronto sem mudança não altera timestamp
+OK — Falha após escrita parcial aborta adversário
+OK — Rollback preserva adversário e Confronto
+OK — Edições simultâneas do mesmo adversário: uma vence, outra conflita
+OK — Não remove adversário de outro Confronto
+OK — Falha em cascata aborta exclusão de Crônica
+OK — Cascata abortada preserva registros nas stores existentes e novas
+OK — Falha na exclusão do Confronto aborta transação
+OK — Rollback de Confronto preserva seus filhos
+OK — Aba lista Confrontos reais
+OK — Novo Confronto abre formulário básico
+OK — Nome obrigatório no formulário
+OK — Criar abre ambiente próprio sem incluir combatentes
+OK — Voltar retorna à aba e restaura foco no registro
+OK — Editar preserva ID e createdAt
+OK — Conflito de metadados mantém formulário
+OK — Seleção múltipla persistida e recursos apenas em consulta
+OK — Consulta não edita recursos nem fichas
+OK — Duplicação e importação não herdam vínculos de Confronto
+OK — Busca somente por nome preserva seleção oculta
+OK — Cancelar seleção não persiste
+OK — Conflito entre seleções preserva escolhas locais
+OK — Inclusão removida do Elenco durante edição é recusada, preservando escolha
+OK — Vínculo existente fora do Elenco permanece visível
+OK — Nova renderização resolve nome e PV atuais
+OK — Personagem excluído preserva referência indisponível
+OK — Remover combatente altera somente um vínculo
+OK — Adversário sem valores não recebe números inventados
+OK — PV parcial é rejeitado na interface
+OK — Editar adversário preserva identidade
+OK — Conflito mantém edição local aberta
+OK — Falha de transação preserva formulário
+OK — Resposta atrasada não reabre seleção cancelada
+OK — Saída com rascunho pede confirmação
+OK — Navegação bloqueada durante transação
+OK — Duplo salvar executa uma operação
+OK — Confirmação identifica adversário
+OK — Cancelar remoção mantém adversários
+OK — Remoção confirmada exclui somente adversário escolhido
+OK — Tela operacional sem overflow em 1440px
+OK — Formulário e toque confortáveis em 1440px
+OK — Seleção acessível em 1440px
+OK — Confirmação sem overflow e foco seguro em 1440px
+OK — Tela operacional sem overflow em 768px
+OK — Formulário e toque confortáveis em 768px
+OK — Seleção acessível em 768px
+OK — Confirmação sem overflow e foco seguro em 768px
+OK — Tela operacional sem overflow em 390px
+OK — Formulário e toque confortáveis em 390px
+OK — Seleção acessível em 390px
+OK — Confirmação sem overflow e foco seguro em 390px
+OK — Tela operacional sem overflow em 320px
+OK — Formulário e toque confortáveis em 320px
+OK — Seleção acessível em 320px
+OK — Confirmação sem overflow e foco seguro em 320px
+OK — Atividade é somente região visual, sem store
+OK — Exclusão identifica Confronto
+OK — Excluir Confronto remove as três entidades
+OK — Excluir Confronto preserva Participantes e fichas
+OK — Excluir Crônica remove integralmente dados dependentes
+OK — Reload preserva Confronto, seleção e adversários

@@ -1,0 +1,89 @@
+/* v6: scoped editorial workspace; no global form/button restyling. */
+#managerChroniclesPanel .chronicle-detail-panel { padding: clamp(1rem, 2vw, 1.65rem); }
+#managerChroniclesPanel .chronicle-participants-heading,
+#managerChroniclesPanel .chronicle-cast-heading,
+#managerChroniclesPanel .confrontation-index-heading { gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+#managerChroniclesPanel .chronicle-detail-panel h3 { font-size: clamp(1.25rem, 2.4vw, 1.65rem); margin: 0; }
+#managerChroniclesPanel .chronicle-cast-empty,
+#managerChroniclesPanel .chronicle-participants-empty,
+#managerChroniclesPanel .confrontation-empty { padding: 1.25rem 0; min-height: 0; }
+#managerChroniclesPanel .confrontation-workspace { grid-template-columns: minmax(0, 1fr); margin-top: 1rem; gap: 1.25rem; }
+#managerChroniclesPanel .confrontation-index-row,
+#managerChroniclesPanel .chronicle-participant-row { padding-block: 1rem; }
+.chronicle-actions-list small { display: block; font-size: .72rem; font-weight: 400; opacity: .8; margin-top: .25rem; }
+.master-shield-heading { margin: 1.5rem 0; }
+.master-shield-heading h2 { font-size: clamp(1.8rem, 4vw, 2.7rem); }
+.master-dashboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; max-width: 880px; }
+.master-dashboard > button { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: .6rem; text-align: left; padding: clamp(1.2rem, 3vw, 2rem); min-height: 140px; border: 1px solid #514363; border-left: 3px solid #a58bc6; border-radius: 10px; color: inherit; background: linear-gradient(130deg, #282036, #1b1722); cursor: pointer; font: inherit; }
+.master-dashboard > button:hover { background: #282032; }
+.master-dashboard > button strong { font-size: 1.15rem; }
+.master-dashboard > button span { color: #bdb3ca; font-size: .88rem; }
+.master-dashboard > button:focus-visible, .master-access-form :focus-visible, #masterModule :focus-visible, #quickDicePanel :focus-visible { outline: 2px solid #b59ada; outline-offset: 3px; }
+.master-recent-results { grid-column: 1 / -1; background: #1b1722; padding: 1.25rem; min-width: 0; }
+.master-module-actions, .roll-history-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+#masterModule > h3 { margin: 1.4rem 0 1rem; font-size: 1.65rem; }
+#masterModule .master-note-editor { max-width: none; }
+.master-access-form { max-width: 540px; display: grid; gap: 1rem; padding: 1.4rem; background: #1b1722; border: 1px solid #393244; border-radius: 12px; }
+.master-access-form p { color: #c5bbd1; line-height: 1.6; margin: 0; }
+.master-access-form label, .master-record-editor label, .dice-destination { display: grid; gap: .5rem; font-size: .92rem; }
+.master-access-form input, .master-record-editor input, .master-record-editor textarea, .dice-destination select, .roll-history-filters select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; font: inherit; color: inherit; background: #19151f; border: 1px solid #51415d; padding: .65rem; border-radius: 6px; }
+.master-record-editor { margin: 1rem 0; display: grid; gap: 1rem; }
+.master-record-editor textarea { resize: vertical; }
+.master-record-list, .roll-history-list, #masterShieldCastList, #masterShieldConfrontationsList { list-style: none; padding: 0; margin: 0; }
+.master-record-row, .master-combat-row { padding: 1rem 0; border-bottom: 1px solid #393244; display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.master-record-row > div:first-child { flex: 1; min-width: 0; }
+.master-record-row h4 { margin: 0 0 .5rem; }
+.master-record-row .private-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.master-record-row small, .roll-history-help { color: #bfb3ca; }
+.master-shield-person { display: flex; gap: .8rem; align-items: center; padding: .85rem 0; border-bottom: 1px solid #393244; }
+.master-shield-person small { display: block; margin-top: .3rem; }
+.roll-history-row { padding: .95rem 0; border-bottom: 1px solid #393244; overflow-wrap: anywhere; }
+.roll-history-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .4rem .7rem; align-items: baseline; }
+.roll-history-summary time { grid-column: 1 / -1; color: #bfb3ca; font-size: .8rem; }
+.roll-history-summary b { font-size: 1.4rem; color: #e0c5f5; }
+.roll-history-row details { font-size: .86rem; margin-top: .5rem; }
+.roll-history-row summary, .master-record-row summary { cursor: pointer; padding: .5rem 0; min-height: 32px; }
+.roll-history-filters { display: flex; gap: .6rem; flex-wrap: wrap; }
+.roll-history-filters select { flex: 1; min-width: 150px; }
+.roll-history-controls { margin-top: 1rem; }
+.dice-destination { margin-block: .8rem; }
+#quickDiceHistoryFeedback { font-size: .82rem; line-height: 1.5; }
+#quickDiceHistoryFeedback:empty, #masterShieldFeedback:empty { display: none; }
+#quickDiceContext select { max-width: 100%; }
+#quickDicePanel [hidden] { display: none !important; }
+#quickDiceHistoryControls { min-width: 0; }
+#quickDiceHistorySection { margin-top: .8rem; overflow-wrap: anywhere; }
+#quickDiceHistoryControls button, #quickDiceRetry { min-height: 44px; white-space: normal; }
+#quickRollHistory .roll-history-summary { grid-template-columns: minmax(0, 1fr) auto; }
+#quickRollHistory .roll-history-summary strong { grid-column: 1 / -1; }
+.roll-history-status:empty, .roll-history-controls:empty, .roll-history-filters:empty { display: none; }
+.master-shield-view [hidden] { display: none !important; }
+.master-shield-view { overflow-wrap: anywhere; }
+.master-shield-view button { min-height: 44px; }
+.master-combats-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.master-combats-heading p { margin: 0; color: #bfb3ca; max-width: 48ch; line-height: 1.6; }
+.master-combat-row { align-items: center; padding: 1.2rem 0; }
+.master-combat-row > div:first-child { min-width: 0; flex: 1; }
+.master-combat-row h4 { margin: 0 0 .35rem; font-size: 1.15rem; }
+.master-combat-row small { color: #c5b5d7; }
+.master-combat-row p { margin: .5rem 0 0; color: #bfb3ca; }
+#masterCombatEditorHost .confrontation-view { margin-top: 1rem; }
+#masterCombatEditorHost .confrontation-masthead { gap: 1rem; }
+.master-shield-view.is-combat-editor > .master-shield-heading,
+.master-shield-view.is-combat-editor #backToMasterDashboard,
+.master-shield-view.is-combat-editor #masterModuleTitle { display: none; }
+#masterCombatEditorHost .confrontation-masthead h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); }
+#masterCombatEditorHost .confrontation-masthead { padding-block: 1.2rem; }
+#confrontationView [hidden] { display: none !important; }
+#confrontationCompositionActions { border-top: 1px solid #51415d; padding-top: 1.2rem; margin-top: 1.2rem; }
+#masterCombatEditorHost .confrontation-editor { max-width: none; }
+#masterCombatEditorHost button, .master-combat-row button { white-space: normal; }
+@media (max-width: 600px) {
+  .master-dashboard { grid-template-columns: minmax(0, 1fr); }
+  .master-dashboard > button { padding: 1rem; min-height: 80px; }
+  .master-record-row, .master-combat-row { flex-direction: column; }
+  .master-access-form { padding: 1rem; }
+  #masterNoteContent { min-height: 280px; font-size: 16px; }
+  .master-access-form input, .master-record-editor input, .master-record-editor textarea, .dice-destination select { font-size: 16px; }
+  #chronicleActionsPanel .chronicle-context-action { min-height: 48px; }
+}

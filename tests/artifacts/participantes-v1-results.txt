@@ -1,0 +1,74 @@
+OK — Upgrade v1 → v5 preserva metadados e schemaVersion 1
+OK — Upgrade v1 → v5 preserva capa
+OK — Upgrade v1 → v5 preserva Elenco
+OK — Crônica v1 começa sem participantes
+OK — Banco v5 preserva store de Participantes com chave id e índice chronicleId não exclusivo
+OK — Upgrade v2 → v5 preserva metadados e schemaVersion 1
+OK — Upgrade v2 → v5 preserva capa
+OK — Upgrade v2 → v5 preserva Elenco
+OK — Crônica v2 começa sem participantes
+OK — Banco v5 preserva store de Participantes com chave id e índice chronicleId não exclusivo
+OK — Nomes iguais permitidos, IDs independentes e trim do nome
+OK — Participante armazena exatamente cinco campos
+OK — Ordem de criação crescente
+OK — Nome obrigatório e limite de 120
+OK — Editar mantém identidade e criação, atualiza somente data de alteração
+OK — Salvar sem mudança efetiva não altera datas
+OK — Versão antiga do participante não sobrescreve nome
+OK — Não é possível remover participante de outra Crônica
+OK — Falha injetada após alteração do participante aborta transação
+OK — Rollback preserva participante e updatedAt da Crônica
+OK — Remoção individual preserva os demais participantes
+OK — Excluir Crônica remove participantes e vínculos juntos
+OK — Não cria participante sem Crônica
+OK — Falha ao excluir Participantes aborta exclusão de Crônica
+OK — Rollback preserva as quatro stores
+OK — Commit exclui metadados, capa, Elenco e Participantes
+OK — Edições de pessoas distintas não geram conflito artificial na Crônica
+OK — Duas edições simultâneas do mesmo ID: uma vence, outra reporta conflito
+OK — Criar participante concorrendo com exclusão não deixa órfãos
+OK — Lista usa participantes reais persistidos
+OK — Adicionar abre formulário inline e foca Nome
+OK — Nome vazio recebe erro acessível sem fechar formulário
+OK — Salvar cria identidade, atualiza lista e restaura foco
+OK — Editar inline mantém ID
+OK — Cancelar explícito descarta sem persistir
+OK — Saída implícita pede confirmação para nome não salvo
+OK — Continuar editando preserva rascunho
+OK — Conflito preserva formulário e rascunho
+OK — Falha de persistência mantém edição e permite nova tentativa
+OK — Registro excluído externamente preserva edição, sem recriar ID
+OK — Resposta atrasada não reabre edição após sair
+OK — Navegação protegida e controles bloqueados durante commit
+OK — Clique duplo gera somente uma gravação
+OK — Remoção com versão antiga é recusada
+OK — Falha ao remover mantém participante e fornece feedback
+OK — Remoção pede confirmação identificando participante
+OK — Cancelar confirmação não remove
+OK — Remoção confirmada atualiza armazenamento e lista
+OK — Registro corrompido gera aviso, sem apagar dados nem quebrar listagem
+OK — Registro corrompido não é sobrescrito silenciosamente
+OK — Nome é texto, nunca HTML executável
+OK — Estado vazio sem participantes
+OK — CTA vazio usa mesmo formulário inline
+OK — Lista e nomes extensos sem overflow, toque 44px em 1440px
+OK — Formulário confortável e sem overflow em 1440px
+OK — Confirmação acessível e foco em Cancelar em 1440px
+OK — Lista e nomes extensos sem overflow, toque 44px em 768px
+OK — Formulário confortável e sem overflow em 768px
+OK — Confirmação acessível e foco em Cancelar em 768px
+OK — Lista e nomes extensos sem overflow, toque 44px em 390px
+OK — Formulário confortável e sem overflow em 390px
+OK — Confirmação acessível e foco em Cancelar em 390px
+OK — Lista e nomes extensos sem overflow, toque 44px em 320px
+OK — Formulário confortável e sem overflow em 320px
+OK — Confirmação acessível e foco em Cancelar em 320px
+OK — Convites e outras ações futuras continuam indisponíveis
+OK — Participantes não alteram armazenamento de personagens
+OK — Editar Crônica preserva participantes
+OK — Visão Geral continua usando dados reais
+OK — Excluir Crônica via interface remove participantes e volta ao índice
+OK — Fechar e reabrir preserva identidade e ordem
+OK — Erros e estados comunicados em regiões aria-live
+OK — Recarregar aplicação preserva IDs, nomes e timestamps
+OK — Reabertura após reload lista registros persistidos
