@@ -280,12 +280,17 @@
       badge.textContent = online ? 'Online' : 'Local';
     }
 
-    ['chronicleTabCast', 'chronicleTabParticipants', 'chronicleTabEncounters'].forEach(id => {
+    ['chronicleTabCast', 'chronicleTabParticipants'].forEach(id => {
       const tab = document.getElementById(id);
       if (!tab) return;
-      tab.disabled = online;
-      tab.title = online ? 'Esta área será conectada às Crônicas online em uma próxima etapa.' : '';
+      tab.disabled = false;
+      tab.title = '';
     });
+    const encountersTab = document.getElementById('chronicleTabEncounters');
+    if (encountersTab) {
+      encountersTab.disabled = online;
+      encountersTab.title = online ? 'Confrontos online serão conectados na próxima etapa.' : '';
+    }
 
     const masterShield = document.getElementById('openMasterShield');
     if (masterShield) {
@@ -298,6 +303,7 @@
       edit.title = online && !owner ? 'Somente o Mestre pode editar esta Crônica online.' : '';
     }
     global.ChroniclesSharing?.applyDetailMode(chronicle);
+    global.ChroniclesCollaboration?.applyDetailMode(chronicle);
   }
 
   function getErrorMessage(error) {

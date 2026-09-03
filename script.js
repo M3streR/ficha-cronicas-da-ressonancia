@@ -1742,6 +1742,17 @@ function getChronicleCharacterDirectory() {
   return { entries, byId, unavailable: false };
 }
 
+globalThis.ChroniclesLocalCharacters = Object.freeze({
+  list() {
+    const directory = getChronicleCharacterDirectory();
+    if (directory.unavailable) throw new Error('LOCAL_CHARACTER_DIRECTORY_UNAVAILABLE');
+    return directory.entries.map(entry => ({
+      ...entry,
+      character: readStoredCharacter(entry.id)
+    }));
+  }
+});
+
 function createChronicleCastPortrait(entry, className) {
   const portrait = document.createElement('span');
   portrait.className = className;
@@ -1821,6 +1832,10 @@ function getChronicleCastErrorMessage(error) {
 }
 
 async function renderChronicleCast() {
+  if (activeChronicleRecord?.storage === 'online') {
+    await window.ChroniclesCollaboration?.renderCast(activeChronicleRecord);
+    return;
+  }
   if (!activeChronicleId || isChronicleCastManagementOpen) return;
   const chronicleId = activeChronicleId;
   const renderToken = ++chronicleCastRenderToken;
@@ -2226,6 +2241,12 @@ function requestChronicleCastManagementExit(onDiscard, { restoreFocus = false } 
 }
 
 async function openChronicleCastManagement(trigger) {
+  if (activeChronicleRecord?.storage === 'online') {
+    closeChronicleActions({ restoreFocus: false });
+    setChronicleDetailSection('cast', { skipCastGuard: true, skipCastRender: true });
+    await window.ChroniclesCollaboration?.openCastManager(activeChronicleRecord);
+    return;
+  }
   if (window.MasterShieldUI?.requestExit(() => void openChronicleCastManagement(trigger))) return;
   if (window.ConfrontationsUI?.requestExit(() => void openChronicleCastManagement(trigger))) return;
   if (chronicleParticipantEditor || isParticipantMutationPending) {
@@ -2308,6 +2329,11 @@ async function openChronicleCastManagement(trigger) {
 }
 
 async function saveChronicleCastManagement() {
+  if (activeChronicleRecord?.storage === 'online') {
+    await window.ChroniclesCollaboration?.closeCastManager({ render: true });
+    document.getElementById('chroniclePanelCast')?.focus({ preventScroll: true });
+    return;
+  }
   if (!isChronicleCastManagementOpen || isSavingChronicleCast || !activeChronicleId) return;
   if (!isChronicleCastManagementDirty()) {
     closeChronicleCastManagement({ restoreFocus: false, render: true });
@@ -2463,6 +2489,10 @@ function requestChronicleParticipantExit(onDiscard) {
 }
 
 async function renderChronicleParticipants() {
+  if (activeChronicleRecord?.storage === 'online') {
+    await window.ChroniclesCollaboration?.renderParticipants(activeChronicleRecord);
+    return;
+  }
   if (!activeChronicleId || isParticipantMutationPending) return;
   const chronicleId = activeChronicleId;
   const token = ++chronicleParticipantsRenderToken;
@@ -2655,6 +2685,7 @@ function closeChronicleActions({ restoreFocus = true } = {}) {
 }
 
 function teardownChronicleDetail() {
+  window.ChroniclesCollaboration?.reset();
   window.MasterShieldUI?.reset();
   window.ConfrontationsUI?.reset();
   chronicleDetailRenderToken += 1;
@@ -3314,7 +3345,10 @@ function bindChronicles() {
   document.getElementById('manageChronicleCast').addEventListener('click', event => {
     void openChronicleCastManagement(event.currentTarget);
   });
-  document.getElementById('chronicleCastSearch').addEventListener('input', renderChronicleCastManagementList);
+  document.getElementById('chronicleCastSearch').addEventListener('input', event => {
+    if (window.ChroniclesCollaboration?.handleCastSearch(event.currentTarget.value)) return;
+    renderChronicleCastManagementList();
+  });
   document.getElementById('cancelChronicleCastManagement').addEventListener('click', () => {
     requestChronicleCastManagementExit(() => {
       void renderChronicleCast();
