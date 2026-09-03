@@ -3,6 +3,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://gejpqmrystvzezscmmkg.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IflFHpAHB0PycyzZ5n3SWg_mHp8uYCu';
 const AUTH_STORAGE_KEY = 'cronicasRessonanciaSupabaseAuth';
+const PRODUCTION_APP_URL = 'https://m3strer.github.io/ficha-cronicas-da-ressonancia/';
+const AUTH_REDIRECT_OVERRIDE_KEY = 'cronicasRessonanciaAuthRedirectOverride';
 
 const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
@@ -20,6 +22,21 @@ const ready = new Promise(resolve => { resolveReady = resolve; });
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getAuthRedirectUrl() {
+  const override = window.localStorage.getItem(AUTH_REDIRECT_OVERRIDE_KEY);
+  if (override) {
+    try {
+      const url = new URL(override);
+      const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+      const allowed = url.protocol === 'https:' || (url.protocol === 'http:' && localHosts.has(url.hostname));
+      if (allowed) return url.href;
+    } catch {
+      console.warn('Override de redirecionamento do Auth inválido; usando a URL oficial.');
+    }
+  }
+  return PRODUCTION_APP_URL;
 }
 
 function requireCredentials(email, password) {
@@ -71,10 +88,21 @@ async function signIn(email, password) {
 
 async function signUp(email, password) {
   const credentials = requireCredentials(email, password);
-  const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { data, error } = await client.auth.signUp({
     ...credentials,
-    options: { emailRedirectTo: redirectTo }
+    options: { emailRedirectTo: getAuthRedirectUrl() }
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function resendSignupConfirmation(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !normalizedEmail.includes('@')) throw new TypeError('INVALID_EMAIL');
+  const { data, error } = await client.auth.resend({
+    type: 'signup',
+    email: normalizedEmail,
+    options: { emailRedirectTo: getAuthRedirectUrl() }
   });
   if (error) throw error;
   return data;
@@ -129,6 +157,7 @@ function createAccountUI() {
 
   let mode = 'signin';
   let pending = false;
+  let pendingConfirmationEmail = '';
 
   function closeDialog() {
     if (!pending && dialog.open) dialog.close();
@@ -226,6 +255,7 @@ function createAccountUI() {
     emailInput.autocomplete = 'email';
     emailInput.required = true;
     emailInput.maxLength = 320;
+    if (mode === 'signin' && pendingConfirmationEmail) emailInput.value = pendingConfirmationEmail;
     emailField.appendChild(emailInput);
 
     const passwordField = document.createElement('label');
@@ -265,6 +295,48 @@ function createAccountUI() {
       requestAnimationFrame(() => shell.querySelector('input')?.focus());
     });
 
+    const resendConfirmation = document.createElement('button');
+    resendConfirmation.type = 'button';
+    resendConfirmation.className = 'account-auth-toggle';
+    resendConfirmation.hidden = mode !== 'signin';
+    resendConfirmation.disabled = pending;
+    resendConfirmation.textContent = 'Reenviar e-mail de confirmação';
+    resendConfirmation.addEventListener('click', async () => {
+      if (pending) return;
+      const email = normalizeEmail(emailInput.value);
+      if (!email || !email.includes('@')) {
+        feedback.dataset.kind = 'error';
+        feedback.textContent = 'Informe o e-mail da conta para reenviar a confirmação.';
+        return;
+      }
+
+      pending = true;
+      pendingConfirmationEmail = email;
+      submit.disabled = true;
+      toggle.disabled = true;
+      resendConfirmation.disabled = true;
+      emailInput.disabled = true;
+      passwordInput.disabled = true;
+      feedback.dataset.kind = '';
+      feedback.textContent = 'Enviando novo e-mail de confirmação…';
+
+      try {
+        await resendSignupConfirmation(email);
+        feedback.dataset.kind = 'success';
+        feedback.textContent = 'Novo e-mail enviado. Use somente o link mais recente para confirmar sua conta.';
+      } catch (error) {
+        feedback.dataset.kind = 'error';
+        feedback.textContent = authErrorMessage(error);
+      } finally {
+        pending = false;
+        submit.disabled = false;
+        toggle.disabled = false;
+        resendConfirmation.disabled = false;
+        emailInput.disabled = false;
+        passwordInput.disabled = false;
+      }
+    });
+
     form.append(emailField, passwordField, feedback, submit);
     form.addEventListener('submit', async event => {
       event.preventDefault();
@@ -296,6 +368,8 @@ function createAccountUI() {
             closeDialog();
           } else {
             pending = false;
+            pendingConfirmationEmail = credentials.email;
+            mode = 'signin';
             renderDialog('Conta criada. Confira seu e-mail para confirmar o cadastro antes de entrar.', 'success');
           }
         } else {
@@ -309,7 +383,7 @@ function createAccountUI() {
       }
     });
 
-    shell.append(copy, form, toggle);
+    shell.append(copy, form, toggle, resendConfirmation);
     requestAnimationFrame(() => emailInput.focus());
   }
 
@@ -357,7 +431,9 @@ window.CronicasSupabase = Object.freeze({
   getUser,
   signIn,
   signUp,
+  resendSignupConfirmation,
   signOut,
+  getAuthRedirectUrl,
   onAuthStateChange,
   get authenticated() { return Boolean(currentSession?.user); }
 });
