@@ -1,0 +1,49 @@
+name: Chronicles storage resilience
+
+on:
+  push:
+    branches:
+      - chronicles-storage-resilience
+    paths:
+      - .github/workflows/chronicles-storage-resilience.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chronicles-storage-resilience
+
+      - name: Patch independent local and online loading
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('js/chronicles-online.js')
+          text = path.read_text(encoding='utf-8')
+
+          old = """      async listChronicles() {\n        const local = await localStorageApi.listChronicles();\n        let online = [];\n        try {\n          online = await listOnlineChronicles();\n        } catch (error) {\n          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);\n        }\n        return [\n          ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),\n          ...online\n        ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));\n      },\n"""
+
+          new = """      async listChronicles() {\n        let local = [];\n        let localError = null;\n        let online = [];\n        let onlineError = null;\n\n        try {\n          local = await localStorageApi.listChronicles();\n        } catch (error) {\n          localError = error;\n          console.warn('As Crônicas locais não puderam ser carregadas; tentando preservar o acesso online.', error);\n        }\n\n        try {\n          online = await listOnlineChronicles();\n        } catch (error) {\n          onlineError = error;\n          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);\n        }\n\n        const authenticated = Boolean(global.CronicasSupabase?.authenticated);\n        if (localError && (!authenticated || onlineError)) {\n          const combinedError = new Error('CHRONICLES_STORAGE_UNAVAILABLE');\n          combinedError.localError = localError;\n          combinedError.onlineError = onlineError;\n          throw combinedError;\n        }\n\n        return [\n          ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),\n          ...online\n        ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));\n      },\n"""
+
+          if old not in text:
+            raise SystemExit('Expected listChronicles implementation was not found; refusing to patch.')
+
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        run: node --check js/chronicles-online.js
+
+      - name: Commit resilience fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/chronicles-online.js
+          git commit -m "Keep online chronicles available when local storage fails"
+          git push origin HEAD:chronicles-storage-resilience
