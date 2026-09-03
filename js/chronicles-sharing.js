@@ -177,9 +177,13 @@
     const owner = online && chronicle?.role === 'owner';
     const authenticated = Boolean(global.CronicasSupabase?.authenticated);
 
+    const mappedOnlineId = !online && chronicle ? getConvertedOnlineId(chronicle.id) : '';
     convert.hidden = online;
-    convert.disabled = !chronicle || operationPending;
-    convert.textContent = authenticated ? 'Tornar Crônica Online' : 'Entrar para tornar Online';
+    convert.disabled = !chronicle || operationPending || Boolean(mappedOnlineId);
+    convert.textContent = mappedOnlineId
+      ? 'Versão Online Criada'
+      : (authenticated ? 'Tornar Crônica Online' : 'Entrar para tornar Online');
+    convert.title = mappedOnlineId ? 'Esta Crônica local já possui uma versão online vinculada neste navegador.' : '';
 
     invite.hidden = !online || !owner;
     invite.disabled = operationPending;
@@ -215,7 +219,7 @@
 
     const note = document.createElement('div');
     note.className = 'chronicle-sharing-note';
-    note.innerHTML = '<strong>A versão local será preservada.</strong><span>Nada será apagado deste navegador. A versão online será um novo registro compartilhável.</span>';
+    note.innerHTML = '<strong>A versão local será preservada.</strong><span>Nada será apagado deste navegador. A versão online será um novo registro compartilhável.</span><span>Nesta etapa, somente nome, sinopse e tipo são levados para o online. Capa, Elenco, Participantes, Confrontos e Escudo permanecem na versão local até serem integrados.</span>';
 
     const feedback = document.createElement('p');
     feedback.className = 'chronicle-sharing-feedback';
@@ -438,7 +442,7 @@
     if (!inviteDialog.open) inviteDialog.showModal();
   }
 
-  async function renderIncomingInviteDialog(code, message = '', kind = '') {
+  async function renderIncomingInviteDialog(code, message = '', kind = '', completedOnlineId = '') {
     ensureDialogs();
     inviteShell.replaceChildren();
     const closeDialog = () => {
@@ -450,13 +454,17 @@
     const authenticated = Boolean(global.CronicasSupabase?.authenticated);
     const intro = document.createElement('p');
     intro.className = 'chronicle-sharing-lead';
-    intro.textContent = authenticated
-      ? 'Você recebeu acesso a uma Crônica compartilhada. Aceite o convite para adicioná-la à sua conta.'
-      : 'Você recebeu acesso a uma Crônica compartilhada. Entre na sua conta para continuar; o convite será preservado.';
+    intro.textContent = completedOnlineId
+      ? 'O convite foi aceito e a Crônica já faz parte da sua conta.'
+      : (authenticated
+        ? 'Você recebeu acesso a uma Crônica compartilhada. Aceite o convite para adicioná-la à sua conta.'
+        : 'Você recebeu acesso a uma Crônica compartilhada. Entre na sua conta para continuar; o convite será preservado.');
 
     const note = document.createElement('div');
     note.className = 'chronicle-sharing-note';
-    note.innerHTML = '<strong>Convite individual</strong><span>Este link pode ser utilizado apenas uma vez e ficará associado à conta que o aceitar.</span>';
+    note.innerHTML = completedOnlineId
+      ? '<strong>Acesso confirmado</strong><span>Esta conta agora é participante da Crônica compartilhada.</span>'
+      : '<strong>Convite individual</strong><span>Este link pode ser utilizado apenas uma vez e ficará associado à conta que o aceitar.</span>';
 
     const feedback = document.createElement('p');
     feedback.className = 'chronicle-sharing-feedback';
@@ -465,6 +473,31 @@
 
     const actions = document.createElement('div');
     actions.className = 'chronicle-sharing-actions';
+
+    if (completedOnlineId) {
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'btn secondary';
+      close.textContent = 'Fechar';
+      close.addEventListener('click', closeDialog);
+
+      const view = document.createElement('button');
+      view.type = 'button';
+      view.className = 'btn';
+      view.textContent = 'Ver Crônicas';
+      view.addEventListener('click', async () => {
+        if (inviteDialog.open) inviteDialog.close();
+        if (typeof global.showChroniclesIndex === 'function') {
+          await global.showChroniclesIndex({ focusId: completedOnlineId });
+        } else if (typeof global.renderChroniclesIndex === 'function') {
+          await global.renderChroniclesIndex({ focusId: completedOnlineId });
+        }
+      });
+      actions.append(close, view);
+      inviteShell.append(intro, note, feedback, actions);
+      return;
+    }
+
     const later = document.createElement('button');
     later.type = 'button';
     later.className = 'btn secondary';
@@ -495,13 +528,8 @@
         operationPending = false;
         clearInviteFromLocation();
         const onlineId = `online:${data}`;
-        await renderIncomingInviteDialog('Convite aceito. A Crônica já está vinculada à sua conta.', 'success');
+        await renderIncomingInviteDialog(code, 'Convite aceito. A Crônica já está vinculada à sua conta.', 'success', onlineId);
         global.showNotification?.('Você entrou na Crônica online.');
-        if (typeof global.showChroniclesIndex === 'function') {
-          await global.showChroniclesIndex({ focusId: onlineId });
-        } else if (typeof global.renderChroniclesIndex === 'function') {
-          await global.renderChroniclesIndex({ focusId: onlineId });
-        }
       } catch (error) {
         operationPending = false;
         await renderIncomingInviteDialog(code, humanizeError(error), 'error');
