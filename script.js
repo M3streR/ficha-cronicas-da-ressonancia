@@ -1392,7 +1392,7 @@ const CHRONICLE_COVER_LIMITS = Object.freeze({
 
 function getChroniclesStorage() {
   if (!window.ChroniclesStorage) throw new Error('CHRONICLES_STORAGE_UNAVAILABLE');
-  return window.ChroniclesStorage;
+  return window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
 }
 
 function revokeChronicleCreationPreviewUrl() {
@@ -1456,6 +1456,7 @@ function resetChronicleCreationForm() {
   chronicleFormVisualIndex = 0;
   chronicleFormCoverAction = 'keep';
   setChronicleFormMode('create');
+  window.ChroniclesOnline?.setFormStorage('local');
 
   const preview = document.getElementById('chronicleCoverPreview');
   const image = document.getElementById('chronicleCoverPreviewImage');
@@ -2022,6 +2023,7 @@ function createChronicleRecordElement(chronicle, index) {
   });
 
   card.append(cover, copy, openButton);
+  window.ChroniclesOnline?.decorateRecord(card, metadata, chronicle);
   return { card, coverImage, coverPlaceholder, openButton };
 }
 
@@ -2713,6 +2715,7 @@ function populateChronicleDetail(chronicle, visualIndex, cover) {
   document.getElementById('chronicleDetailType').textContent = getChronicleTypeLabel(chronicle.type);
   document.getElementById('chronicleDetailTitle').textContent = chronicle.name;
   populateChronicleOverview(chronicle);
+  window.ChroniclesOnline?.applyDetailMode(chronicle);
 
   const synopsis = document.getElementById('chronicleDetailSynopsis');
   synopsis.textContent = chronicle.synopsis;
@@ -2920,6 +2923,7 @@ async function openChronicleEditor({ skipCastGuard = false } = {}) {
     resetChronicleCreationForm();
     setChronicleFormMode('edit');
     chronicleFormOriginal = { ...chronicle };
+    window.ChroniclesOnline?.setFormStorage(chronicle.storage || 'local', { locked: true });
     chronicleFormVisualIndex = visualIndex;
     chronicleFormCoverAction = 'keep';
     document.getElementById('chronicleName').value = chronicle.name;
@@ -2994,6 +2998,8 @@ function validateChronicleCreationForm() {
 }
 
 function getChronicleStorageErrorMessage(error) {
+  const onlineMessage = window.ChroniclesOnline?.getErrorMessage(error);
+  if (onlineMessage) return onlineMessage;
   if (error?.name === 'QuotaExceededError' || error?.message === 'CHRONICLE_COVER_TOO_LARGE') {
     return 'Não há espaço suficiente para salvar esta Crônica e sua capa neste navegador.';
   }
