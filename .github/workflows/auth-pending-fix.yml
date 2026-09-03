@@ -1,0 +1,58 @@
+name: Auth pending-state fix
+
+on:
+  push:
+    branches:
+      - supabase-auth-foundation
+    paths:
+      - .github/workflows/auth-pending-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: supabase-auth-foundation
+
+      - name: Patch auth dialog pending state
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('js/supabase-client.js')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              "          await signOut();\n          closeDialog();",
+              "          await signOut();\n          pending = false;\n          closeDialog();"
+            ),
+            (
+              "          if (data.session) {\n            closeDialog();",
+              "          if (data.session) {\n            pending = false;\n            closeDialog();"
+            ),
+            (
+              "          await signIn(credentials.email, credentials.password);\n          closeDialog();",
+              "          await signIn(credentials.email, credentials.password);\n          pending = false;\n          closeDialog();"
+            )
+          ]
+
+          for old, new in replacements:
+            if old not in text:
+              raise SystemExit(f'Expected auth snippet not found: {old!r}')
+            text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit auth fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/supabase-client.js
+          git commit -m "Fix auth dialog pending state"
+          git push origin HEAD:supabase-auth-foundation
