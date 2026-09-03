@@ -88,3 +88,5 @@ jobs:
           git add js/chronicles-online.js index.html
           git commit -m "Unlock Chronicle navigation and refresh frontend cache"
           git push origin HEAD:main
+
+# trigger: 2026-09-03T22:40Z
