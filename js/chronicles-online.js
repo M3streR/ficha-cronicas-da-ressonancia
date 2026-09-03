@@ -288,14 +288,14 @@
     });
     const encountersTab = document.getElementById('chronicleTabEncounters');
     if (encountersTab) {
-      encountersTab.disabled = online;
-      encountersTab.title = online ? 'Confrontos online serão conectados na próxima etapa.' : '';
+      encountersTab.disabled = false;
+      encountersTab.title = '';
     }
 
     const masterShield = document.getElementById('openMasterShield');
     if (masterShield) {
-      masterShield.disabled = online;
-      masterShield.title = online ? 'O Escudo online será ligado às permissões do Mestre em uma próxima etapa.' : '';
+      masterShield.disabled = online && !owner;
+      masterShield.title = online && !owner ? 'Somente o Mestre pode abrir o Escudo desta Crônica online.' : '';
     }
     const edit = document.getElementById('editChronicleAction');
     if (edit) {
