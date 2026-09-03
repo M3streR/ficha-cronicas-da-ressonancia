@@ -1,0 +1,133 @@
+name: Integrate online participants and cast
+
+on:
+  push:
+    branches:
+      - online-participants-cast
+    paths:
+      - .github/workflows/integrate-online-participants-cast.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: online-participants-cast
+
+      - name: Patch collaboration integration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          css_anchor = '  <link rel="stylesheet" href="css/chronicles-sharing.css?v=1">\n'
+          if 'css/chronicles-collaboration.css' not in text:
+            if css_anchor not in text:
+              raise SystemExit('sharing CSS anchor missing')
+            text = text.replace(css_anchor, css_anchor + '  <link rel="stylesheet" href="css/chronicles-collaboration.css?v=1">\n', 1)
+          script_anchor = '  <script src="js/chronicles-sharing.js?v=1"></script>\n'
+          if 'js/chronicles-collaboration.js' not in text:
+            if script_anchor not in text:
+              raise SystemExit('sharing JS anchor missing')
+            text = text.replace(script_anchor, script_anchor + '  <script src="js/chronicles-collaboration.js?v=1"></script>\n', 1)
+          index.write_text(text, encoding='utf-8')
+
+          online = Path('js/chronicles-online.js')
+          text = online.read_text(encoding='utf-8')
+          old = '''    ['chronicleTabCast', 'chronicleTabParticipants', 'chronicleTabEncounters'].forEach(id => {\n      const tab = document.getElementById(id);\n      if (!tab) return;\n      tab.disabled = online;\n      tab.title = online ? 'Esta área será conectada às Crônicas online em uma próxima etapa.' : '';\n    });\n'''
+          new = '''    ['chronicleTabCast', 'chronicleTabParticipants'].forEach(id => {\n      const tab = document.getElementById(id);\n      if (!tab) return;\n      tab.disabled = false;\n      tab.title = '';\n    });\n    const encountersTab = document.getElementById('chronicleTabEncounters');\n    if (encountersTab) {\n      encountersTab.disabled = online;\n      encountersTab.title = online ? 'Confrontos online serão conectados na próxima etapa.' : '';\n    }\n'''
+          if old not in text:
+            raise SystemExit('online tab lock anchor missing')
+          text = text.replace(old, new, 1)
+          anchor = '    global.ChroniclesSharing?.applyDetailMode(chronicle);\n'
+          if 'global.ChroniclesCollaboration?.applyDetailMode(chronicle);' not in text:
+            if anchor not in text:
+              raise SystemExit('sharing applyDetailMode anchor missing')
+            text = text.replace(anchor, anchor + '    global.ChroniclesCollaboration?.applyDetailMode(chronicle);\n', 1)
+          online.write_text(text, encoding='utf-8')
+
+          script = Path('script.js')
+          text = script.read_text(encoding='utf-8')
+
+          anchor = '''  return { entries, byId, unavailable: false };\n}\n\nfunction createChronicleCastPortrait(entry, className) {'''
+          replacement = '''  return { entries, byId, unavailable: false };\n}\n\nglobalThis.ChroniclesLocalCharacters = Object.freeze({\n  list() {\n    const directory = getChronicleCharacterDirectory();\n    if (directory.unavailable) throw new Error('LOCAL_CHARACTER_DIRECTORY_UNAVAILABLE');\n    return directory.entries.map(entry => ({\n      ...entry,\n      character: readStoredCharacter(entry.id)\n    }));\n  }\n});\n\nfunction createChronicleCastPortrait(entry, className) {'''
+          if 'globalThis.ChroniclesLocalCharacters = Object.freeze' not in text:
+            if anchor not in text:
+              raise SystemExit('local character directory anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          anchor = '''async function renderChronicleCast() {\n  if (!activeChronicleId || isChronicleCastManagementOpen) return;'''
+          replacement = '''async function renderChronicleCast() {\n  if (activeChronicleRecord?.storage === 'online') {\n    await window.ChroniclesCollaboration?.renderCast(activeChronicleRecord);\n    return;\n  }\n  if (!activeChronicleId || isChronicleCastManagementOpen) return;'''
+          if replacement not in text:
+            if anchor not in text:
+              raise SystemExit('renderChronicleCast anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          anchor = '''async function openChronicleCastManagement(trigger) {\n  if (window.MasterShieldUI?.requestExit(() => void openChronicleCastManagement(trigger))) return;'''
+          replacement = '''async function openChronicleCastManagement(trigger) {\n  if (activeChronicleRecord?.storage === 'online') {\n    closeChronicleActions({ restoreFocus: false });\n    setChronicleDetailSection('cast', { skipCastGuard: true, skipCastRender: true });\n    await window.ChroniclesCollaboration?.openCastManager(activeChronicleRecord);\n    return;\n  }\n  if (window.MasterShieldUI?.requestExit(() => void openChronicleCastManagement(trigger))) return;'''
+          if replacement not in text:
+            if anchor not in text:
+              raise SystemExit('openChronicleCastManagement anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          anchor = '''async function saveChronicleCastManagement() {\n  if (!isChronicleCastManagementOpen || isSavingChronicleCast || !activeChronicleId) return;'''
+          replacement = '''async function saveChronicleCastManagement() {\n  if (activeChronicleRecord?.storage === 'online') {\n    await window.ChroniclesCollaboration?.closeCastManager({ render: true });\n    document.getElementById('chroniclePanelCast')?.focus({ preventScroll: true });\n    return;\n  }\n  if (!isChronicleCastManagementOpen || isSavingChronicleCast || !activeChronicleId) return;'''
+          if replacement not in text:
+            if anchor not in text:
+              raise SystemExit('saveChronicleCastManagement anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          anchor = '''async function renderChronicleParticipants() {\n  if (!activeChronicleId || isParticipantMutationPending) return;'''
+          replacement = '''async function renderChronicleParticipants() {\n  if (activeChronicleRecord?.storage === 'online') {\n    await window.ChroniclesCollaboration?.renderParticipants(activeChronicleRecord);\n    return;\n  }\n  if (!activeChronicleId || isParticipantMutationPending) return;'''
+          if replacement not in text:
+            if anchor not in text:
+              raise SystemExit('renderChronicleParticipants anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          old = """  document.getElementById('chronicleCastSearch').addEventListener('input', renderChronicleCastManagementList);"""
+          new = """  document.getElementById('chronicleCastSearch').addEventListener('input', event => {\n    if (window.ChroniclesCollaboration?.handleCastSearch(event.currentTarget.value)) return;\n    renderChronicleCastManagementList();\n  });"""
+          if old in text:
+            text = text.replace(old, new, 1)
+          elif new not in text:
+            raise SystemExit('cast search listener anchor missing')
+
+          anchor = '''function teardownChronicleDetail() {\n  window.MasterShieldUI?.reset();'''
+          replacement = '''function teardownChronicleDetail() {\n  window.ChroniclesCollaboration?.reset();\n  window.MasterShieldUI?.reset();'''
+          if replacement not in text:
+            if anchor not in text:
+              raise SystemExit('teardown anchor missing')
+            text = text.replace(anchor, replacement, 1)
+
+          script.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/chronicles-online.js
+          node --check js/chronicles-sharing.js
+          node --check js/chronicles-collaboration.js
+          node --check script.js
+
+      - name: Verify integration
+        run: |
+          grep -q 'css/chronicles-collaboration.css' index.html
+          grep -q 'js/chronicles-collaboration.js' index.html
+          grep -q 'ChroniclesLocalCharacters' script.js
+          grep -q 'ChroniclesCollaboration?.renderCast' script.js
+          grep -q 'ChroniclesCollaboration?.renderParticipants' script.js
+          grep -q 'ChroniclesCollaboration?.openCastManager' script.js
+          grep -q 'ChroniclesCollaboration?.applyDetailMode' js/chronicles-online.js
+          grep -q "Confrontos online serão conectados na próxima etapa" js/chronicles-online.js
+
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html script.js js/chronicles-online.js
+          git commit -m "Integrate online participants and cast"
+          git push origin HEAD:online-participants-cast
