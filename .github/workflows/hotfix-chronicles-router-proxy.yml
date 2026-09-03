@@ -1,0 +1,57 @@
+name: Hotfix Chronicles router Proxy
+
+on:
+  push:
+    branches:
+      - hotfix-chronicles-router-proxy
+    paths:
+      - .github/workflows/hotfix-chronicles-router-proxy.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix-chronicles-router-proxy
+
+      - name: Replace Proxy router with independent object
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('js/chronicles-online.js')
+          text = path.read_text(encoding='utf-8')
+
+          old = """    const router = new Proxy(localStorageApi, {\n      get(target, property, receiver) {\n        if (Object.prototype.hasOwnProperty.call(overrides, property)) return overrides[property];\n        return Reflect.get(target, property, receiver);\n      }\n    });\n    routerCache.set(localStorageApi, router);\n    return router;\n"""
+
+          new = """    const router = Object.freeze({\n      ...localStorageApi,\n      ...overrides\n    });\n    routerCache.set(localStorageApi, router);\n    return router;\n"""
+
+          if old not in text:
+            raise SystemExit('Expected Proxy router block was not found; refusing to patch.')
+
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        run: node --check js/chronicles-online.js
+
+      - name: Verify Proxy router is gone
+        run: |
+          if grep -q "new Proxy(localStorageApi" js/chronicles-online.js; then
+            echo "Proxy router still present"
+            exit 1
+          fi
+          grep -q "const router = Object.freeze" js/chronicles-online.js
+
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/chronicles-online.js
+          git commit -m "Fix frozen ChroniclesStorage router"
+          git push origin HEAD:hotfix-chronicles-router-proxy
