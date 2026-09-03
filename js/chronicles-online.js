@@ -317,13 +317,33 @@
 
     const overrides = {
       async listChronicles() {
-        const local = await localStorageApi.listChronicles();
+        let local = [];
+        let localError = null;
         let online = [];
+        let onlineError = null;
+
+        try {
+          local = await localStorageApi.listChronicles();
+        } catch (error) {
+          localError = error;
+          console.warn('As Crônicas locais não puderam ser carregadas; tentando preservar o acesso online.', error);
+        }
+
         try {
           online = await listOnlineChronicles();
         } catch (error) {
+          onlineError = error;
           console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);
         }
+
+        const authenticated = Boolean(global.CronicasSupabase?.authenticated);
+        if (localError && (!authenticated || onlineError)) {
+          const combinedError = new Error('CHRONICLES_STORAGE_UNAVAILABLE');
+          combinedError.localError = localError;
+          combinedError.onlineError = onlineError;
+          throw combinedError;
+        }
+
         return [
           ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),
           ...online
