@@ -60,10 +60,6 @@ jobs:
             (
               "    chronicleFormOriginal = { ...chronicle };\n    chronicleFormVisualIndex = visualIndex;",
               "    chronicleFormOriginal = { ...chronicle };\n    window.ChroniclesOnline?.setFormStorage(chronicle.storage || 'local', { locked: true });\n    chronicleFormVisualIndex = visualIndex;"
-            ),
-            (
-              "  return 'Não foi possível concluir a operação. Nenhuma alteração parcial foi salva. Tente novamente.';\n}",
-              "  const onlineMessage = window.ChroniclesOnline?.getErrorMessage(error);\n  if (onlineMessage) return onlineMessage;\n  return 'Não foi possível concluir a operação. Nenhuma alteração parcial foi salva. Tente novamente.';\n}"
             )
           ]
 
@@ -71,6 +67,12 @@ jobs:
             if old not in text:
               raise SystemExit(f'script anchor missing: {old[:100]!r}')
             text = text.replace(old, new, 1)
+
+          error_anchor = "function getChronicleStorageErrorMessage(error) {\n"
+          error_insert = error_anchor + "  const onlineMessage = window.ChroniclesOnline?.getErrorMessage(error);\n  if (onlineMessage) return onlineMessage;\n"
+          if "ChroniclesOnline?.getErrorMessage(error)" not in text:
+            if error_anchor not in text: raise SystemExit('error handler anchor missing')
+            text = text.replace(error_anchor, error_insert, 1)
 
           script.write_text(text, encoding='utf-8')
           PY
