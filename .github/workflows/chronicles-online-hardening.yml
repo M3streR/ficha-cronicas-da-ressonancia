@@ -1,0 +1,45 @@
+name: Online chronicles hardening
+
+on:
+  push:
+    branches:
+      - chronicles-online-foundation
+    paths:
+      - .github/workflows/chronicles-online-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chronicles-online-foundation
+
+      - name: Preserve local chronicles on online failure
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('js/chronicles-online.js')
+          text = path.read_text(encoding='utf-8')
+          old = """      async listChronicles() {\n        const [local, online] = await Promise.all([\n          localStorageApi.listChronicles(),\n          listOnlineChronicles()\n        ]);\n        return [\n          ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),\n          ...online\n        ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));\n      },"""
+          new = """      async listChronicles() {\n        const local = await localStorageApi.listChronicles();\n        let online = [];\n        try {\n          online = await listOnlineChronicles();\n        } catch (error) {\n          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);\n        }\n        return [\n          ...local.map(chronicle => ({ ...chronicle, storage: 'local', role: 'local' })),\n          ...online\n        ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));\n      },"""
+          if old not in text:
+            raise SystemExit('listChronicles router anchor missing')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/chronicles-online.js
+          node --check script.js
+
+      - name: Commit hardening
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/chronicles-online.js
+          git commit -m "Keep local chronicles available when online loading fails"
+          git push origin HEAD:chronicles-online-foundation
