@@ -373,11 +373,9 @@
       }
     };
 
-    const router = new Proxy(localStorageApi, {
-      get(target, property, receiver) {
-        if (Object.prototype.hasOwnProperty.call(overrides, property)) return overrides[property];
-        return Reflect.get(target, property, receiver);
-      }
+    const router = Object.freeze({
+      ...localStorageApi,
+      ...overrides
     });
     routerCache.set(localStorageApi, router);
     return router;
