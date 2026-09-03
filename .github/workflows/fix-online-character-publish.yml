@@ -1,0 +1,86 @@
+name: Fix online character publishing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-online-character-publish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Replace upsert with explicit insert/update
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('js/chronicles-collaboration.js')
+          text = path.read_text(encoding='utf-8')
+          old = '''    const { data, error } = await auth.client
+      .from('online_characters')
+      .upsert(payload, { onConflict: 'owner_id,source_local_id' })
+      .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, updated_at')
+      .single();
+    if (error) throw error;
+    return data;'''
+          new = '''    const { data: existing, error: lookupError } = await auth.client
+      .from('online_characters')
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('source_local_id', localEntry.id)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    let query;
+    if (existing?.id) {
+      query = auth.client
+        .from('online_characters')
+        .update(payload)
+        .eq('id', existing.id)
+        .eq('owner_id', user.id);
+    } else {
+      query = auth.client
+        .from('online_characters')
+        .insert(payload);
+    }
+
+    const { data, error } = await query
+      .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, updated_at')
+      .single();
+    if (error) throw error;
+    return data;'''
+          if old not in text:
+            raise SystemExit('upsert block not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          import re
+          html, count = re.subn(r'js/chronicles-collaboration\.js\?v=[^"\']+', 'js/chronicles-collaboration.js?v=publish-fix-1', html, count=1)
+          if count != 1:
+            raise SystemExit('collaboration cache reference not found')
+          index.write_text(html, encoding='utf-8')
+          PY
+
+      - name: Validate
+        run: |
+          node --check js/chronicles-collaboration.js
+          grep -q "maybeSingle()" js/chronicles-collaboration.js
+          grep -q "\.insert(payload)" js/chronicles-collaboration.js
+          grep -q "\.update(payload)" js/chronicles-collaboration.js
+          grep -q "js/chronicles-collaboration.js?v=publish-fix-1" index.html
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/chronicles-collaboration.js index.html
+          git commit -m "Fix online character publishing RLS flow"
+          git push origin HEAD:main
