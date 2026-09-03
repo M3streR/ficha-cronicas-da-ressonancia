@@ -1,0 +1,90 @@
+name: Apply Chronicle navigation hotfix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/hotfix-chronicle-navigation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Unlock Chronicle navigation and bust stale cache
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          online = Path('js/chronicles-online.js')
+          text = online.read_text(encoding='utf-8')
+          old = '''    const encountersTab = document.getElementById('chronicleTabEncounters');
+    if (encountersTab) {
+      encountersTab.disabled = online;
+      encountersTab.title = online ? 'Confrontos online serão conectados na próxima etapa.' : '';
+    }
+
+    const masterShield = document.getElementById('openMasterShield');
+    if (masterShield) {
+      masterShield.disabled = online;
+      masterShield.title = online ? 'O Escudo online será ligado às permissões do Mestre em uma próxima etapa.' : '';
+    }
+'''
+          new = '''    const encountersTab = document.getElementById('chronicleTabEncounters');
+    if (encountersTab) {
+      encountersTab.disabled = false;
+      encountersTab.title = '';
+    }
+
+    const masterShield = document.getElementById('openMasterShield');
+    if (masterShield) {
+      masterShield.disabled = online && !owner;
+      masterShield.title = online && !owner ? 'Somente o Mestre pode abrir o Escudo desta Crônica online.' : '';
+    }
+'''
+          if old not in text:
+            raise SystemExit('navigation lock anchor missing')
+          online.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          replacements = {
+            'css/chronicles-online.css?v=1': 'css/chronicles-online.css?v=3',
+            'css/chronicles-sharing.css?v=1': 'css/chronicles-sharing.css?v=3',
+            'css/chronicles-collaboration.css?v=1': 'css/chronicles-collaboration.css?v=3',
+            'js/chronicles-online.js?v=1': 'js/chronicles-online.js?v=3',
+            'js/chronicles-sharing.js?v=1': 'js/chronicles-sharing.js?v=3',
+            'js/chronicles-collaboration.js?v=1': 'js/chronicles-collaboration.js?v=3',
+            'script.js?v=6-combates-1': 'script.js?v=6-combates-nav-3'
+          }
+          for old_value, new_value in replacements.items():
+            if old_value not in text:
+              raise SystemExit(f'cache anchor missing: {old_value}')
+            text = text.replace(old_value, new_value, 1)
+          index.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate hotfix
+        run: |
+          node --check js/chronicles-online.js
+          node --check js/chronicles-collaboration.js
+          node --check script.js
+          grep -q "encountersTab.disabled = false" js/chronicles-online.js
+          grep -q "masterShield.disabled = online && !owner" js/chronicles-online.js
+          grep -q "js/chronicles-online.js?v=3" index.html
+          grep -q "script.js?v=6-combates-nav-3" index.html
+
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/chronicles-online.js index.html
+          git commit -m "Unlock Chronicle navigation and refresh frontend cache"
+          git push origin HEAD:main
