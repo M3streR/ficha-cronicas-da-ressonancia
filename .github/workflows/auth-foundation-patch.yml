@@ -1,0 +1,56 @@
+name: Auth foundation patch
+
+on:
+  push:
+    branches:
+      - supabase-auth-foundation
+    paths:
+      - .github/workflows/auth-foundation-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: supabase-auth-foundation
+
+      - name: Patch index safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          css_anchor = '  <link rel="stylesheet" href="css/chronicles-workspace.css?v=6-combates-1">\n'
+          css_insert = css_anchor + '  <link rel="stylesheet" href="css/account-auth.css?v=1">\n'
+          if 'css/account-auth.css' not in text:
+              if css_anchor not in text:
+                  raise SystemExit('CSS anchor not found')
+              text = text.replace(css_anchor, css_insert, 1)
+
+          script_anchor = '  <script src="js/chronicles-storage.js?v=6-combates-1"></script>\n'
+          script_insert = '  <script type="module" src="js/supabase-client.js?v=1"></script>\n' + script_anchor
+          if 'js/supabase-client.js' not in text:
+              if script_anchor not in text:
+                  raise SystemExit('Script anchor not found')
+              text = text.replace(script_anchor, script_insert, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit patched index
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No patch needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Load Supabase authentication foundation"
+          git push origin HEAD:supabase-auth-foundation
