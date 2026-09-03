@@ -1,0 +1,95 @@
+name: Auth confirmation redirect fix
+
+on:
+  push:
+    branches:
+      - auth-confirmation-redirect-fix-v5
+    paths:
+      - .github/workflows/auth-confirmation-redirect-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: auth-confirmation-redirect-fix-v5
+
+      - name: Patch Supabase auth confirmation flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('js/supabase-client.js')
+          text = path.read_text(encoding='utf-8')
+
+          anchor = "const AUTH_STORAGE_KEY = 'cronicasRessonanciaSupabaseAuth';\n"
+          insert = anchor + "const PRODUCTION_APP_URL = 'https://m3strer.github.io/ficha-cronicas-da-ressonancia/';\nconst AUTH_REDIRECT_OVERRIDE_KEY = 'cronicasRessonanciaAuthRedirectOverride';\n"
+          if 'PRODUCTION_APP_URL' not in text:
+            if anchor not in text: raise SystemExit('auth constants anchor missing')
+            text = text.replace(anchor, insert, 1)
+
+          anchor = "function normalizeEmail(value) {\n  return typeof value === 'string' ? value.trim().toLowerCase() : '';\n}\n"
+          insert = anchor + "\nfunction getAuthRedirectUrl() {\n  const override = window.localStorage.getItem(AUTH_REDIRECT_OVERRIDE_KEY);\n  if (override) {\n    try {\n      const url = new URL(override);\n      const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);\n      const allowed = url.protocol === 'https:' || (url.protocol === 'http:' && localHosts.has(url.hostname));\n      if (allowed) return url.href;\n    } catch {\n      console.warn('Override de redirecionamento do Auth inválido; usando a URL oficial.');\n    }\n  }\n  return PRODUCTION_APP_URL;\n}\n"
+          if 'function getAuthRedirectUrl()' not in text:
+            if anchor not in text: raise SystemExit('normalizeEmail anchor missing')
+            text = text.replace(anchor, insert, 1)
+
+          old = """async function signUp(email, password) {\n  const credentials = requireCredentials(email, password);\n  const redirectTo = `${window.location.origin}${window.location.pathname}`;\n  const { data, error } = await client.auth.signUp({\n    ...credentials,\n    options: { emailRedirectTo: redirectTo }\n  });\n  if (error) throw error;\n  return data;\n}\n"""
+          new = """async function signUp(email, password) {\n  const credentials = requireCredentials(email, password);\n  const { data, error } = await client.auth.signUp({\n    ...credentials,\n    options: { emailRedirectTo: getAuthRedirectUrl() }\n  });\n  if (error) throw error;\n  return data;\n}\n\nasync function resendSignupConfirmation(email) {\n  const normalizedEmail = normalizeEmail(email);\n  if (!normalizedEmail || !normalizedEmail.includes('@')) throw new TypeError('INVALID_EMAIL');\n  const { data, error } = await client.auth.resend({\n    type: 'signup',\n    email: normalizedEmail,\n    options: { emailRedirectTo: getAuthRedirectUrl() }\n  });\n  if (error) throw error;\n  return data;\n}\n"""
+          if 'async function resendSignupConfirmation' not in text:
+            if old not in text: raise SystemExit('signUp anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """  let mode = 'signin';\n  let pending = false;\n"""
+          new = """  let mode = 'signin';\n  let pending = false;\n  let pendingConfirmationEmail = '';\n"""
+          if 'pendingConfirmationEmail' not in text:
+            if old not in text: raise SystemExit('dialog state anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """    emailInput.required = true;\n    emailInput.maxLength = 320;\n    emailField.appendChild(emailInput);\n"""
+          new = """    emailInput.required = true;\n    emailInput.maxLength = 320;\n    if (mode === 'signin' && pendingConfirmationEmail) emailInput.value = pendingConfirmationEmail;\n    emailField.appendChild(emailInput);\n"""
+          if "pendingConfirmationEmail) emailInput.value" not in text:
+            if old not in text: raise SystemExit('email input anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """    toggle.addEventListener('click', () => {\n      if (pending) return;\n      mode = mode === 'signup' ? 'signin' : 'signup';\n      renderDialog();\n      requestAnimationFrame(() => shell.querySelector('input')?.focus());\n    });\n\n    form.append(emailField, passwordField, feedback, submit);\n"""
+          new = """    toggle.addEventListener('click', () => {\n      if (pending) return;\n      mode = mode === 'signup' ? 'signin' : 'signup';\n      renderDialog();\n      requestAnimationFrame(() => shell.querySelector('input')?.focus());\n    });\n\n    const resendConfirmation = document.createElement('button');\n    resendConfirmation.type = 'button';\n    resendConfirmation.className = 'account-auth-toggle';\n    resendConfirmation.hidden = mode !== 'signin';\n    resendConfirmation.disabled = pending;\n    resendConfirmation.textContent = 'Reenviar e-mail de confirmação';\n    resendConfirmation.addEventListener('click', async () => {\n      if (pending) return;\n      const email = normalizeEmail(emailInput.value);\n      if (!email || !email.includes('@')) {\n        feedback.dataset.kind = 'error';\n        feedback.textContent = 'Informe o e-mail da conta para reenviar a confirmação.';\n        return;\n      }\n\n      pending = true;\n      pendingConfirmationEmail = email;\n      submit.disabled = true;\n      toggle.disabled = true;\n      resendConfirmation.disabled = true;\n      emailInput.disabled = true;\n      passwordInput.disabled = true;\n      feedback.dataset.kind = '';\n      feedback.textContent = 'Enviando novo e-mail de confirmação…';\n\n      try {\n        await resendSignupConfirmation(email);\n        feedback.dataset.kind = 'success';\n        feedback.textContent = 'Novo e-mail enviado. Use somente o link mais recente para confirmar sua conta.';\n      } catch (error) {\n        feedback.dataset.kind = 'error';\n        feedback.textContent = authErrorMessage(error);\n      } finally {\n        pending = false;\n        submit.disabled = false;\n        toggle.disabled = false;\n        resendConfirmation.disabled = false;\n        emailInput.disabled = false;\n        passwordInput.disabled = false;\n      }\n    });\n\n    form.append(emailField, passwordField, feedback, submit);\n"""
+          if "Reenviar e-mail de confirmação" not in text:
+            if old not in text: raise SystemExit('resend UI anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """          } else {\n            pending = false;\n            renderDialog('Conta criada. Confira seu e-mail para confirmar o cadastro antes de entrar.', 'success');\n          }\n"""
+          new = """          } else {\n            pending = false;\n            pendingConfirmationEmail = credentials.email;\n            mode = 'signin';\n            renderDialog('Conta criada. Confira seu e-mail para confirmar o cadastro antes de entrar.', 'success');\n          }\n"""
+          if "pendingConfirmationEmail = credentials.email" not in text:
+            if old not in text: raise SystemExit('signup confirmation anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """    shell.append(copy, form, toggle);\n"""
+          new = """    shell.append(copy, form, toggle, resendConfirmation);\n"""
+          if "shell.append(copy, form, toggle, resendConfirmation);" not in text:
+            if old not in text: raise SystemExit('dialog append anchor missing')
+            text = text.replace(old, new, 1)
+
+          old = """  signIn,\n  signUp,\n  signOut,\n"""
+          new = """  signIn,\n  signUp,\n  resendSignupConfirmation,\n  signOut,\n  getAuthRedirectUrl,\n"""
+          if '  resendSignupConfirmation,\n' not in text:
+            if old not in text: raise SystemExit('auth export anchor missing')
+            text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript syntax
+        run: node --check js/supabase-client.js
+
+      - name: Commit auth fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/supabase-client.js
+          git commit -m "Fix email confirmation redirect and resend flow"
+          git push origin HEAD:auth-confirmation-redirect-fix-v5
