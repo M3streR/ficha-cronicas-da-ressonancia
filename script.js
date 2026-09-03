@@ -2706,6 +2706,9 @@ function setChronicleDetailSection(
   sectionId,
   { focusTab = false, skipCastGuard = false, skipCastRender = false } = {}
 ) {
+  if (sectionId !== 'cast' && activeChronicleRecord?.storage === 'online') {
+    void window.ChroniclesCollaboration?.closeCastManager({ render: false });
+  }
   if (window.MasterShieldUI?.requestExit(() => setChronicleDetailSection(sectionId, { focusTab, skipCastGuard, skipCastRender }))) return;
   if (sectionId !== 'encounters' && window.ConfrontationsUI?.requestExit(() => setChronicleDetailSection(sectionId, { focusTab, skipCastGuard, skipCastRender }))) return;
   if (sectionId !== 'participants' && (chronicleParticipantEditor || isParticipantMutationPending)) {
