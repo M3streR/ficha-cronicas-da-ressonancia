@@ -1,0 +1,24 @@
+name: Bust Master Shield cache
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/bust-master-shield-cache.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: |
+          set -euo pipefail
+          sed -i 's/js\/master-shield.js?v=6-combates-1/js\/master-shield.js?v=online-owner-1/' index.html
+          grep -q 'js/master-shield.js?v=online-owner-1' index.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Refresh Master Shield frontend cache'
+          git push origin HEAD:main
