@@ -1,0 +1,310 @@
+name: Complete online combat integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/complete-online-combat.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Integrate online storage, shield and active combat
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          script = Path('script.js')
+          s = script.read_text(encoding='utf-8')
+
+          old = '''function getChroniclesStorage() {
+  if (!window.ChroniclesStorage) throw new Error('CHRONICLES_STORAGE_UNAVAILABLE');
+  return window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+}'''
+          new = '''function getChroniclesStorage() {
+  if (!window.ChroniclesStorage) throw new Error('CHRONICLES_STORAGE_UNAVAILABLE');
+  const base = window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+  if (activeChronicleRecord?.storage === 'online' && window.ChroniclesOnlineCombat?.storage) {
+    return Object.freeze({ ...base, ...window.ChroniclesOnlineCombat.storage });
+  }
+  return base;
+}'''
+          if old not in s: raise SystemExit('getChroniclesStorage anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = '''  if (activeSection === 'participants') void renderChronicleParticipants();
+  if (activeSection === 'encounters') void window.ConfrontationsUI?.renderIndex();'''
+          new = '''  if (activeSection === 'participants') void renderChronicleParticipants();
+  if (activeSection === 'encounters') {
+    if (activeChronicleRecord?.storage === 'online') void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
+    else void window.ConfrontationsUI?.renderIndex();
+  }'''
+          if old not in s: raise SystemExit('encounters render anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = '''    directory: getChronicleCharacterDirectory,
+    readCharacter: readStoredCharacter,'''
+          new = '''    directory: () => activeChronicleRecord?.storage === 'online'
+      ? (window.ChroniclesOnlineCombat?.directory() || { entries: [], byId: new Map(), unavailable: true })
+      : getChronicleCharacterDirectory(),
+    readCharacter: id => activeChronicleRecord?.storage === 'online'
+      ? window.ChroniclesOnlineCombat?.readCharacter(id)
+      : readStoredCharacter(id),'''
+          if old not in s: raise SystemExit('confrontation services anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = '''      if (battleId) { await window.ConfrontationsUI.open(battleId); return; }
+      try {'''
+          new = '''      if (battleId) {
+        if (activeChronicleRecord?.storage === 'online') {
+          await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
+        } else {
+          await window.ConfrontationsUI.open(battleId);
+        }
+        return;
+      }
+      try {'''
+          if old not in s: raise SystemExit('battle navigation anchor missing')
+          s = s.replace(old, new, 1)
+          script.write_text(s, encoding='utf-8')
+
+          confrontation = Path('js/confrontations.js')
+          c = confrontation.read_text(encoding='utf-8')
+          old = '''    preparation = { chronicleId: services.chronicleId() };
+    directory = services.directory();
+    showWork();'''
+          new = '''    preparation = { chronicleId: services.chronicleId() };
+    await storage().listChronicleCastIds(preparation.chronicleId);
+    directory = services.directory();
+    showWork();'''
+          if old not in c: raise SystemExit('openCreate directory anchor missing')
+          c = c.replace(old, new, 1)
+          confrontation.write_text(c, encoding='utf-8')
+
+          master = Path('js/master-shield.js')
+          m = master.read_text(encoding='utf-8')
+          old = '''        if (onlineOwner) {
+          const cast = await onlineCastCount();
+          if (canUse()) {
+            el('masterHuntersSummary').textContent = cast + ' no Elenco';
+            el('masterCombatsSummary').textContent = 'Confrontos online';
+          }
+        } else {
+          const [cast, battles] = await Promise.all([services.storage().listChronicleCastIds(id), services.storage().listConfrontations(id)]);
+          if (canUse()) { el('masterHuntersSummary').textContent = cast.length + ' no Elenco'; el('masterCombatsSummary').textContent = battles.length + ' Confrontos'; }
+        }'''
+          new = '''        const [cast, battles] = await Promise.all([
+          onlineOwner ? onlineCastCount() : services.storage().listChronicleCastIds(id).then(items => items.length),
+          services.storage().listConfrontations(id)
+        ]);
+        if (canUse()) {
+          el('masterHuntersSummary').textContent = cast + ' no Elenco';
+          const active = battles.find(item => item.active);
+          el('masterCombatsSummary').textContent = active ? `Ativo · ${active.name}` : `${battles.length} Confrontos`;
+        }'''
+          if old not in m: raise SystemExit('master dashboard anchor missing')
+          m = m.replace(old, new, 1)
+
+          start = m.index("      } else if (onlineOwner) {")
+          end = m.index("      } else {", start + 10)
+          # Replace online placeholder branch with shared battle renderer body copied from local branch.
+          local_start = end + len("      } else {")
+          local_end = m.index("      }\n    } catch", local_start)
+          local_body = m[local_start:local_end]
+          m = m[:start] + "      } else {" + local_body + m[local_end:]
+
+          old = '''    el('createMasterConfrontation').addEventListener('click',() => { if (allowed() && !onlineOwner) void global.ConfrontationsUI.openCreate({ returnTo:()=>openModule('combats') }); });'''
+          new = '''    el('createMasterConfrontation').addEventListener('click',() => { if (allowed()) void global.ConfrontationsUI.openCreate({ returnTo:()=>openModule('combats') }); });'''
+          if old not in m: raise SystemExit('master create anchor missing')
+          m = m.replace(old, new, 1)
+          master.write_text(m, encoding='utf-8')
+
+          online = Path('js/chronicles-online.js')
+          o = online.read_text(encoding='utf-8')
+          old = '''    global.ChroniclesSharing?.applyDetailMode(chronicle);
+    global.ChroniclesCollaboration?.applyDetailMode(chronicle);'''
+          new = '''    global.ChroniclesSharing?.applyDetailMode(chronicle);
+    global.ChroniclesCollaboration?.applyDetailMode(chronicle);
+    global.ChroniclesOnlineCombat?.applyDetailMode?.(chronicle);'''
+          if old not in o: raise SystemExit('online apply detail anchor missing')
+          o = o.replace(old, new, 1)
+          online.write_text(o, encoding='utf-8')
+
+          combat = Path('js/chronicles-online-combat.js')
+          b = combat.read_text(encoding='utf-8')
+          old = '''  function reset() {
+    stopRealtime();'''
+          new = '''  function applyDetailMode(chronicle) {
+    if (chronicle?.storage === 'online') {
+      currentChronicle = chronicle;
+      startRealtime(chronicle);
+    } else {
+      reset();
+    }
+  }
+
+  function reset() {
+    stopRealtime();'''
+          if old not in b: raise SystemExit('combat reset anchor missing')
+          b = b.replace(old, new, 1)
+          old = '''    loadCastDirectory,
+    render,
+    reset,'''
+          new = '''    loadCastDirectory,
+    render,
+    applyDetailMode,
+    reset,'''
+          if old not in b: raise SystemExit('combat export anchor missing')
+          b = b.replace(old, new, 1)
+
+          # Add quick enemy HP editor to owner focus panel.
+          old = '''  function detailPanel(full, user) {
+    const panel = node('aside', 'online-combat-focus');
+    const own = full.characterIds'''
+          new = '''  function detailPanel(full, user, owner = false) {
+    const panel = node('aside', 'online-combat-focus');
+    if (owner) {
+      const order = normalizedInitiative(full);
+      const activeItem = order[Math.min(full.record.combatTurn, Math.max(order.length - 1, 0))];
+      const target = activeItem ? combatantMap(full).get(`${activeItem.kind}:${activeItem.id}`) : null;
+      panel.append(node('span', 'chronicles-kicker', 'Controle de turno'));
+      panel.append(node('h3', '', target ? target.name : 'Combatente atual'));
+      if (target?.kind === 'adversary') {
+        const enemy = target.adversary;
+        const card = node('article', 'online-combat-enemy-control');
+        card.append(node('p', 'online-combat-muted', enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'DEF não informada'));
+        if (enemy.pvMax !== undefined) {
+          const label = node('label', 'online-combat-enemy-pv');
+          label.append(node('span', '', 'PV atual'));
+          const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.max = String(enemy.pvMax); input.step = '1'; input.value = String(enemy.pvCurrent ?? 0);
+          label.append(input, node('span', '', `/ ${enemy.pvMax}`)); card.append(label);
+          const save = node('button', 'btn', 'Salvar PV'); save.type = 'button'; save.disabled = pending;
+          save.addEventListener('click', async () => {
+            if (pending) return;
+            pending = true;
+            try {
+              await updateConfrontationAdversary(full.record.id, enemy.id, { name: enemy.name, pvCurrent: Math.max(0, Math.min(enemy.pvMax, Number.parseInt(input.value,10) || 0)), pvMax: enemy.pvMax, ...(enemy.defense !== undefined ? { defense: enemy.defense } : {}) }, { expectedUpdatedAt: enemy.updatedAt });
+              await render(currentChronicle);
+            } catch (_) {
+              global.showNotification?.('Não foi possível atualizar o PV do adversário.', 'error');
+              await render(currentChronicle);
+            } finally { pending = false; }
+          });
+          card.append(save);
+        } else card.append(node('p', 'online-combat-muted', 'Este adversário não possui PV configurado.'));
+        panel.append(card);
+      } else if (target?.kind === 'character') {
+        const resources = characterResources(target.id);
+        const card = node('article', 'online-combat-sheet-card');
+        card.append(portrait(target.entry, 'online-combat-sheet-portrait'));
+        card.append(node('strong', '', target.name));
+        const grid = node('div', 'online-combat-resource-grid');
+        [['PV',resources.pv],['PN',resources.pn],['PS',resources.ps]].forEach(([label,value]) => { const item=node('div','online-combat-resource'); item.append(node('small','',label),node('strong','',value)); grid.append(item); });
+        card.append(grid, node('p','online-combat-muted','Recursos da última sincronização da ficha.'));
+        panel.append(card);
+      } else panel.append(node('p','online-combat-muted','Defina a iniciativa para começar a acompanhar o turno atual.'));
+      return panel;
+    }
+    const own = full.characterIds'''
+          if old not in b: raise SystemExit('detailPanel anchor missing')
+          b = b.replace(old, new, 1)
+          old = '''    layout.append(initiativeBoard(full, owner), detailPanel(full, user));'''
+          new = '''    layout.append(initiativeBoard(full, owner), detailPanel(full, user, owner));'''
+          if old not in b: raise SystemExit('detailPanel call anchor missing')
+          b = b.replace(old, new, 1)
+          combat.write_text(b, encoding='utf-8')
+
+          index = Path('index.html')
+          h = index.read_text(encoding='utf-8')
+          if 'css/chronicles-online-combat.css' not in h:
+            h = h.replace('<link rel="stylesheet" href="css/chronicles-collaboration.css?v=4">', '<link rel="stylesheet" href="css/chronicles-collaboration.css?v=4">\n  <link rel="stylesheet" href="css/chronicles-online-combat.css?v=online-combat-complete">', 1)
+          if 'js/chronicles-online-combat.js' not in h:
+            h = h.replace('<script src="js/chronicles-collaboration.js?v=4"></script>', '<script src="js/chronicles-collaboration.js?v=4"></script>\n  <script src="js/chronicles-online-combat.js?v=online-combat-complete"></script>', 1)
+          h = re.sub(r'js/confrontations\.js\?v=[^"\']+', 'js/confrontations.js?v=online-combat-complete', h, count=1)
+          h = re.sub(r'js/master-shield\.js\?v=[^"\']+', 'js/master-shield.js?v=online-combat-complete', h, count=1)
+          h = re.sub(r'js/chronicles-online\.js\?v=[^"\']+', 'js/chronicles-online.js?v=online-combat-complete', h, count=1)
+          h = re.sub(r'script\.js\?v=[^"\']+', 'script.js?v=online-combat-complete', h, count=1)
+          index.write_text(h, encoding='utf-8')
+          PY
+
+      - name: Add combat styles
+        run: |
+          cat > css/chronicles-online-combat.css <<'CSS'
+          .online-combat-host { margin-top: .25rem; }
+          .online-combat-header { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 1.25rem; padding: clamp(1.2rem,2.6vw,2rem); border: 1px solid rgba(181,154,218,.34); border-left: 3px solid #d3ad77; background: linear-gradient(135deg,rgba(37,29,62,.96),rgba(13,16,43,.98)); box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+          .online-combat-header::after { content:""; position:absolute; inset:-40% -20% auto 50%; height:220px; background:radial-gradient(circle,rgba(154,106,214,.16),transparent 68%); pointer-events:none; }
+          .online-combat-title { min-width:0; }
+          .online-combat-title h2 { margin:.35rem 0 .45rem; font-size:clamp(1.65rem,3vw,2.35rem); }
+          .online-combat-title p { margin:0; color:#beb4cd; max-width:70ch; line-height:1.6; }
+          .online-combat-status { display:grid; grid-template-columns:110px minmax(180px,auto); align-self:start; border:1px solid rgba(181,154,218,.28); background:rgba(9,12,34,.52); }
+          .online-combat-status > div { padding:.8rem 1rem; display:grid; gap:.25rem; }
+          .online-combat-status > div + div { border-left:1px solid rgba(181,154,218,.22); }
+          .online-combat-status small { color:#a99bb9; text-transform:uppercase; letter-spacing:.09em; font-size:.67rem; }
+          .online-combat-status strong { color:#f1e8ff; }
+          .online-combat-owner-controls { grid-column:1/-1; display:flex; gap:.6rem; flex-wrap:wrap; padding-top:.25rem; }
+          .online-combat-layout { display:grid; grid-template-columns:minmax(340px,.9fr) minmax(320px,1.1fr); gap:1rem; margin-top:1rem; align-items:start; }
+          .online-combat-initiative,.online-combat-focus { border:1px solid rgba(181,154,218,.26); background:linear-gradient(160deg,rgba(19,21,53,.93),rgba(13,15,38,.96)); min-width:0; }
+          .online-combat-section-heading { display:flex; justify-content:space-between; align-items:end; gap:1rem; padding:1rem 1.1rem; border-bottom:1px solid rgba(181,154,218,.2); }
+          .online-combat-section-heading h3,.online-combat-focus h3 { margin:.25rem 0 0; font-size:1.25rem; }
+          .online-combat-initiative-list { list-style:none; padding:0; margin:0; }
+          .online-combat-initiative-row { display:grid; grid-template-columns:38px 50px minmax(0,1fr) 78px; gap:.75rem; align-items:center; padding:.78rem 1rem; border-bottom:1px solid rgba(181,154,218,.14); transition:background .16s,border-color .16s; }
+          .online-combat-initiative-row:last-child { border-bottom:0; }
+          .online-combat-initiative-row.is-current { background:linear-gradient(90deg,rgba(142,88,210,.22),rgba(211,173,119,.06)); box-shadow:inset 3px 0 #d3ad77; }
+          .online-combat-turn-index { color:#9887ad; font-size:.72rem; font-weight:700; letter-spacing:.08em; }
+          .online-combat-portrait,.online-combat-sheet-portrait { display:grid; place-items:center; overflow:hidden; width:46px; height:46px; border:1px solid rgba(181,154,218,.42); background:#151630; flex:0 0 auto; }
+          .online-combat-portrait img,.online-combat-sheet-portrait img { width:100%; height:100%; object-fit:cover; }
+          .online-combat-portrait.is-enemy { color:#e6a3a3; border-color:rgba(214,88,88,.46); background:rgba(90,25,40,.28); }
+          .online-combat-initiative-identity { min-width:0; display:grid; gap:.18rem; }
+          .online-combat-initiative-identity strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+          .online-combat-initiative-identity small,.online-combat-muted { color:#a99fb7; line-height:1.5; }
+          .online-combat-initiative-input { width:68px; min-height:38px; box-sizing:border-box; text-align:center; color:#f4ecff; background:#10132d; border:1px solid #66517d; border-radius:6px; font:inherit; font-weight:700; }
+          .online-combat-initiative-score { text-align:right; color:#e6cf99; font-size:1.3rem; }
+          .online-combat-focus { padding:1.15rem; min-height:240px; }
+          .online-combat-own-tabs { display:flex; gap:.45rem; flex-wrap:wrap; margin:1rem 0; }
+          .online-combat-own-tabs button { min-height:38px; padding:.5rem .75rem; border:1px solid #514363; color:#c8bdd5; background:#161833; cursor:pointer; font:inherit; }
+          .online-combat-own-tabs button.is-active { border-color:#b89add; background:#2b2149; color:#fff; }
+          .online-combat-sheet-card,.online-combat-enemy-control { margin-top:1rem; padding:1rem; border:1px solid rgba(181,154,218,.22); background:rgba(8,11,29,.42); }
+          .online-combat-sheet-identity { display:flex; gap:.8rem; align-items:center; }
+          .online-combat-sheet-identity > div { min-width:0; display:grid; gap:.25rem; }
+          .online-combat-sheet-portrait { width:64px; height:64px; }
+          .online-combat-resource-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; margin-top:1rem; }
+          .online-combat-resource { padding:.72rem; background:rgba(31,27,61,.76); border-top:2px solid rgba(211,173,119,.6); display:grid; gap:.22rem; }
+          .online-combat-resource small { color:#a99fb7; font-size:.7rem; letter-spacing:.08em; }
+          .online-combat-resource strong { font-size:1rem; }
+          .online-combat-enemy-pv { display:grid; grid-template-columns:auto minmax(80px,130px) auto; gap:.6rem; align-items:center; margin:.8rem 0; }
+          .online-combat-enemy-pv input { min-height:42px; box-sizing:border-box; color:#fff; background:#11142e; border:1px solid #66517d; border-radius:6px; padding:.55rem; font:inherit; }
+          .online-combat-error { padding:1.4rem; border:1px solid rgba(213,83,113,.45); background:rgba(83,24,46,.22); }
+          .online-combat-error p { color:#c7b4c1; margin:.5rem 0 0; }
+          @media(max-width:900px){.online-combat-header{grid-template-columns:1fr}.online-combat-status{width:100%;grid-template-columns:100px minmax(0,1fr)}.online-combat-layout{grid-template-columns:1fr}.online-combat-focus{min-height:0}}
+          @media(max-width:560px){.online-combat-header{padding:1rem}.online-combat-initiative-row{grid-template-columns:28px 42px minmax(0,1fr) 62px;padding:.7rem .65rem;gap:.55rem}.online-combat-portrait{width:40px;height:40px}.online-combat-resource-grid{grid-template-columns:1fr}.online-combat-owner-controls .btn{flex:1 1 140px}.online-combat-status{grid-template-columns:78px minmax(0,1fr)}.online-combat-section-heading{align-items:start;flex-direction:column}}
+          CSS
+
+      - name: Validate JavaScript and integration markers
+        run: |
+          node --check js/chronicles-online-combat.js
+          node --check js/confrontations.js
+          node --check js/master-shield.js
+          node --check js/chronicles-online.js
+          node --check script.js
+          grep -q "ChroniclesOnlineCombat?.render(activeChronicleRecord)" script.js
+          grep -q "await storage().listChronicleCastIds(preparation.chronicleId)" js/confrontations.js
+          grep -q "if (allowed()) void global.ConfrontationsUI.openCreate" js/master-shield.js
+          grep -q "chronicles-online-combat.css?v=online-combat-complete" index.html
+          grep -q "chronicles-online-combat.js?v=online-combat-complete" index.html
+
+      - name: Commit complete integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add script.js js/confrontations.js js/master-shield.js js/chronicles-online.js js/chronicles-online-combat.js css/chronicles-online-combat.css index.html
+          git commit -m "Complete online confrontations and active combat experience"
+          git push origin HEAD:main
