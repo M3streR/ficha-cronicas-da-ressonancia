@@ -2,13 +2,22 @@
   'use strict';
   function node(tag, text, className = '') { const el = document.createElement(tag); el.textContent = text; el.className = className; return el; }
   function row(record, destinations = []) {
-    const item = node('li', '', 'roll-history-row'), summary = node('div', '', 'roll-history-summary');
-    const date = new Date(record.createdAt), time = node('time', date.toLocaleString('pt-BR')); time.dateTime = record.createdAt;
-    summary.append(node('strong', record.characterName || 'Personagem sem nome'), node('span', record.result.expression), node('b', String(record.result.total)), time);
-    const details = node('details', ''); details.append(node('summary', 'Detalhes da rolagem'));
-    details.append(node('p', `Dados: ${record.result.rolls.join(', ')} · Soma: ${record.result.diceTotal} · Modificador: ${record.result.modifier >= 0 ? '+' : ''}${record.result.modifier} · Total: ${record.result.total}`));
-    if (destinations.length) details.append(node('p', 'Destino vinculado: ' + destinations.map(destination => destination.name).join(', ')));
-    item.append(summary, details); return item;
+    const item = node('li', '', 'roll-history-row');
+    const summary = node('div', '', 'roll-history-summary');
+    const character = node('strong', record.characterName || 'Personagem sem nome', 'roll-history-character');
+    const expression = node('span', record.result.expression, 'roll-history-expression');
+    const total = node('b', String(record.result.total), 'roll-history-total');
+    const date = new Date(record.createdAt);
+    const time = node('time', date.toLocaleString('pt-BR'), 'roll-history-time');
+    time.dateTime = record.createdAt;
+    summary.append(character, expression, total, time);
+
+    const details = node('details', '');
+    details.append(node('summary', 'Ver detalhes'));
+    details.append(node('p', `Dados: ${record.result.rolls.join(', ')} · Soma: ${record.result.diceTotal} · Modificador: ${record.result.modifier >= 0 ? '+' : ''}${record.result.modifier} · Total: ${record.result.total}`, 'roll-history-detail'));
+    if (destinations.length) details.append(node('p', 'Destino vinculado: ' + destinations.map(destination => destination.name).join(', '), 'roll-history-detail'));
+    item.append(summary, details);
+    return item;
   }
   function create({ host, storage, confirm, scope, ownerId, canUse = () => true, limit = 50, compact = false }) {
     let epoch = 0, next = null, busy = false;
