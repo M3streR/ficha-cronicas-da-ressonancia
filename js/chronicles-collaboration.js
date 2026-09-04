@@ -11,6 +11,8 @@
   const characterSyncStates = new Map();
   const characterSyncTimers = new Map();
   const characterSyncQueues = new Map();
+  const characterSyncRetries = new Map();
+  const latestCharacterSnapshots = new Map();
 
   function isOnlineChronicle(chronicle = currentChronicle) {
     return Boolean(chronicle && chronicle.storage === 'online' && chronicle.remoteId);
@@ -35,8 +37,9 @@
     return { auth, user };
   }
 
-  function setCharacterSyncState(localId, state, message = '') {
-    const detail = { localId, state, message };
+  function setCharacterSyncState(localId, state, message = '', extra = {}) {
+    const previous = characterSyncStates.get(localId) || {};
+    const detail = { ...previous, ...extra, localId, state, message };
     characterSyncStates.set(localId, detail);
     global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail }));
   }
@@ -387,12 +390,26 @@
     const entry = character ? { ...local, character } : local;
     setCharacterSyncState(localId, 'syncing', 'Sincronizando');
     await upsertOnlineCharacter(entry);
-    setCharacterSyncState(localId, 'synced', 'Atualizado');
+    characterSyncRetries.delete(localId);
+    setCharacterSyncState(localId, 'synced', 'Atualizado', { syncedAt: new Date().toISOString() });
     return true;
   }
 
-  function queueCharacterSync(localId, character = null) {
+  function scheduleSyncRetry(localId) {
+    const attempts = (characterSyncRetries.get(localId) || 0) + 1;
+    characterSyncRetries.set(localId, attempts);
+    if (attempts > 4 || !global.CronicasSupabase?.authenticated) return;
+    const delay = Math.min(30000, 1500 * (2 ** (attempts - 1)));
+    global.clearTimeout(characterSyncTimers.get(localId));
+    characterSyncTimers.set(localId, global.setTimeout(() => {
+      characterSyncTimers.delete(localId);
+      queueCharacterSync(localId, latestCharacterSnapshots.get(localId), { immediate: true, retry: true });
+    }, delay));
+  }
+
+  function queueCharacterSync(localId, character = null, options = {}) {
     if (!localId) return;
+    if (character) latestCharacterSnapshots.set(localId, character);
     if (!global.CronicasSupabase?.authenticated) {
       setCharacterSyncState(localId, 'local', 'Apenas Local');
       return;
@@ -406,9 +423,10 @@
       characterSyncQueues.set(localId, next);
       void next.catch(error => {
         console.error('[Personagem online] Falha de sincronização:', error);
-        setCharacterSyncState(localId, 'error', 'Erro de sincronização');
+        setCharacterSyncState(localId, 'error', 'Erro de sincronização · nova tentativa agendada');
+        scheduleSyncRetry(localId);
       }).finally(() => { if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId); });
-    }, 650));
+    }, options.immediate ? 0 : 650));
   }
 
   function getCharacterSyncState(localId) {
@@ -419,14 +437,37 @@
     let context;
     try { context = await requireUser(); } catch (_) { return false; }
     const { data, error } = await context.auth.client.from('online_characters')
-      .select('source_local_id, updated_at').eq('owner_id', context.user.id);
+      .select('id, source_local_id, updated_at').eq('owner_id', context.user.id);
     if (error) throw error;
-    const published = new Map((data || []).map(row => [row.source_local_id, row.updated_at]));
+    const published = new Map((data || []).map(row => [row.source_local_id, row]));
+    const onlineIds = (data || []).map(row => row.id);
+    const chroniclesByCharacter = new Map();
+    if (onlineIds.length) {
+      const { data: links, error: linksError } = await context.auth.client
+        .from('chronicle_cast_members').select('character_id, chronicle_id').in('character_id', onlineIds);
+      if (linksError) throw linksError;
+      const chronicleIds = [...new Set((links || []).map(row => row.chronicle_id))];
+      let names = new Map();
+      if (chronicleIds.length) {
+        const { data: chronicles, error: chronicleError } = await context.auth.client.from('chronicles').select('id, name').in('id', chronicleIds);
+        if (chronicleError) throw chronicleError;
+        names = new Map((chronicles || []).map(row => [row.id, text(row.name) || 'Crônica online']));
+      }
+      (links || []).forEach(link => {
+        const list = chroniclesByCharacter.get(link.character_id) || [];
+        list.push(names.get(link.chronicle_id) || 'Crônica online');
+        chroniclesByCharacter.set(link.character_id, list);
+      });
+    }
     Object.keys(localSummaries || {}).forEach(localId => {
       if (!published.has(localId)) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return; }
       const localAt = Date.parse(localSummaries[localId]?.updatedAt || 0);
-      const onlineAt = Date.parse(published.get(localId) || 0);
-      setCharacterSyncState(localId, localAt > onlineAt ? 'pending' : 'synced', localAt > onlineAt ? 'Alterações pendentes' : 'Publicado Online · Atualizado');
+      const online = published.get(localId);
+      const onlineAt = Date.parse(online.updated_at || 0);
+      const state = localAt > onlineAt ? 'pending' : 'synced';
+      const chronicles = [...new Set(chroniclesByCharacter.get(online.id) || [])];
+      setCharacterSyncState(localId, state, state === 'pending' ? 'Alterações pendentes' : 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
+      if (state === 'pending') queueCharacterSync(localId);
     });
     return true;
   }
@@ -687,6 +728,13 @@
         event: '*', schema: 'public', table: 'chronicle_cast_members', filter: `chronicle_id=eq.${chronicle.remoteId}`
       }, scheduleRealtimeRefresh)
       .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'online_roll_records', filter: `chronicle_id=eq.${chronicle.remoteId}`
+      }, payload => {
+        global.dispatchEvent(new CustomEvent('cronicas:online-rolls-change', {
+          detail: { chronicleId: chronicle.remoteId, payload }
+        }));
+      })
+      .on('postgres_changes', {
         event: '*', schema: 'public', table: 'online_characters'
       }, payload => {
         const id = payload?.new?.id || payload?.old?.id;
@@ -712,6 +760,8 @@
     characterSyncTimers.forEach(timer => global.clearTimeout(timer));
     characterSyncTimers.clear();
     characterSyncQueues.clear();
+    characterSyncRetries.clear();
+    latestCharacterSnapshots.clear();
   }
 
   global.ChroniclesCollaboration = Object.freeze({

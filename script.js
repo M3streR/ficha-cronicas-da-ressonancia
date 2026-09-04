@@ -354,6 +354,12 @@ function writeStoredCharacter(id, character) {
   return character;
 }
 
+function isStorageQuotaError(error) {
+  return error?.name === 'QuotaExceededError'
+    || error?.code === 22
+    || /quota|storage.*full|espaço/i.test(String(error?.message || ''));
+}
+
 function removeStoredCharacter(id) {
   const key = getCharacterStorageKey(id);
   localStorage.removeItem(key);
@@ -663,6 +669,13 @@ async function openCharacter(id, options = {}) {
   activeCharacterId = id;
   storageMode = 'v4';
   restoreState(character);
+  const syncStatus = window.ChroniclesCollaboration?.getCharacterSyncState?.(id);
+  const sheetStatus = document.getElementById('sheetOnlineSyncStatus');
+  if (sheetStatus) {
+    sheetStatus.dataset.state = syncStatus?.state || 'local';
+    sheetStatus.textContent = syncStatus?.message || 'Apenas Local';
+    sheetStatus.title = syncStatus?.chronicles?.length ? `Crônicas Online: ${syncStatus.chronicles.join(', ')}` : '';
+  }
   void window.RollHistory?.open(id);
   queueCharacterMetadataRefresh(id, cloneCharacterState(character));
   return character;
@@ -789,6 +802,9 @@ function createCharacterCard(id, summary) {
     badge.className = 'character-online-state';
     badge.dataset.state = onlineState.state;
     badge.textContent = onlineState.message;
+    const chronicles = Array.isArray(onlineState.chronicles) ? onlineState.chronicles : [];
+    badge.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : onlineState.message;
+    badge.setAttribute('aria-label', chronicles.length ? `${onlineState.message}. Crônicas Online: ${chronicles.join(', ')}` : onlineState.message);
     info.appendChild(badge);
   }
 
@@ -2705,6 +2721,7 @@ function closeChronicleActions({ restoreFocus = true } = {}) {
 
 function teardownChronicleDetail() {
   window.ChroniclesCollaboration?.reset();
+  window.ChronicleFreeRolls?.reset();
   window.MasterShieldUI?.reset();
   window.ConfrontationsUI?.reset();
   chronicleDetailRenderToken += 1;
@@ -2764,6 +2781,7 @@ function setChronicleDetailSection(
     if (activeChronicleRecord?.storage === 'online') void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
     else void window.ConfrontationsUI?.renderIndex();
   }
+  if (activeSection === 'free-rolls') void window.ChronicleFreeRolls?.render(activeChronicleRecord);
 }
 
 function populateChronicleDetail(chronicle, visualIndex, cover) {
@@ -2772,6 +2790,7 @@ function populateChronicleDetail(chronicle, visualIndex, cover) {
   document.getElementById('chronicleDetailTitle').textContent = chronicle.name;
   populateChronicleOverview(chronicle);
   window.ChroniclesOnline?.applyDetailMode(chronicle);
+  window.ChronicleFreeRolls?.applyDetailMode(chronicle);
 
   const synopsis = document.getElementById('chronicleDetailSynopsis');
   synopsis.textContent = chronicle.synopsis;
@@ -3608,6 +3627,17 @@ window.addEventListener('cronicas:character-sync-state', event => {
   }
   badge.dataset.state = detail.state || '';
   badge.textContent = detail.message || '';
+  const chronicles = Array.isArray(detail.chronicles) ? detail.chronicles : [];
+  badge.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : (detail.message || '');
+  badge.setAttribute('aria-label', chronicles.length ? `${detail.message}. Crônicas Online: ${chronicles.join(', ')}` : (detail.message || ''));
+  if (detail.localId === activeCharacterId) {
+    const sheetStatus = document.getElementById('sheetOnlineSyncStatus');
+    if (sheetStatus) {
+      sheetStatus.dataset.state = detail.state || 'local';
+      sheetStatus.textContent = detail.message || 'Apenas Local';
+      sheetStatus.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : '';
+    }
+  }
 });
 
 window.addEventListener('cronicas:online-chronicles-change', () => {
@@ -4027,7 +4057,13 @@ function saveNow(targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activ
     storageAvailable = false;
     console.error('Não foi possível salvar a ficha:', error);
     setStatus('Erro ao salvar', 'error');
-    showNotification('Não foi possível salvar as últimas alterações neste navegador.', 'error', 6500);
+    showNotification(
+      isStorageQuotaError(error)
+        ? 'O armazenamento deste navegador está cheio. A versão anterior da ficha foi preservada; exporte seus personagens antes de liberar espaço.'
+        : 'Não foi possível salvar as últimas alterações neste navegador. A versão anterior foi preservada.',
+      'error',
+      8500
+    );
     return false;
   }
 }

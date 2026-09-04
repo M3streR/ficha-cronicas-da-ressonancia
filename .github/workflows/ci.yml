@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validar sintaxe JavaScript
+        shell: bash
+        run: find js -name '*.js' -print0 | xargs -0 -n1 node --check && node --check script.js
+      - name: Executar testes de módulos
+        run: node --test tests/online-chronicles.test.cjs tests/online-rolls.test.cjs
+      - name: Instalar navegador de teste
+        run: npm install --no-save playwright@1.62.1 && npx playwright install --with-deps chromium
+      - name: Executar fluxos reais por HTTP
+        env:
+          CHROME_PATH: ''
+        run: |
+          node tests/chronicles-v6.test.cjs
+          node tests/combates-flow.test.cjs
+          node tests/free-rolls.test.cjs
