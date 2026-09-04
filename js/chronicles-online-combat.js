@@ -5,10 +5,12 @@
   let directoryCache = { entries: [], byId: new Map(), unavailable: false };
   let snapshotCache = new Map();
   let currentChronicle = null;
-  let realtimeChannel = null;
+  let realtimeChronicleChannel = null;
+  let realtimeCombatChannel = null;
   let refreshTimer = null;
   let selectedOwnCharacterId = '';
   let pending = false;
+  let initiativeEditing = false;
 
   const text = value => typeof value === 'string' ? value.trim() : '';
   const isOnlineId = id => typeof id === 'string' && id.startsWith(ONLINE_PREFIX);
@@ -362,6 +364,73 @@
     return map;
   }
 
+  function combatDice(entry, full) {
+    const section = node('section', 'online-combat-dice');
+    section.append(node('h4', '', 'Rolagem'));
+    const form = node('form', 'online-combat-dice-form');
+    const input = document.createElement('input');
+    input.type = 'text'; input.value = '1d20'; input.maxLength = 32;
+    input.setAttribute('aria-label', `Expressão de dados de ${entry.name}`);
+    const button = node('button', 'btn', 'Rolar'); button.type = 'submit';
+    const output = node('p', 'online-combat-dice-result'); output.setAttribute('aria-live', 'polite');
+    form.append(input, button); section.append(form, output);
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (pending) return;
+      const engine = global.CronicasDiceEngine;
+      const parsed = engine?.parse(input.value);
+      if (!parsed?.valid) { output.textContent = parsed?.message || 'Expressão inválida.'; return; }
+      const result = engine.roll(parsed);
+      output.textContent = `${engine.format(result).calculationText} = ${result.total}`;
+      const id = global.crypto?.randomUUID?.();
+      if (!id) {
+        output.textContent += ' · este navegador não oferece geração segura de identificadores';
+        return;
+      }
+      const record = {
+        id,
+        characterId: entry.sourceLocalId || entry.id,
+        characterName: entry.name,
+        source: 'online-combat', category: 'expression', resolution: 'sum', result
+      };
+      pending = true; button.disabled = true;
+      try {
+        await global.ChroniclesOnlineRolls.appendOnlineRoll(
+          record,
+          `online-combat-roll:${full.record.chronicleId.slice(7)}:${full.record.id}:${entry.id}`
+        );
+        scheduleRefresh();
+      } catch (error) {
+        console.error('[Combate online] Falha ao registrar rolagem:', error);
+        output.textContent += ' · não foi possível compartilhar';
+      } finally { pending = false; button.disabled = false; }
+    });
+    return section;
+  }
+
+  function rollFeed(full) {
+    const section = node('section', 'online-combat-feed');
+    const heading = node('header', 'online-combat-section-heading');
+    heading.append(node('div', '', '')); heading.firstChild.append(node('span', 'chronicles-kicker', 'Atividade'), node('h3', '', 'Rolagens recentes'));
+    const status = node('p', 'online-combat-muted', 'Carregando rolagens…');
+    const list = node('ol', 'online-combat-feed-list');
+    section.append(heading, status, list);
+    void global.ChroniclesOnlineRolls?.listChronicleRolls(full.record.chronicleId, { confrontationId: full.record.id, limit: 30 })
+      .then(result => {
+        list.replaceChildren();
+        result.records.forEach(record => {
+          const item = node('li', 'online-combat-feed-item');
+          const time = node('time', '', new Date(record.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+          time.dateTime = record.createdAt;
+          item.append(node('strong', '', record.characterName), node('span', '', record.result.expression), node('b', '', String(record.result.total)), time);
+          list.append(item);
+        });
+        status.textContent = result.records.length ? '' : 'Nenhuma rolagem compartilhada neste combate.';
+      })
+      .catch(() => { status.textContent = 'Não foi possível atualizar as rolagens.'; });
+    return section;
+  }
+
   function normalizedInitiative(full) {
     const map = combatantMap(full);
     const seen = new Set();
@@ -420,6 +489,7 @@
         const grid=node('div','online-combat-resource-grid');
         [['PV',resources.pv],['PN',resources.pn],['PS',resources.ps]].forEach(([label,value])=>{const item=node('div','online-combat-resource');item.append(node('small','',label),node('strong','',value));grid.append(item);});
         card.append(grid,node('p','online-combat-muted','Recursos da última sincronização da ficha.')); panel.append(card);
+        if (target.entry?.ownerId === user.id) panel.append(combatDice(target.entry, full));
       } else panel.append(node('p','online-combat-muted','Defina a iniciativa para começar a acompanhar o turno atual.'));
       return panel;
     }
@@ -458,7 +528,7 @@
     });
     card.append(grid);
     card.append(node('p', 'online-combat-muted', 'Os valores exibidos vêm da última sincronização da sua ficha online.'));
-    panel.append(card);
+    panel.append(card, combatDice(current, full));
     return panel;
   }
 
@@ -522,6 +592,7 @@
     pending = true;
     try {
       await saveInitiative(full.record.id, order, full.record.updatedAt);
+      initiativeEditing = false;
       global.showNotification?.('Ordem de iniciativa atualizada.');
       await render(currentChronicle);
     } catch (error) {
@@ -537,9 +608,12 @@
     headingCopy.append(node('span', 'chronicles-kicker', 'Ordem de ação'), node('h3', '', 'Iniciativa'));
     heading.append(headingCopy);
     if (owner) {
-      const save = node('button', 'btn secondary', 'Salvar iniciativa'); save.type = 'button';
-      save.addEventListener('click', () => void saveInitiativeFromUI(full, board));
-      heading.append(save);
+      const edit = node('button', 'btn secondary', initiativeEditing ? 'Salvar iniciativa' : 'Editar iniciativa'); edit.type = 'button';
+      edit.addEventListener('click', () => {
+        if (!initiativeEditing) { initiativeEditing = true; void render(currentChronicle); }
+        else void saveInitiativeFromUI(full, board);
+      });
+      heading.append(edit);
     }
     board.append(heading);
     const order = normalizedInitiative(full);
@@ -562,8 +636,8 @@
         const enemy = target.adversary;
         identity.append(node('small', '', enemy.pvMax !== undefined ? `PV ${enemy.pvCurrent} / ${enemy.pvMax}${enemy.defense !== undefined ? ` · DEF ${enemy.defense}` : ''}` : (enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'Adversário')));
       }
-      const score = owner ? document.createElement('input') : node('strong', 'online-combat-initiative-score', String(item.initiative || 0));
-      if (owner) {
+      const score = owner && initiativeEditing ? document.createElement('input') : node('strong', 'online-combat-initiative-score', String(item.initiative || 0));
+      if (owner && initiativeEditing) {
         score.type = 'number'; score.min = '-999'; score.max = '999'; score.step = '1'; score.value = String(item.initiative || 0); score.className = 'online-combat-initiative-input'; score.setAttribute('aria-label', `Iniciativa de ${target.name}`);
       }
       row.append(turn, visual, identity, score); list.append(row);
@@ -591,7 +665,7 @@
     host.append(header);
     const layout = node('div', 'online-combat-layout');
     layout.append(initiativeBoard(full, owner), detailPanel(full, user, owner));
-    host.append(layout);
+    host.append(layout, rollFeed(full));
   }
 
   async function render(chronicle = currentChronicle) {
@@ -629,22 +703,38 @@
   }
 
   function stopRealtime() {
-    if (realtimeChannel && global.CronicasSupabase?.client) global.CronicasSupabase.client.removeChannel(realtimeChannel);
-    realtimeChannel = null;
+    const client = global.CronicasSupabase?.client;
+    if (client && realtimeChronicleChannel) client.removeChannel(realtimeChronicleChannel);
+    if (client && realtimeCombatChannel) client.removeChannel(realtimeCombatChannel);
+    realtimeChronicleChannel = null;
+    realtimeCombatChannel = null;
   }
 
   function startRealtime(chronicle) {
     if (!chronicle?.remoteId || !global.CronicasSupabase?.client) return;
     const name = `online-combat:${chronicle.remoteId}`;
-    if (realtimeChannel?.topic?.includes(name)) return;
-    stopRealtime();
     const client = global.CronicasSupabase.client;
-    realtimeChannel = client.channel(name)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicle_confrontations', filter: `chronicle_id=eq.${chronicle.remoteId}` }, scheduleRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_character_links' }, scheduleRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversaries' }, scheduleRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'online_characters' }, scheduleRefresh)
-      .subscribe();
+    if (!realtimeChronicleChannel?.topic?.includes(name)) {
+      stopRealtime();
+      realtimeChronicleChannel = client.channel(name)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicle_confrontations', filter: `chronicle_id=eq.${chronicle.remoteId}` }, scheduleRefresh)
+        .subscribe();
+    }
+    void listConfrontations(chronicle.id).then(records => {
+      const active = records.find(item => item.active);
+      if (!active || currentChronicle?.remoteId !== chronicle.remoteId) {
+        if (realtimeCombatChannel) client.removeChannel(realtimeCombatChannel);
+        realtimeCombatChannel = null;
+        return;
+      }
+      if (realtimeCombatChannel?.topic?.includes(active.id)) return;
+      if (realtimeCombatChannel) client.removeChannel(realtimeCombatChannel);
+      realtimeCombatChannel = client.channel(`online-combat-detail:${active.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_character_links', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversaries', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'online_roll_records', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
+        .subscribe();
+    });
   }
 
   function applyDetailMode(chronicle) {
@@ -656,7 +746,7 @@
 
   function reset() {
     stopRealtime();
-    currentChronicle = null; selectedOwnCharacterId = ''; pending = false;
+    currentChronicle = null; selectedOwnCharacterId = ''; pending = false; initiativeEditing = false;
     directoryCache = { entries: [], byId: new Map(), unavailable: false };
     snapshotCache = new Map();
     const host = document.getElementById('onlineCombatHost');

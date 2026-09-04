@@ -302,7 +302,7 @@ document.getElementById('run').onclick = async () => {
       await wait(() => !el('chronicleCastList').hasAttribute('aria-busy'));
     }
     frame.width = 1440;
-    assert(el('chronicleTabParticipants') && el('chronicleParticipantForm') && el('confrontationIndex') && d.querySelectorAll('.chronicle-context-action:disabled').length === 1, 'Elenco, Participantes e Confrontos coexistem; convite futuro permanece indisponível');
+    assert(el('chronicleTabParticipants') && el('chronicleParticipantForm') && el('confrontationIndex') && d.querySelectorAll('.chronicle-actions-list .chronicle-context-action').length === 3 && el('makeChronicleOnlineAction')?.closest('.chronicle-online-promotion'), 'Elenco, Participantes e Confrontos coexistem; compartilhamento fica fora das três ações globais');
     status.textContent = `Concluído: ${results.children.length} verificações aprovadas. Namespace isolado: ${prefix}`;
   } catch (error) {
     console.error(error);

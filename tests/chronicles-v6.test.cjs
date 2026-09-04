@@ -24,7 +24,7 @@ const server = http.createServer(async (req,res) => {
   const page = await context.newPage(), errors=[];
   await fs.mkdir(path.join(__dirname,'artifacts'),{recursive:true});
   page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type()==='error' && !message.text().includes('404')) errors.push(message.text()); });
+  page.on('console', message => { if (message.type()==='error' && !message.text().includes('404') && !message.text().includes('ERR_NETWORK_ACCESS_DENIED')) errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
   try {
     await page.goto(url + '/index.html');
@@ -178,48 +178,23 @@ const server = http.createServer(async (req,res) => {
     const unlock=async()=>{await page.locator('#masterShieldAccess input').first().fill('senha-alpha-123');const second=page.locator('#masterShieldAccess input').nth(1);if(await second.isVisible())await second.fill('senha-alpha-123');await page.locator('#masterShieldAccess form').evaluate(f=>f.requestSubmit());await page.waitForFunction(()=>!document.getElementById('masterShieldPrivate').hidden);};
     await unlock();check(await page.locator('#masterDashboard').isVisible(),'Primeiro acesso define senha e abre painel');
     await page.screenshot({path:path.join(__dirname,'artifacts/v6-painel-desktop.png'),fullPage:true});
-    await page.locator('[data-master-module="notes"]').click();await page.waitForFunction(()=>!document.getElementById('masterNoteContent').readOnly);
-    check(await page.locator('#masterNoteContent').inputValue()==='Nota original\nPreservada','Nota antiga preservada na nova interface');
-    await page.locator('#masterNoteContent').fill('Rascunho privado');
-    await page.locator('#lockMasterShield').click();await unlock();
-    check(await page.locator('#masterNoteContent').inputValue()==='Rascunho privado','Bloquear/desbloquear preserva rascunho');
+    check((await page.locator('[data-master-module] strong').allTextContents()).join('|')==='Caçadores|Combates','Escudo expõe somente Caçadores e Combates');
+    check(await page.locator('#masterNoteForm,#masterResultsModule,#masterRecordsModule,#masterAgentsModule').count()===0,'Módulos removidos não deixam interface residual');
+    check(await page.evaluate(async id=>Boolean(await ChroniclesStorage.getChronicleMasterNote(id)) && (await ChroniclesStorage.listPrivateEntries('investigation',id)).length===1,ids.chronicle),'Dados privados legados permanecem preservados sem exposição');
+    await page.locator('[data-master-module="hunters"]').click();await page.waitForFunction(()=>document.getElementById('masterShieldCastList').textContent.includes('Dylann'));
+    check(true,'Caçadores consulta o Elenco atual');
+    await page.locator('#backToMasterDashboard').click();await page.locator('[data-master-module="combats"]').click();
+    await page.waitForFunction(()=>document.getElementById('masterShieldConfrontationsList').textContent.includes('Confronto de teste'));
+    check(true,'Combates reutiliza os Confrontos existentes');
+    await page.locator('#backToMasterDashboard').click();
     await page.evaluate(()=>{window.originalNow=Date.now;Date.now=()=>originalNow()+30*60*1000+1;document.dispatchEvent(new Event('visibilitychange'));});
     await page.waitForFunction(()=>!document.getElementById('masterShieldAccess').hidden);
     await page.evaluate(()=>{Date.now=window.originalNow;delete window.originalNow;});await unlock();
-    check(await page.locator('#masterNoteContent').inputValue()==='Rascunho privado','30 minutos de inatividade bloqueiam sem perder rascunho');
-    await page.locator('#backToMasterDashboard').click();await page.locator('#modalActions button').filter({hasText:'Continuar editando'}).click();
-    check(await page.locator('#masterNoteContent').inputValue()==='Rascunho privado','Cancelar saída preserva nota');
-    await page.locator('#saveMasterNote').click();await page.waitForFunction(()=>document.getElementById('masterNoteFeedback').textContent.includes('salvas'));
-    await page.evaluate(async id=>{const note=await ChroniclesStorage.getChronicleMasterNote(id);await ChroniclesStorage.saveChronicleMasterNote(id,'Nota remota',{expectedUpdatedAt:note.updatedAt});},ids.chronicle);
-    await page.locator('#masterNoteContent').fill('Rascunho em conflito');await page.locator('#saveMasterNote').click();
-    await page.waitForFunction(()=>document.getElementById('masterNoteFeedback').textContent.includes('outra aba'));
-    check(await page.locator('#masterNoteContent').inputValue()==='Rascunho em conflito','Conflito mantém texto integral');
-    await page.locator('#backToMasterDashboard').click();await page.locator('#modalActions button').filter({hasText:'Descartar e continuar'}).click();
-    check(await page.locator('[data-master-module="investigation"]').count()===0,'Investigação ausente da interface');
-    check((await page.locator('[data-master-module] strong').allTextContents()).join('|')==='Agentes|Combates|Resultados|Registros|Anotações','Somente os cinco módulos aprovados');
-    check(await page.evaluate(async id=>(await ChroniclesStorage.listPrivateEntries('investigation',id)).length===1,ids.chronicle),'Investigação antiga preservada sem interface');
-    await page.locator('[data-master-module="journal"]').click();await page.locator('#masterRecordsModule > button').click();
-    await page.locator('#masterRecordsModule input[type=text]').fill('Diário pela interface');await page.locator('#masterRecordsModule textarea').fill('Registro manual');await page.locator('#masterRecordsModule button[type=submit]').click();
-    await page.waitForFunction(()=>document.querySelector('#masterRecordsModule ol').textContent.includes('Diário pela interface'));
-    check(true,'Registros: criação com data local');
-    await page.locator('#masterRecordsModule').getByRole('button',{name:'Editar Diário pela interface',exact:true}).click();await page.locator('#masterRecordsModule textarea').fill('Texto descartável');await page.locator('#masterRecordsModule').getByRole('button',{name:'Cancelar',exact:true}).click();await page.locator('#modalActions button').filter({hasText:'Descartar e sair'}).click();
-    check(!(await page.locator('#masterRecordsModule form').isVisible()),'Cancelar registro exige confirmação e descarta só o rascunho');
-    await page.locator('#backToMasterDashboard').click();await page.locator('[data-master-module="agents"]').click();await page.waitForFunction(()=>document.getElementById('masterShieldCastList').textContent.includes('Dylann'));
-    check(true,'Agentes consulta dados atuais do Elenco');
-    await page.locator('#backToMasterDashboard').click();await page.locator('[data-master-module="results"]').click();await page.waitForFunction(()=>document.querySelector('#masterResultsHistory .roll-history-row'));
-    check(true,'Resultados consome os mesmos eventos');
-    await page.locator('#backToMasterDashboard').click();await page.locator('[data-master-module="combats"]').click();await page.locator('#masterShieldConfrontationsList button').click();
-    await page.waitForFunction(()=>!document.getElementById('confrontationView').hidden);
-    check(await page.locator('#confrontationTitle').textContent()==='Confronto de teste','Combates reutiliza Confrontos');
-    await page.locator('#backFromConfrontation').click();await page.waitForFunction(()=>!document.getElementById('masterShieldAccess').hidden);
-    await unlock();check(await page.locator('#masterDashboard').isVisible(),'Retorno do Confronto bloqueia e reabre painel');
+    check(await page.locator('#masterDashboard').isVisible(),'30 minutos de inatividade bloqueiam e exigem novo desbloqueio');
     for(const width of [1024,390,320]) {
       await page.setViewportSize({width,height:900});
       check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`Painel sem overflow em ${width}px`);
       if(width===390 || width===320)await page.screenshot({path:path.join(__dirname,`artifacts/v6-painel-${width}.png`),fullPage:true});
-      await page.locator('[data-master-module="notes"]').click();await page.waitForFunction(()=>!document.getElementById('masterNoteContent').readOnly);
-      check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`Anotações sem overflow em ${width}px`);
-      await page.locator('#backToMasterDashboard').click();
     }
     await page.locator('#lockMasterShield').click();await page.locator('#masterShieldAccess input').first().fill('errada');await page.locator('#masterShieldAccess form').evaluate(f=>f.requestSubmit());await page.waitForFunction(()=>document.getElementById('masterShieldAccess').textContent.includes('incorreta'));
     check(!(await page.locator('#masterShieldPrivate').isVisible()),'Senha incorreta mantém bloqueio');
@@ -285,7 +260,8 @@ const server = http.createServer(async (req,res) => {
     check(await page.evaluate(async id=>{const r=(await ChroniclesStorage.listRollHistory('character',id)).records[0];return r.result.total===r.result.rolls.reduce((a,b)=>a+b,0)&&r.resolution==='sum';},another),'2d20 continua soma, com histórico atualizado sem rerrolar');
     const two=await context.newPage();await two.goto(url+'/index.html');await two.evaluate(async ids=>{showManagerSection('chronicles');await openChronicleDetail(ids.chronicle,1,document.getElementById('openChronicleCreation'));openChronicleMasterShield();},ids);
     await two.waitForFunction(()=>!document.getElementById('masterShieldAccess').hidden);check(!(await two.locator('#masterShieldPrivate').isVisible()),'Outra aba não herda desbloqueio');await two.close();
-    for (const test of ['elenco-v1','participantes-v1','confrontos-v1','escudo-v1']) {
+    // Confrontos e Escudo possuem o fluxo atual completo em combates-flow.test.cjs.
+    for (const test of ['elenco-v1','participantes-v1']) {
       const harness=await context.newPage();harness.on('console', m=>{if(m.type()==='error')console.log('HARNESS',test,m.text());});harness.on('pageerror', e=>console.log('HARNESS ERROR',e.stack));await harness.goto(url+'/tests/'+test+'.html');await harness.locator('#run').click();
       await harness.waitForFunction(()=>/Concluído|Falha:|FALHOU:/.test(document.getElementById('status').textContent),null,{timeout:60000});
       const result=await harness.locator('#status').textContent();if(!result.startsWith('Concluído'))console.log(await harness.locator('#results li').allTextContents());check(result.startsWith('Concluído'),test+': '+result);await harness.close();

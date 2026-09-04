@@ -1,4 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/+esm';
 
 const SUPABASE_URL = 'https://gejpqmrystvzezscmmkg.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IflFHpAHB0PycyzZ5n3SWg_mHp8uYCu';
@@ -16,6 +16,7 @@ const client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 });
 
 let currentSession = null;
+let currentDisplayName = '';
 let initialized = false;
 let resolveReady;
 const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -67,6 +68,30 @@ function emitAuthChange(event = 'INITIAL_SESSION') {
     user: currentSession?.user || null
   };
   window.dispatchEvent(new CustomEvent('cronicas:auth-change', { detail }));
+}
+
+function neutralDisplayName(userId) {
+  return `Caçador ${String(userId || '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}
+
+async function loadDisplayName() {
+  const user = currentSession?.user;
+  if (!user) { currentDisplayName = ''; return ''; }
+  const { data, error } = await client.from('account_profiles').select('display_name').eq('user_id', user.id).maybeSingle();
+  if (error) throw error;
+  currentDisplayName = String(data?.display_name || '').trim() || neutralDisplayName(user.id);
+  return currentDisplayName;
+}
+
+async function saveDisplayName(value) {
+  const user = await getUser();
+  if (!user) throw new Error('ONLINE_AUTH_REQUIRED');
+  const displayName = String(value || '').trim();
+  if (displayName.length < 2 || displayName.length > 80) throw new Error('INVALID_DISPLAY_NAME');
+  const { error } = await client.from('account_profiles').upsert({ user_id: user.id, display_name: displayName }, { onConflict: 'user_id' });
+  if (error) throw error;
+  currentDisplayName = displayName;
+  return displayName;
 }
 
 async function getSession() {
@@ -167,7 +192,7 @@ function createAccountUI() {
     const user = currentSession?.user || null;
     if (user) {
       stateLabel.textContent = 'Conta conectada';
-      emailLabel.textContent = user.email || 'Usuário autenticado';
+      emailLabel.textContent = currentDisplayName || neutralDisplayName(user.id);
       accountButton.textContent = 'Conta';
       account.dataset.authenticated = 'true';
     } else {
@@ -209,6 +234,17 @@ function createAccountUI() {
       const email = document.createElement('strong');
       email.className = 'account-dialog-current-email';
       email.textContent = user.email || user.id;
+      const profile = document.createElement('form');
+      profile.className = 'account-profile-form';
+      const profileLabel = document.createElement('label');
+      profileLabel.textContent = 'Nome público';
+      const profileInput = document.createElement('input');
+      profileInput.type = 'text'; profileInput.maxLength = 80; profileInput.required = true;
+      profileInput.value = currentDisplayName || neutralDisplayName(user.id);
+      profileLabel.appendChild(profileInput);
+      const profileSave = document.createElement('button');
+      profileSave.type = 'submit'; profileSave.className = 'btn'; profileSave.textContent = 'Salvar nome';
+      profile.append(profileLabel, profileSave);
       const feedback = document.createElement('p');
       feedback.className = 'account-dialog-feedback';
       feedback.dataset.kind = kind;
@@ -234,15 +270,28 @@ function createAccountUI() {
         }
       });
       actions.appendChild(logout);
-      shell.append(copy, email, feedback, actions);
+      profile.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (pending) return;
+        pending = true; profileSave.disabled = true; profileInput.disabled = true;
+        try {
+          await saveDisplayName(profileInput.value);
+          feedback.dataset.kind = 'success'; feedback.textContent = 'Nome público atualizado.';
+          renderTopbar();
+        } catch (error) {
+          feedback.dataset.kind = 'error';
+          feedback.textContent = error?.message === 'INVALID_DISPLAY_NAME' ? 'Use entre 2 e 80 caracteres.' : 'Não foi possível salvar o nome público.';
+        } finally { pending = false; profileSave.disabled = false; profileInput.disabled = false; }
+      });
+      shell.append(copy, email, profile, feedback, actions);
       return;
     }
 
     const copy = document.createElement('p');
     copy.className = 'account-dialog-copy';
     copy.textContent = mode === 'signup'
-      ? 'Crie uma conta para usar os recursos compartilhados quando eles forem ativados. O uso local continua independente.'
-      : 'Entre para preparar o acesso aos recursos online. Nada do armazenamento local será migrado nesta etapa.';
+      ? 'Crie uma conta para publicar personagens e participar de Crônicas compartilhadas. O uso local continua independente.'
+      : 'Entre para acessar suas Crônicas Online. Seus dados locais permanecem neste navegador.';
 
     const form = document.createElement('form');
     form.className = 'account-auth-form';
@@ -399,8 +448,10 @@ function createAccountUI() {
 
   renderTopbar();
   window.addEventListener('cronicas:auth-change', () => {
-    renderTopbar();
-    if (dialog.open) renderDialog();
+    void loadDisplayName().catch(error => console.error('Não foi possível carregar o perfil público:', error)).finally(() => {
+      renderTopbar();
+      if (dialog.open) renderDialog();
+    });
   });
 }
 
@@ -413,6 +464,10 @@ async function initialize() {
     console.error('Não foi possível restaurar a sessão online:', error);
     currentSession = null;
   } finally {
+    if (currentSession?.user) {
+      try { await loadDisplayName(); }
+      catch (error) { console.error('Não foi possível carregar o perfil público:', error); }
+    }
     initialized = true;
     resolveReady(currentSession);
     emitAuthChange('INITIAL_SESSION');
