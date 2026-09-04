@@ -44,7 +44,7 @@
       startedAt: row.started_at || null,
       endedAt: row.ended_at || null,
       createdAt: iso(row.created_at),
-      updatedAt: iso(row.updated_at)
+      updatedAt: row.updated_at || null
     };
   }
 
@@ -55,7 +55,7 @@
       confrontationId: row.confrontation_id,
       name: text(row.name) || 'Adversário',
       createdAt: iso(row.created_at),
-      updatedAt: iso(row.updated_at)
+      updatedAt: row.updated_at || null
     };
     if (row.pv_current !== null && row.pv_current !== undefined) result.pvCurrent = Number(row.pv_current);
     if (row.pv_max !== null && row.pv_max !== undefined) result.pvMax = Number(row.pv_max);
