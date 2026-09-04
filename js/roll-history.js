@@ -64,7 +64,9 @@
       if (token === epoch && characterId === item.record.characterId) {
         feedback(item.destination && !result.chronicleLinked
           ? 'Salva na ficha. O vínculo com a Crônica não está mais disponível.'
-          : (result.online ? 'Rolagem salva na ficha e compartilhada online.' : 'Rolagem salva neste navegador.'));
+          : (result.online
+            ? (result.confrontationId ? 'Rolagem salva na ficha e enviada ao combate.' : 'Rolagem salva na ficha e enviada às Rolagens Livres.')
+            : 'Rolagem salva neste navegador.'));
         if (!el('quickDiceHistorySection').hidden) await history?.load();
       }
     } catch (_) {

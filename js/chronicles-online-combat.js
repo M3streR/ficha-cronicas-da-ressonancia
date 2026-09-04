@@ -364,6 +364,20 @@
     return map;
   }
 
+  function characterSyncLabel(entry, user) {
+    if (!entry) return 'Ficha online indisponível';
+    if (entry.ownerId === user?.id && entry.sourceLocalId) {
+      const state = global.ChroniclesCollaboration?.getCharacterSyncState?.(entry.sourceLocalId);
+      if (state?.state === 'pending') return 'Alterações locais pendentes de sincronização';
+      if (state?.state === 'syncing') return 'Sincronizando alterações da ficha';
+      if (state?.state === 'error') return 'Falha de sincronização — valores online podem estar desatualizados';
+    }
+    const date = new Date(entry.updatedAt);
+    return Number.isFinite(date.getTime())
+      ? `Ficha online sincronizada em ${date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+      : 'Valores da última sincronização online';
+  }
+
   function combatDice(entry, full) {
     const section = node('section', 'online-combat-dice');
     section.append(node('h4', '', 'Rolagem'));
@@ -488,7 +502,10 @@
         const copy=node('div'); copy.append(node('strong','',target.name),node('span','online-combat-muted',[target.entry?.className,`Nível ${target.entry?.level || 1}`,target.entry?.signature].filter(Boolean).join(' · '))); identity.append(copy); card.append(identity);
         const grid=node('div','online-combat-resource-grid');
         [['PV',resources.pv],['PN',resources.pn],['PS',resources.ps]].forEach(([label,value])=>{const item=node('div','online-combat-resource');item.append(node('small','',label),node('strong','',value));grid.append(item);});
-        card.append(grid,node('p','online-combat-muted','Recursos da última sincronização da ficha.')); panel.append(card);
+        const sync = node('p','online-combat-sync-status',characterSyncLabel(target.entry, user));
+        const localSyncState = target.entry?.ownerId === user.id ? global.ChroniclesCollaboration?.getCharacterSyncState?.(target.entry?.sourceLocalId) : null;
+        if (localSyncState?.state) sync.dataset.state = localSyncState.state;
+        card.append(grid, sync); panel.append(card);
         if (target.entry?.ownerId === user.id) panel.append(combatDice(target.entry, full));
       } else panel.append(node('p','online-combat-muted','Defina a iniciativa para começar a acompanhar o turno atual.'));
       return panel;
@@ -527,7 +544,10 @@
       item.append(node('small', '', label), node('strong', '', value)); grid.append(item);
     });
     card.append(grid);
-    card.append(node('p', 'online-combat-muted', 'Os valores exibidos vêm da última sincronização da sua ficha online.'));
+    const sync = node('p', 'online-combat-sync-status', characterSyncLabel(current, user));
+    const ownSyncState = global.ChroniclesCollaboration?.getCharacterSyncState?.(current.sourceLocalId);
+    if (ownSyncState?.state) sync.dataset.state = ownSyncState.state;
+    card.append(sync);
     panel.append(card, combatDice(current, full));
     return panel;
   }
@@ -733,6 +753,10 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_character_links', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversaries', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'online_roll_records', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'online_characters' }, payload => {
+          const id = payload?.new?.id || payload?.old?.id;
+          if (id && directoryCache.byId.has(id)) scheduleRefresh();
+        })
         .subscribe();
     });
   }

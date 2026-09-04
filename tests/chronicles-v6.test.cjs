@@ -19,7 +19,7 @@ const server = http.createServer(async (req,res) => {
 (async () => {
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
-  const browser = await chromium.launch({ headless:true, executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+  const browser = await chromium.launch(process.env.CHROME_PATH ? { headless:true, executablePath:process.env.CHROME_PATH } : { headless:true });
   const context = await browser.newContext({ viewport:{width:1366,height:950}, reducedMotion:'reduce' });
   const page = await context.newPage(), errors=[];
   await fs.mkdir(path.join(__dirname,'artifacts'),{recursive:true});

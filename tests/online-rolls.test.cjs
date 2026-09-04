@@ -78,4 +78,19 @@ test('registro online reutiliza ID e resultado e preserva histórico local', asy
   assert.deepEqual(Array.from(rpcCalls[0].payload.p_rolls), [7, 13]);
   assert.equal(rpcCalls[0].payload.p_total, 24);
   assert.equal(result.online, true);
+  assert.equal(result.confrontationId, COMBAT);
+});
+
+test('destino livre não herda combate ativo e preserva confronto nulo', async () => {
+  const { api, rpcCalls } = loadModule();
+  const base = {
+    listCharacterChronicles: async () => [],
+    appendRoll: async () => ({ characterLinked: true }),
+    listRollHistory: async () => ({ records: [], next: null, destinations: {} }),
+    listRollActors: async () => [], clearRollHistory: async () => true
+  };
+  const record = { id: '66666666-6666-4666-8666-666666666666', characterName: 'Caçador', result: { expression: '1d20+2', rolls: [15], diceTotal: 15, modifier: 2, total: 17 } };
+  const result = await api.createRouter(base).appendRoll(record, `online-roll:${CHRONICLE}:${CHARACTER}`);
+  assert.equal(rpcCalls[0].payload.p_confrontation_id, null);
+  assert.equal(result.confrontationId, null);
 });

@@ -6,10 +6,11 @@ Aplicação local em HTML, CSS e JavaScript para gerenciamento de personagens e 
 
 - criação, importação, exportação, duplicação e exclusão de personagens;
 - ficha de personagem e Rolador Rápido com histórico;
-- Crônicas com Visão Geral, Elenco, Participantes e Confrontos;
+- Crônicas Locais e Online com Visão Geral, Elenco, Participantes, Confrontos e Rolagens Livres;
 - Escudo do Mestre protegido localmente, com Caçadores e Combates;
 - preparação, início, execução e encerramento de Confrontos;
-- persistência local de personagens e IndexedDB v6 para Crônicas.
+- rolagens compartilhadas, combate e atualização em tempo real no modo Online;
+- persistência local de personagens e IndexedDB v6 para Crônicas Locais, com Supabase no modo Online.
 
 ## Execução
 

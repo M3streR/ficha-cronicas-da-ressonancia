@@ -6,7 +6,7 @@
 .online-cast-owner {
   display: block;
   margin-top: .28rem;
-  color: rgba(226, 219, 244, .58);
+  color: var(--color-text-muted);
   font-size: .72rem;
   letter-spacing: .04em;
 }
@@ -32,14 +32,14 @@
 }
 
 .online-cast-publish-option[data-selected="true"] {
-  border-color: rgba(152, 126, 222, .42);
-  background: linear-gradient(135deg, rgba(74, 57, 112, .22), rgba(27, 22, 43, .72));
+  border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 16%, transparent), var(--color-surface-elevated));
 }
 
 .online-cast-publish-state {
   display: block;
   margin-top: .28rem;
-  color: rgba(226, 219, 244, .55);
+  color: var(--color-text-muted);
   font-size: .7rem;
 }
 

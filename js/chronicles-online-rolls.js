@@ -27,7 +27,11 @@
     return null;
   }
 
-  function normalizeRow(row) {
+  function neutralName(userId) {
+    return `Caçador ${String(userId || '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+  }
+
+  function normalizeRow(row, profiles = new Map()) {
     const rolls = Array.isArray(row.rolls) ? row.rolls.map(Number) : [];
     return {
       id: row.id,
@@ -37,7 +41,10 @@
       createdAt: row.created_at,
       source: row.source || 'quick-dice',
       category: row.category || 'expression',
+      categoryLabel: text(row.metadata?.label),
       resolution: row.metadata?.resolution || 'sum',
+      authorId: row.author_id || null,
+      authorName: profiles.get(row.author_id) || neutralName(row.author_id),
       result: {
         expression: row.expression,
         count: row.dice_count,
@@ -133,10 +140,11 @@
     const limit = Math.max(1, Math.min(100, Number(options.limit) || 50));
     const { client } = await context();
     let query = client.from('online_roll_records')
-      .select('id, chronicle_id, confrontation_id, online_character_id, character_name, source, category, expression, dice_count, dice_sides, rolls, modifier, subtotal, total, metadata, created_at')
+      .select('id, chronicle_id, confrontation_id, online_character_id, author_id, character_name, source, category, expression, dice_count, dice_sides, rolls, modifier, subtotal, total, metadata, created_at')
       .eq('chronicle_id', remoteId)
       .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1);
     if (options.confrontationId) query = query.eq('confrontation_id', options.confrontationId);
+    if (options.freeOnly) query = query.is('confrontation_id', null);
     if (options.characterId) query = query.eq('online_character_id', options.characterId);
     if (options.category) query = query.eq('category', options.category);
     if (options.before?.createdAt && options.before?.id) {
@@ -149,7 +157,14 @@
     const { data, error } = await query;
     if (error) throw error;
     const rows = data || [];
-    const records = rows.slice(0, limit).map(normalizeRow);
+    const authorIds = [...new Set(rows.slice(0, limit).map(row => row.author_id).filter(Boolean))];
+    let profiles = new Map();
+    if (authorIds.length) {
+      const profileResult = await client.from('account_profiles').select('user_id, display_name').in('user_id', authorIds);
+      if (profileResult.error) throw profileResult.error;
+      profiles = new Map((profileResult.data || []).map(row => [row.user_id, text(row.display_name) || neutralName(row.user_id)]));
+    }
+    const records = rows.slice(0, limit).map(row => normalizeRow(row, profiles));
     const last = records[records.length - 1];
     return { records, next: rows.length > limit && last ? { createdAt: last.createdAt, id: last.id } : null, destinations: {} };
   }
@@ -174,7 +189,7 @@
         if (!online) return base.appendRoll(record, destination);
         await base.appendRoll(record, null);
         await appendOnlineRoll(record, destination);
-        return { characterLinked: true, chronicleLinked: true, online: true };
+        return { characterLinked: true, chronicleLinked: true, online: true, confrontationId: online.confrontationId || null };
       },
       async listRollHistory(scope, ownerId, options) {
         if (scope === 'chronicle' && String(ownerId).startsWith('online:')) return listChronicleRolls(ownerId, options);
