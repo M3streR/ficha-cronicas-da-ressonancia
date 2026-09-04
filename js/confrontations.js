@@ -133,6 +133,7 @@
     if (!services.canPrepare() || requestExit(() => void openCreate(options))) return;
     reset(); managing = true; returnTo = options.returnTo || null;
     preparation = { chronicleId: services.chronicleId() };
+    await storage().listChronicleCastIds(preparation.chronicleId);
     directory = services.directory();
     showWork();
     el('confrontationTitle').textContent = 'Criar Confronto';

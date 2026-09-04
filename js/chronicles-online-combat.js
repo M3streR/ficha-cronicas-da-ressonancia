@@ -366,8 +366,50 @@
     return result;
   }
 
-  function detailPanel(full, user) {
+  function detailPanel(full, user, owner = false) {
     const panel = node('aside', 'online-combat-focus');
+    if (owner) {
+      const order = normalizedInitiative(full);
+      const activeItem = order[Math.min(full.record.combatTurn, Math.max(order.length - 1, 0))];
+      const target = activeItem ? combatantMap(full).get(`${activeItem.kind}:${activeItem.id}`) : null;
+      panel.append(node('span', 'chronicles-kicker', 'Controle de turno'));
+      panel.append(node('h3', '', target ? target.name : 'Combatente atual'));
+      if (target?.kind === 'adversary') {
+        const enemy = target.adversary;
+        const card = node('article', 'online-combat-enemy-control');
+        card.append(node('p', 'online-combat-muted', enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'DEF não informada'));
+        if (enemy.pvMax !== undefined) {
+          const label = node('label', 'online-combat-enemy-pv');
+          label.append(node('span', '', 'PV atual'));
+          const input = document.createElement('input'); input.type='number'; input.min='0'; input.max=String(enemy.pvMax); input.step='1'; input.value=String(enemy.pvCurrent ?? 0);
+          label.append(input, node('span', '', `/ ${enemy.pvMax}`)); card.append(label);
+          const save = node('button', 'btn', 'Salvar PV'); save.type='button'; save.disabled=pending;
+          save.addEventListener('click', async () => {
+            if (pending) return;
+            pending = true;
+            try {
+              await updateConfrontationAdversary(full.record.id, enemy.id, { name: enemy.name, pvCurrent: Math.max(0, Math.min(enemy.pvMax, Number.parseInt(input.value,10) || 0)), pvMax: enemy.pvMax, ...(enemy.defense !== undefined ? { defense: enemy.defense } : {}) }, { expectedUpdatedAt: enemy.updatedAt });
+              await render(currentChronicle);
+            } catch (_) {
+              global.showNotification?.('Não foi possível atualizar o PV do adversário.', 'error');
+              await render(currentChronicle);
+            } finally { pending = false; }
+          });
+          card.append(save);
+        } else card.append(node('p','online-combat-muted','Este adversário não possui PV configurado.'));
+        panel.append(card);
+      } else if (target?.kind === 'character') {
+        const resources = characterResources(target.id);
+        const card = node('article','online-combat-sheet-card');
+        const identity = node('div','online-combat-sheet-identity');
+        identity.append(portrait(target.entry,'online-combat-sheet-portrait'));
+        const copy=node('div'); copy.append(node('strong','',target.name),node('span','online-combat-muted',[target.entry?.className,`Nível ${target.entry?.level || 1}`,target.entry?.signature].filter(Boolean).join(' · '))); identity.append(copy); card.append(identity);
+        const grid=node('div','online-combat-resource-grid');
+        [['PV',resources.pv],['PN',resources.pn],['PS',resources.ps]].forEach(([label,value])=>{const item=node('div','online-combat-resource');item.append(node('small','',label),node('strong','',value));grid.append(item);});
+        card.append(grid,node('p','online-combat-muted','Recursos da última sincronização da ficha.')); panel.append(card);
+      } else panel.append(node('p','online-combat-muted','Defina a iniciativa para começar a acompanhar o turno atual.'));
+      return panel;
+    }
     const own = full.characterIds
       .map(id => directoryCache.byId.get(id))
       .filter(entry => entry?.ownerId === user.id);
@@ -535,7 +577,7 @@
     if (owner) header.append(ownerControls(full));
     host.append(header);
     const layout = node('div', 'online-combat-layout');
-    layout.append(initiativeBoard(full, owner), detailPanel(full, user));
+    layout.append(initiativeBoard(full, owner), detailPanel(full, user, owner));
     host.append(layout);
   }
 
@@ -592,6 +634,13 @@
       .subscribe();
   }
 
+  function applyDetailMode(chronicle) {
+    if (chronicle?.storage === 'online') {
+      currentChronicle = chronicle;
+      startRealtime(chronicle);
+    } else reset();
+  }
+
   function reset() {
     stopRealtime();
     currentChronicle = null; selectedOwnCharacterId = ''; pending = false;
@@ -626,6 +675,7 @@
     readCharacter,
     loadCastDirectory,
     render,
+    applyDetailMode,
     reset,
     startRealtime,
     get currentChronicle() { return currentChronicle; }

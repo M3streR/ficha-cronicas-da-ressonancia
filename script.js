@@ -1392,7 +1392,11 @@ const CHRONICLE_COVER_LIMITS = Object.freeze({
 
 function getChroniclesStorage() {
   if (!window.ChroniclesStorage) throw new Error('CHRONICLES_STORAGE_UNAVAILABLE');
-  return window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+  const base = window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+  if (activeChronicleRecord?.storage === 'online' && window.ChroniclesOnlineCombat?.storage) {
+    return Object.freeze({ ...base, ...window.ChroniclesOnlineCombat.storage });
+  }
+  return base;
 }
 
 function revokeChronicleCreationPreviewUrl() {
@@ -2743,7 +2747,10 @@ function setChronicleDetailSection(
     void renderChronicleCast();
   }
   if (activeSection === 'participants') void renderChronicleParticipants();
-  if (activeSection === 'encounters') void window.ConfrontationsUI?.renderIndex();
+  if (activeSection === 'encounters') {
+    if (activeChronicleRecord?.storage === 'online') void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
+    else void window.ConfrontationsUI?.renderIndex();
+  }
 }
 
 function populateChronicleDetail(chronicle, visualIndex, cover) {
@@ -3260,7 +3267,11 @@ function bindChronicles() {
           ? document.getElementById('openChronicleActions') : document.getElementById('openMasterShield');
         target.focus({ preventScroll: true });
       }
-      if (battleId) { await window.ConfrontationsUI.open(battleId); return; }
+      if (battleId) {
+        if (activeChronicleRecord?.storage === 'online') await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
+        else await window.ConfrontationsUI.open(battleId);
+        return;
+      }
       try {
         const chronicle = await getChroniclesStorage().getChronicle(id);
         if (id !== activeChronicleId) return;
@@ -3277,8 +3288,12 @@ function bindChronicles() {
   window.ConfrontationsUI.initialize({
     storage: getChroniclesStorage,
     chronicleId: () => activeChronicleId,
-    directory: getChronicleCharacterDirectory,
-    readCharacter: readStoredCharacter,
+    directory: () => activeChronicleRecord?.storage === 'online'
+      ? (window.ChroniclesOnlineCombat?.directory() || { entries: [], byId: new Map(), unavailable: true })
+      : getChronicleCharacterDirectory(),
+    readCharacter: id => activeChronicleRecord?.storage === 'online'
+      ? window.ChroniclesOnlineCombat?.readCharacter(id)
+      : readStoredCharacter(id),
     portrait: createChronicleCastPortrait,
     confirm: openModal,
     notify: showNotification,

@@ -304,6 +304,7 @@
     }
     global.ChroniclesSharing?.applyDetailMode(chronicle);
     global.ChroniclesCollaboration?.applyDetailMode(chronicle);
+    global.ChroniclesOnlineCombat?.applyDetailMode?.(chronicle);
   }
 
   function getErrorMessage(error) {

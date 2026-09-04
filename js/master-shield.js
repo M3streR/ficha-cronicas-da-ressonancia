@@ -100,15 +100,14 @@
     if (name === 'dashboard') {
       focus(document.querySelector('[data-master-module="' + previous + '"]') || el('masterShieldTitle'));
       try {
-        if (onlineOwner) {
-          const cast = await onlineCastCount();
-          if (canUse()) {
-            el('masterHuntersSummary').textContent = cast + ' no Elenco';
-            el('masterCombatsSummary').textContent = 'Confrontos online';
-          }
-        } else {
-          const [cast, battles] = await Promise.all([services.storage().listChronicleCastIds(id), services.storage().listConfrontations(id)]);
-          if (canUse()) { el('masterHuntersSummary').textContent = cast.length + ' no Elenco'; el('masterCombatsSummary').textContent = battles.length + ' Confrontos'; }
+        const [cast, battles] = await Promise.all([
+          onlineOwner ? onlineCastCount() : services.storage().listChronicleCastIds(id).then(items => items.length),
+          services.storage().listConfrontations(id)
+        ]);
+        if (canUse()) {
+          el('masterHuntersSummary').textContent = cast + ' no Elenco';
+          const active = battles.find(item => item.active);
+          el('masterCombatsSummary').textContent = active ? `Ativo · ${active.name}` : `${battles.length} Confrontos`;
         }
       } catch (_) { if (canUse()) feedback('Não foi possível atualizar os resumos. Abra a ferramenta para tentar novamente.'); }
       return;
@@ -131,11 +130,6 @@
           }));
           feedback(ids.length ? '' : 'Nenhum Caçador no Elenco.','masterShieldCastFeedback');
         }
-      } else if (onlineOwner) {
-        el('masterShieldConfrontationsList').replaceChildren();
-        feedback('O painel está liberado para o Mestre. A persistência compartilhada dos Confrontos será conectada ao backend online na etapa de Combates.','masterShieldConfrontationsFeedback');
-        el('createMasterConfrontation').disabled = true;
-        el('createMasterConfrontation').title = 'Criação de Confrontos online ainda não está conectada ao backend compartilhado.';
       } else {
         el('createMasterConfrontation').disabled = false;
         el('createMasterConfrontation').title = '';
@@ -207,7 +201,7 @@
     el('backFromMasterShield').addEventListener('click',() => navigate(returnSection,null,true));
     el('backToMasterDashboard').addEventListener('click',() => void openModule('dashboard'));
     el('lockMasterShield').addEventListener('click',() => { if (!onlineOwner) access.lock(); });
-    el('createMasterConfrontation').addEventListener('click',() => { if (allowed() && !onlineOwner) void global.ConfrontationsUI.openCreate({ returnTo:()=>openModule('combats') }); });
+    el('createMasterConfrontation').addEventListener('click',() => { if (allowed()) void global.ConfrontationsUI.openCreate({ returnTo:()=>openModule('combats') }); });
     document.querySelectorAll('[data-master-module]').forEach(button => button.addEventListener('click',() => void openModule(button.dataset.masterModule)));
   }
   global.MasterShieldUI = Object.freeze({ initialize, open, reset, requestExit,
