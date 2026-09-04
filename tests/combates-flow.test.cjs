@@ -24,7 +24,7 @@ const server = http.createServer(async (req,res) => {
   const page = await context.newPage(), errors=[];
   await fs.mkdir(path.join(__dirname,'artifacts'),{recursive:true});
   page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type()==='error' && !message.text().includes('404')) errors.push(message.text()); });
+  page.on('console', message => { if (message.type()==='error' && !message.text().includes('404') && !message.text().includes('ERR_NETWORK_ACCESS_DENIED')) errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
   try {
     await page.goto(url + '/index.html');

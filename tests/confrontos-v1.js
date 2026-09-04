@@ -49,7 +49,7 @@ document.getElementById('run').onclick=async()=>{
       check(['chronicleConfrontations','confrontationAdversaries'].every(k=>inspection.objectStore(k).keyPath==='id' && inspection.objectStore(k).indexNames.length===1 && !inspection.objectStore(k).index(inspection.objectStore(k).indexNames[0]).unique),'Confrontos e adversários têm IDs e um índice não exclusivo cada');
     }
     const battle=await api.createConfrontation(old.id,{name:'Ataque à instalação',description:'Proteger a passagem.'});
-    check(Object.keys(battle).sort().join(',')==='chronicleId,createdAt,description,id,name,updatedAt','Confronto contém somente seis campos');
+    check(Object.keys(battle).sort().join(',')==='active,chronicleId,createdAt,description,id,name,updatedAt','Confronto contém apenas os campos persistidos, incluindo active');
     const twin=await api.createConfrontation(old.id,{name:battle.name});
     check(twin.id!==battle.id && (await api.listConfrontations(old.id))[0].id===twin.id,'Nomes repetidos e listagem por criação mais recente');
     check(await rejects(api.createConfrontation(old.id,{name:' '}),'INVALID_CONFRONTATION_NAME') && await rejects(api.createConfrontation(old.id,{name:'x'.repeat(121)}),'INVALID_CONFRONTATION_NAME') && await rejects(api.createConfrontation(old.id,{name:'N',description:'x'.repeat(1201)}),'INVALID_CONFRONTATION_DESCRIPTION'),'Validação de nome e descrição');

@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
   <title>Ficha — Crônicas da Ressonância</title>
-  <link rel="stylesheet" href="style.css?v=alpha-watermark-1">
-  <link rel="stylesheet" href="css/chronicles-workspace.css?v=6-combates-1">
-  <link rel="stylesheet" href="css/account-auth.css?v=1">
-  <link rel="stylesheet" href="css/chronicles-online.css?v=4">
-  <link rel="stylesheet" href="css/chronicles-sharing.css?v=4">
-  <link rel="stylesheet" href="css/chronicles-collaboration.css?v=4">
-  <link rel="stylesheet" href="css/chronicles-online-combat.css?v=online-combat-complete">
+  <link rel="stylesheet" href="style.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/chronicles-workspace.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/account-auth.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/chronicles-online.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/chronicles-sharing.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/chronicles-collaboration.css?v=2026-09-04-alpha-online-stable">
+  <link rel="stylesheet" href="css/chronicles-online-combat.css?v=2026-09-04-alpha-online-stable">
 </head>
 <body class="manager-view-open">
   <main class="character-manager environment-root" id="characterManagerView" data-active-environment="characters" aria-label="Gerenciador de Crônicas da Ressonância">
@@ -87,7 +87,7 @@
               <header class="chronicle-create-heading">
                 <span class="chronicles-kicker" id="chronicleFormKicker">Novo registro narrativo</span>
                 <h2 id="chronicleCreateTitle" tabindex="-1">Nova Crônica</h2>
-                <p id="chronicleFormDescription">Defina a apresentação inicial da história. O interior da Crônica será desenvolvido em uma próxima etapa.</p>
+                <p id="chronicleFormDescription">Defina a apresentação inicial da história e escolha onde ela será armazenada.</p>
               </header>
 
               <form class="chronicle-create-form" id="chronicleCreateForm" novalidate>
@@ -315,12 +315,14 @@
                     <button class="chronicle-actions-close" id="closeChronicleActions" type="button" aria-label="Fechar ações">×</button>
                   </header>
 
-                  <p class="sr-only" id="chronicleActionsUnavailable">Esta ação estará disponível em uma próxima etapa.</p>
+                  <p class="sr-only" id="chronicleActionsUnavailable">Esta ação não está disponível neste contexto.</p>
                   <div class="chronicle-actions-list">
                     <button class="chronicle-context-action" id="editChronicleAction" type="button">Editar Crônica</button>
                     <button class="chronicle-context-action master-shield" id="openMasterShield" type="button">Escudo do Mestre</button>
-                    <button class="chronicle-context-action" id="makeChronicleOnlineAction" type="button" hidden>Tornar Crônica Online</button>
                     <button class="chronicle-context-action" id="inviteChronicleAction" type="button" hidden>Convidar Participantes</button>
+                  </div>
+                  <div class="chronicle-online-promotion">
+                    <button class="btn secondary" id="makeChronicleOnlineAction" type="button" hidden>Criar versão Online</button>
                   </div>
                 </aside>
               </div>
@@ -1042,17 +1044,18 @@
 
   <span class="site-watermark">Created by FR0D</span>
 
-  <script type="module" src="js/supabase-client.js?v=1"></script>
-  <script src="js/chronicles-storage.js?v=6-combates-1"></script>
-  <script src="js/chronicles-online.js?v=online-combat-complete"></script>
-  <script src="js/chronicles-sharing.js?v=4"></script>
-  <script src="js/chronicles-collaboration.js?v=4"></script>
-  <script src="js/chronicles-online-combat.js?v=timestamp-precision-fix"></script>
-  <script src="js/confrontations.js?v=online-combat-complete"></script>
-  <script src="js/master-access.js?v=6-combates-1"></script>
-  <script src="js/roll-history-view.js?v=6-rolador-1"></script>
-  <script src="js/roll-history.js?v=6-rolador-1"></script>
-  <script src="js/master-shield.js?v=online-combat-complete"></script>
-  <script src="script.js?v=online-combat-complete"></script>
+  <script type="module" src="js/supabase-client.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-storage.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-online.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-sharing.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-collaboration.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-online-rolls.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/chronicles-online-combat.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/confrontations.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/master-access.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/roll-history-view.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/roll-history.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="js/master-shield.js?v=2026-09-04-alpha-online-stable"></script>
+  <script src="script.js?v=2026-09-04-alpha-online-stable"></script>
 </body>
 </html>

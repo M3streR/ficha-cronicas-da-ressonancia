@@ -62,7 +62,9 @@
       const result = await services.storage().appendRoll(item.record, item.destination || null);
       pending.delete(item.record.id);
       if (token === epoch && characterId === item.record.characterId) {
-        feedback(item.destination && !result.chronicleLinked ? 'Salva na ficha. O vínculo com a Crônica não está mais disponível.' : 'Rolagem salva neste navegador.');
+        feedback(item.destination && !result.chronicleLinked
+          ? 'Salva na ficha. O vínculo com a Crônica não está mais disponível.'
+          : (result.online ? 'Rolagem salva na ficha e compartilhada online.' : 'Rolagem salva neste navegador.'));
         if (!el('quickDiceHistorySection').hidden) await history?.load();
       }
     } catch (_) {

@@ -133,9 +133,15 @@
     if (!services.canPrepare() || requestExit(() => void openCreate(options))) return;
     reset(); managing = true; returnTo = options.returnTo || null;
     preparation = { chronicleId: services.chronicleId() };
-    await storage().listChronicleCastIds(preparation.chronicleId);
-    directory = services.directory();
     showWork();
+    feedback('Carregando o Elenco…');
+    try {
+      await storage().listChronicleCastIds(preparation.chronicleId);
+      directory = services.directory();
+    } catch (error) {
+      directory = { entries: [], byId: new Map(), unavailable: true };
+      feedback(errorText(error));
+    }
     el('confrontationTitle').textContent = 'Criar Confronto';
     el('confrontationChronicleName').textContent = el('masterShieldChronicleName').textContent;
     el('backFromConfrontation').textContent = '← Voltar para Combates';
@@ -144,7 +150,7 @@
     el('confrontationForm').reset(); el('confrontationForm').hidden = false;
     el('confrontationFormTitle').textContent = 'Identificação';
     el('confrontationDangerZone').hidden = true;
-    renderCharacters(); renderAdversaries(); syncBusy(); focusIfVisible(el('confrontationName'));
+    renderCharacters(); renderAdversaries(); if (!directory.unavailable) feedback(); syncBusy(); focusIfVisible(el('confrontationName'));
   }
   function saveComposition() {
     if (!preparation || busy || !services.canPrepare()) return;

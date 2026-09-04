@@ -7,6 +7,10 @@
   let pending = false;
   let realtimeChannel = null;
   let refreshTimer = null;
+  let currentCastIds = new Set();
+  const characterSyncStates = new Map();
+  const characterSyncTimers = new Map();
+  const characterSyncQueues = new Map();
 
   function isOnlineChronicle(chronicle = currentChronicle) {
     return Boolean(chronicle && chronicle.storage === 'online' && chronicle.remoteId);
@@ -22,8 +26,27 @@
     return { auth, user, chronicle };
   }
 
+  async function requireUser() {
+    const auth = global.CronicasSupabase;
+    if (!auth) throw new Error('ONLINE_AUTH_UNAVAILABLE');
+    await auth.ready;
+    const user = await auth.getUser();
+    if (!user) throw new Error('ONLINE_AUTH_REQUIRED');
+    return { auth, user };
+  }
+
+  function setCharacterSyncState(localId, state, message = '') {
+    const detail = { localId, state, message };
+    characterSyncStates.set(localId, detail);
+    global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail }));
+  }
+
   function text(value) {
     return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function neutralName(userId) {
+    return `Caçador ${String(userId || '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
   }
 
   function normalizeSearch(value) {
@@ -84,7 +107,7 @@
       .select('user_id, display_name')
       .in('user_id', ids);
     if (error) throw error;
-    return new Map((data || []).map(row => [row.user_id, text(row.display_name) || 'Participante']));
+    return new Map((data || []).map(row => [row.user_id, text(row.display_name) || neutralName(row.user_id)]));
   }
 
   async function fetchParticipants(chronicle = currentChronicle) {
@@ -100,13 +123,13 @@
     return {
       owner: {
         userId: active.ownerId,
-        name: profiles.get(active.ownerId) || 'Mestre',
+        name: profiles.get(active.ownerId) || neutralName(active.ownerId),
         role: 'owner',
         joinedAt: active.createdAt
       },
       members: (members || []).map(row => ({
         userId: row.user_id,
-        name: profiles.get(row.user_id) || 'Participante',
+        name: profiles.get(row.user_id) || neutralName(row.user_id),
         role: 'member',
         joinedAt: row.created_at
       }))
@@ -211,6 +234,7 @@
       .order('created_at', { ascending: true });
     if (linkError) throw linkError;
     const ids = (links || []).map(row => row.character_id);
+    currentCastIds = new Set(ids);
     if (!ids.length) return [];
     const { data: characters, error: characterError } = await auth.client
       .from('online_characters')
@@ -232,7 +256,7 @@
         signature: text(row.signature),
         thumbnail: text(row.thumbnail),
         snapshot: row.snapshot || {},
-        ownerName: profiles.get(row.owner_id) || 'Participante',
+        ownerName: profiles.get(row.owner_id) || neutralName(row.owner_id),
         updatedAt: row.updated_at
       };
     }).filter(Boolean);
@@ -330,7 +354,7 @@
   }
 
   async function upsertOnlineCharacter(localEntry) {
-    const { auth, user } = await requireContext();
+    const { auth, user } = await requireUser();
     const character = localEntry.character || {};
     const fields = character.fields || {};
     const payload = {
@@ -352,6 +376,61 @@
     return data;
   }
 
+  async function synchronizePublishedCharacter(localId, character = null) {
+    const { auth, user } = await requireUser();
+    const { data: published, error: lookupError } = await auth.client
+      .from('online_characters').select('id').eq('owner_id', user.id).eq('source_local_id', localId).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!published) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return false; }
+    const local = localCharacters().find(item => item.id === localId);
+    if (!local) return false;
+    const entry = character ? { ...local, character } : local;
+    setCharacterSyncState(localId, 'syncing', 'Sincronizando');
+    await upsertOnlineCharacter(entry);
+    setCharacterSyncState(localId, 'synced', 'Atualizado');
+    return true;
+  }
+
+  function queueCharacterSync(localId, character = null) {
+    if (!localId) return;
+    if (!global.CronicasSupabase?.authenticated) {
+      setCharacterSyncState(localId, 'local', 'Apenas Local');
+      return;
+    }
+    global.clearTimeout(characterSyncTimers.get(localId));
+    setCharacterSyncState(localId, 'pending', 'Alterações pendentes');
+    characterSyncTimers.set(localId, global.setTimeout(() => {
+      characterSyncTimers.delete(localId);
+      const previous = characterSyncQueues.get(localId) || Promise.resolve();
+      const next = previous.catch(() => undefined).then(() => synchronizePublishedCharacter(localId, character));
+      characterSyncQueues.set(localId, next);
+      void next.catch(error => {
+        console.error('[Personagem online] Falha de sincronização:', error);
+        setCharacterSyncState(localId, 'error', 'Erro de sincronização');
+      }).finally(() => { if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId); });
+    }, 650));
+  }
+
+  function getCharacterSyncState(localId) {
+    return characterSyncStates.get(localId) || null;
+  }
+
+  async function refreshCharacterSyncStates(localSummaries = {}) {
+    let context;
+    try { context = await requireUser(); } catch (_) { return false; }
+    const { data, error } = await context.auth.client.from('online_characters')
+      .select('source_local_id, updated_at').eq('owner_id', context.user.id);
+    if (error) throw error;
+    const published = new Map((data || []).map(row => [row.source_local_id, row.updated_at]));
+    Object.keys(localSummaries || {}).forEach(localId => {
+      if (!published.has(localId)) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return; }
+      const localAt = Date.parse(localSummaries[localId]?.updatedAt || 0);
+      const onlineAt = Date.parse(published.get(localId) || 0);
+      setCharacterSyncState(localId, localAt > onlineAt ? 'pending' : 'synced', localAt > onlineAt ? 'Alterações pendentes' : 'Publicado Online · Atualizado');
+    });
+    return true;
+  }
+
   async function publishAndAdd(localId) {
     if (pending) return;
     const entry = localCharacters().find(item => item.id === localId);
@@ -364,6 +443,7 @@
     try {
       const { auth, user, chronicle } = await requireContext();
       const online = await upsertOnlineCharacter(entry);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado');
       const { error } = await auth.client
         .from('chronicle_cast_members')
         .upsert({
@@ -390,6 +470,7 @@
     setCastFeedback('Sincronizando ficha…', '', true);
     try {
       await upsertOnlineCharacter(entry);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado');
       global.showNotification?.(`${entry.name} foi sincronizado.`);
       await renderManagerList();
       await renderCast(currentChronicle);
@@ -563,8 +644,21 @@
 
   function scheduleRealtimeRefresh() {
     global.clearTimeout(refreshTimer);
-    refreshTimer = global.setTimeout(() => {
+    refreshTimer = global.setTimeout(async () => {
       if (!isOnlineChronicle()) return;
+      if (currentChronicle.role !== 'owner') {
+        try {
+          const accessible = await global.ChroniclesOnline?.getChronicle?.(currentChronicle.id);
+          if (!accessible) {
+            global.showNotification?.('Seu acesso a esta Crônica foi removido.', 'warning');
+            reset();
+            await global.showChroniclesIndex?.();
+            return;
+          }
+        } catch (_) {
+          // Erros transitórios de rede não expulsam o usuário da tela.
+        }
+      }
       const participantsVisible = !document.getElementById('chroniclePanelParticipants')?.hidden;
       const castVisible = !document.getElementById('chroniclePanelCast')?.hidden;
       if (participantsVisible) void renderParticipants(currentChronicle);
@@ -594,7 +688,10 @@
       }, scheduleRealtimeRefresh)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'online_characters'
-      }, scheduleRealtimeRefresh)
+      }, payload => {
+        const id = payload?.new?.id || payload?.old?.id;
+        if (id && currentCastIds.has(id)) scheduleRealtimeRefresh();
+      })
       .subscribe();
   }
 
@@ -611,6 +708,10 @@
     castManagerOpen = false;
     castSearch = '';
     pending = false;
+    currentCastIds = new Set();
+    characterSyncTimers.forEach(timer => global.clearTimeout(timer));
+    characterSyncTimers.clear();
+    characterSyncQueues.clear();
   }
 
   global.ChroniclesCollaboration = Object.freeze({
@@ -621,6 +722,10 @@
     openCastManager,
     closeCastManager,
     renderManagerList,
-    handleCastSearch
+    handleCastSearch,
+    queueCharacterSync,
+    synchronizePublishedCharacter,
+    getCharacterSyncState,
+    refreshCharacterSyncStates
   });
 })(window);

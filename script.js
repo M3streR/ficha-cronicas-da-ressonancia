@@ -783,6 +783,15 @@ function createCharacterCard(id, summary) {
 
   card.append(portrait, info);
 
+  const onlineState = window.ChroniclesCollaboration?.getCharacterSyncState?.(id);
+  if (onlineState) {
+    const badge = document.createElement('span');
+    badge.className = 'character-online-state';
+    badge.dataset.state = onlineState.state;
+    badge.textContent = onlineState.message;
+    info.appendChild(badge);
+  }
+
   card.addEventListener('click', async () => {
     if (card.disabled || isViewTransitioning) return;
     beginViewTransition(card, document.getElementById('characterManagerView'));
@@ -867,6 +876,9 @@ function renderCharacterManager() {
     characterCards.appendChild(createCharacterCard(id, manager.characters[id]));
   });
   cardList.appendChild(characterCards);
+  void window.ChroniclesCollaboration?.refreshCharacterSyncStates?.(manager?.characters || {}).catch(error => {
+    console.warn('Não foi possível atualizar os indicadores online:', error);
+  });
   return characterIds;
 }
 
@@ -1392,7 +1404,8 @@ const CHRONICLE_COVER_LIMITS = Object.freeze({
 
 function getChroniclesStorage() {
   if (!window.ChroniclesStorage) throw new Error('CHRONICLES_STORAGE_UNAVAILABLE');
-  const base = window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+  const chronicles = window.ChroniclesOnline?.createRouter(window.ChroniclesStorage) || window.ChroniclesStorage;
+  const base = window.ChroniclesOnlineRolls?.createRouter(chronicles) || chronicles;
   if (activeChronicleRecord?.storage === 'online' && window.ChroniclesOnlineCombat?.storage) {
     return Object.freeze({ ...base, ...window.ChroniclesOnlineCombat.storage });
   }
@@ -1439,7 +1452,7 @@ function setChronicleFormMode(mode) {
     : 'Nova Crônica';
   document.getElementById('chronicleFormDescription').textContent = isEdit
     ? 'Atualize a apresentação desta história. As alterações só serão aplicadas ao salvar.'
-    : 'Defina a apresentação inicial da história. O interior da Crônica será desenvolvido em uma próxima etapa.';
+    : 'Defina a apresentação inicial da história. Você poderá completar e administrar a Crônica depois de criá-la.';
   document.getElementById('createChronicleButton').textContent = isEdit
     ? 'Salvar alterações'
     : 'Criar Crônica';
@@ -3583,6 +3596,34 @@ function formatDiceResult(result) {
   };
 }
 
+window.addEventListener('cronicas:character-sync-state', event => {
+  const detail = event.detail || {};
+  const info = document.querySelector(`[data-character-entry="${CSS.escape(String(detail.localId || ''))}"] .character-card-info`);
+  if (!info) return;
+  let badge = info.querySelector('.character-online-state');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'character-online-state';
+    info.appendChild(badge);
+  }
+  badge.dataset.state = detail.state || '';
+  badge.textContent = detail.message || '';
+});
+
+window.addEventListener('cronicas:online-chronicles-change', () => {
+  const manager = document.getElementById('characterManagerView');
+  const index = document.getElementById('chroniclesIndexView');
+  if (manager?.dataset.activeEnvironment === 'chronicles' && index && !index.hidden) void renderChroniclesIndex();
+});
+
+// Uma única engine atende à ficha, ao Rolador Rápido e ao combate online.
+// Os consumidores recebem o mesmo resultado; nenhum deles relança os dados.
+window.CronicasDiceEngine = Object.freeze({
+  parse: parseDiceExpression,
+  roll: rollDiceExpression,
+  format: formatDiceResult
+});
+
 function getDiceRollHighlights(rolls) {
   if (!Array.isArray(rolls) || rolls.length <= 1) {
     return { minimum: null, maximum: null };
@@ -3974,6 +4015,7 @@ function saveNow(targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activ
       const capturedCharacter = cloneCharacterState();
       writeStoredCharacter(activeCharacterId, capturedCharacter);
       queueCharacterMetadataRefresh(activeCharacterId, capturedCharacter);
+      window.ChroniclesCollaboration?.queueCharacterSync?.(activeCharacterId, capturedCharacter);
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }

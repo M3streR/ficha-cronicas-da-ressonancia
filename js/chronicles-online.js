@@ -4,6 +4,7 @@
   const ONLINE_PREFIX = 'online:';
   const ALLOWED_TYPES = new Set(['campaign', 'oneshot']);
   const routerCache = new WeakMap();
+  let realtimeChannel = null;
 
   function isOnlineId(id) {
     return typeof id === 'string' && id.startsWith(ONLINE_PREFIX);
@@ -44,8 +45,10 @@
     const createdAt = Number.isFinite(Date.parse(row.created_at))
       ? new Date(row.created_at).toISOString()
       : new Date(0).toISOString();
-    const updatedAt = Number.isFinite(Date.parse(row.updated_at))
-      ? new Date(row.updated_at).toISOString()
+    // Preserve PostgreSQL microseconds for optimistic concurrency. Date/ISO is
+    // only appropriate for presentation and would create false conflicts here.
+    const updatedAt = typeof row.updated_at === 'string' && row.updated_at
+      ? row.updated_at
       : createdAt;
     return {
       id: `${ONLINE_PREFIX}${row.id}`,
@@ -68,6 +71,22 @@
     const user = await auth.getUser();
     if (!user) throw new Error('ONLINE_AUTH_REQUIRED');
     return { auth, user };
+  }
+
+  function stopRealtime() {
+    if (realtimeChannel && global.CronicasSupabase?.client) global.CronicasSupabase.client.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  function startRealtime() {
+    stopRealtime();
+    const client = global.CronicasSupabase?.client;
+    if (!client || !global.CronicasSupabase?.authenticated) return;
+    const changed = payload => global.dispatchEvent(new CustomEvent('cronicas:online-chronicles-change', { detail: payload }));
+    realtimeChannel = client.channel('online-chronicles-account')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicles' }, changed)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicle_members' }, changed)
+      .subscribe();
   }
 
   async function listOnlineChronicles() {
@@ -98,11 +117,19 @@
     const fields = normalizeFields(input);
     if (input?.cover) throw new Error('ONLINE_COVER_UNSUPPORTED');
     const { auth, user } = await requireUser();
+    const sourceLocalId = typeof input?.sourceLocalId === 'string' ? input.sourceLocalId : null;
     const { data, error } = await auth.client
       .from('chronicles')
-      .insert({ ...fields, owner_id: user.id })
+      .insert({ ...fields, owner_id: user.id, source_local_id: sourceLocalId })
       .select('id, owner_id, name, synopsis, type, created_at, updated_at')
       .single();
+    if (error?.code === '23505' && sourceLocalId) {
+      const existing = await auth.client.from('chronicles')
+        .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+        .eq('owner_id', user.id).eq('source_local_id', sourceLocalId).single();
+      if (existing.error) throw existing.error;
+      return normalizeRow(existing.data, user.id);
+    }
     if (error) throw error;
     return normalizeRow(data, user.id);
   }
@@ -233,7 +260,7 @@
       if (local) local.checked = true;
     }
     feedback.textContent = authenticated
-      ? 'Online exige conta conectada. Nesta etapa, capas continuam disponíveis apenas para Crônicas locais.'
+      ? 'Crônicas online usam sua conta. Capas permanecem disponíveis nas Crônicas locais.'
       : 'Entre na sua conta para habilitar Crônicas online.';
     syncCoverControls();
   }
@@ -311,7 +338,7 @@
     const code = error?.message || '';
     if (code === 'ONLINE_AUTH_REQUIRED') return 'Entre na sua conta para usar Crônicas online.';
     if (code === 'ONLINE_AUTH_UNAVAILABLE') return 'O serviço online ainda não ficou disponível. Recarregue a página e tente novamente.';
-    if (code === 'ONLINE_COVER_UNSUPPORTED') return 'Nesta etapa, Crônicas online ainda não aceitam capa. Remova a capa ou salve como Local.';
+    if (code === 'ONLINE_COVER_UNSUPPORTED') return 'Crônicas online não aceitam capa. Remova a capa ou salve como Local.';
     if (code === 'ONLINE_CHRONICLE_FORBIDDEN') return 'Somente o Mestre pode alterar esta Crônica online.';
     if (code === 'INVALID_ONLINE_CHRONICLE_ID') return 'A referência desta Crônica online é inválida.';
     const message = String(error?.message || '').toLowerCase();
@@ -421,4 +448,6 @@
     updateChronicle: updateOnlineChronicle,
     deleteChronicle: deleteOnlineChronicle
   });
+
+  global.addEventListener('cronicas:auth-change', () => startRealtime());
 })(window);

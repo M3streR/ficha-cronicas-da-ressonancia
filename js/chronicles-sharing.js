@@ -4,6 +4,7 @@
   const PRODUCTION_APP_URL = 'https://m3strer.github.io/ficha-cronicas-da-ressonancia/';
   const CONVERSION_MAP_KEY = 'cronicasRessonanciaOnlineConversions';
   const INVITE_PARAM = 'invite';
+  const PENDING_INVITE_KEY = 'cronicasRessonanciaPendingInvite';
   const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   let currentChronicle = null;
@@ -68,14 +69,21 @@
   }
 
   function inviteCodeFromLocation() {
-    const value = new URL(global.location.href).searchParams.get(INVITE_PARAM) || '';
-    return UUID_PATTERN.test(value) ? value : '';
+    const direct = new URL(global.location.href).searchParams.get(INVITE_PARAM) || '';
+    if (UUID_PATTERN.test(direct)) {
+      try { global.localStorage.setItem(PENDING_INVITE_KEY, direct); } catch (_) {}
+      return direct;
+    }
+    let stored = '';
+    try { stored = global.localStorage.getItem(PENDING_INVITE_KEY) || ''; } catch (_) {}
+    return UUID_PATTERN.test(stored) ? stored : '';
   }
 
   function clearInviteFromLocation() {
     const url = new URL(global.location.href);
     url.searchParams.delete(INVITE_PARAM);
     global.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    try { global.localStorage.removeItem(PENDING_INVITE_KEY); } catch (_) {}
   }
 
   function formatDate(value) {
@@ -182,7 +190,7 @@
     convert.disabled = !chronicle || operationPending || Boolean(mappedOnlineId);
     convert.textContent = mappedOnlineId
       ? 'Versão Online Criada'
-      : (authenticated ? 'Tornar Crônica Online' : 'Entrar para tornar Online');
+      : (authenticated ? 'Criar versão Online' : 'Entrar para criar versão Online');
     convert.title = mappedOnlineId ? 'Esta Crônica local já possui uma versão online vinculada neste navegador.' : '';
 
     invite.hidden = !online || !owner;
@@ -209,7 +217,7 @@
     const closeDialog = () => {
       if (!operationPending && conversionDialog.open) conversionDialog.close();
     };
-    conversionShell.appendChild(dialogHeader('Tornar Crônica Online', 'Compartilhamento', closeDialog));
+    conversionShell.appendChild(dialogHeader('Criar versão Online', 'Compartilhamento', closeDialog));
 
     const intro = document.createElement('p');
     intro.className = 'chronicle-sharing-lead';
@@ -219,7 +227,7 @@
 
     const note = document.createElement('div');
     note.className = 'chronicle-sharing-note';
-    note.innerHTML = '<strong>A versão local será preservada.</strong><span>Nada será apagado deste navegador. A versão online será um novo registro compartilhável.</span><span>Nesta etapa, somente nome, sinopse e tipo são levados para o online. Capa, Elenco, Participantes, Confrontos e Escudo permanecem na versão local até serem integrados.</span>';
+    note.innerHTML = '<strong>A versão local será preservada.</strong><span>Nada será apagado deste navegador. A versão online será um novo registro compartilhável.</span><span>Nome, sinopse e tipo são copiados. Elenco, participantes, Confrontos e Escudo passam a usar os recursos online próprios dessa versão.</span>';
 
     const feedback = document.createElement('p');
     feedback.className = 'chronicle-sharing-feedback';
@@ -256,7 +264,8 @@
           name: currentChronicle.name,
           synopsis: currentChronicle.synopsis,
           type: currentChronicle.type,
-          cover: null
+          cover: null,
+          sourceLocalId: currentChronicle.id
         });
         rememberConversion(currentChronicle.id, online.id);
         operationPending = false;

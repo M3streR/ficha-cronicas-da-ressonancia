@@ -140,14 +140,10 @@ document.getElementById('run').onclick = async () => {
     const beforeCharacters=Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith(prefix)).map(k=>[k,localStorage.getItem(k)]));
     await open(legacy.id);
     check(rows().length===1 && rows()[0].textContent.includes('Felipe Atualizado'),'Lista usa participantes reais persistidos');
-    el('addChronicleParticipant').click();
-    check(!el('chronicleParticipantForm').hidden && d.activeElement===el('chronicleParticipantName'),'Adicionar abre formulário inline e foca Nome');
-    await w.saveChronicleParticipant(evt);
-    check(el('chronicleParticipantName').getAttribute('aria-invalid')==='true' && !el('chronicleParticipantForm').hidden,'Nome vazio recebe erro acessível sem fechar formulário');
-    el('chronicleParticipantName').value='João';
-    await w.saveChronicleParticipant(evt);
-    const joao=(await api.listChronicleParticipants(legacy.id)).participants.find(p=>p.name==='João');
-    check(joao && rows().length===2 && el('chronicleParticipantForm').hidden && d.activeElement.dataset.participantId===joao.id,'Salvar cria identidade, atualiza lista e restaura foco');
+    check(!el('addChronicleParticipant'),'A aba preserva consulta e edição sem expor criação local duplicada');
+    const createdJoao=await api.createChronicleParticipant(legacy.id,{name:'João'});await w.renderChronicleParticipants();
+    const joao=createdJoao.participant;
+    check(joao && rows().length===2 && el('chronicleParticipantForm').hidden,'Registro existente aparece na lista sem ação duplicada de criação');
     await w.openChronicleParticipantEditor(joao.id);
     el('chronicleParticipantName').value='João Editado';await w.saveChronicleParticipant(evt);
     check((await api.getChronicleParticipant(legacy.id,joao.id)).name==='João Editado','Editar inline mantém ID');
@@ -217,9 +213,8 @@ document.getElementById('run').onclick = async () => {
     const empty=await api.createChronicle({name:'Participantes vazios',type:'oneshot',synopsis:''});
     await open(empty.id);
     check(!el('chronicleParticipantsEmpty').hidden && rows().length===0,'Estado vazio sem participantes');
-    el('addChronicleParticipant').click();check(!el('chronicleParticipantForm').hidden,'Ação única também funciona no estado vazio');
-    el('chronicleParticipantName').value='Nome '.repeat(24);await w.saveChronicleParticipant(evt);
-    const long=(await api.listChronicleParticipants(empty.id)).participants[0];
+    check(!el('addChronicleParticipant'),'Estado vazio não repete botão de adição');
+    const long=(await api.createChronicleParticipant(empty.id,{name:'Nome '.repeat(24)})).participant;await w.renderChronicleParticipants();
     await api.createChronicleParticipant(empty.id,{name:'X'.repeat(120)});await w.renderChronicleParticipants();
     for(const width of [1440,768,390,320]){
       frame.style.width=`${width}px`;await new Promise(resolve=>setTimeout(resolve,80));
@@ -232,7 +227,7 @@ document.getElementById('run').onclick = async () => {
       w.closeModal();
     }
     frame.style.width='1440px';
-    check(d.querySelectorAll('.chronicle-context-action:disabled').length===1 && [...d.querySelectorAll('.chronicle-context-action:disabled')].some(b=>b.textContent.includes('Convidar Participantes')),'Convites e outras ações futuras continuam indisponíveis');
+    check(d.querySelectorAll('.chronicle-actions-list .chronicle-context-action').length===3,'Ações globais permanecem limitadas a três opções');
     check(Object.entries(beforeCharacters).every(([k,v])=>localStorage.getItem(k)===v),'Participantes não alteram armazenamento de personagens');
     await w.openChronicleEditor();el('chronicleName').value='Crônica revisada com participantes';await w.submitChronicleUpdate(evt);
     check(el('chronicleDetailTitle').textContent==='Crônica revisada com participantes' && (await api.listChronicleParticipants(empty.id)).participants.length===2,'Editar Crônica preserva participantes');
