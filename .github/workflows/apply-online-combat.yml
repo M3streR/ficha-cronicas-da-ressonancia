@@ -1,0 +1,33 @@
+name: Apply online combat integration
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-online-combat.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: python tools/apply_online_combat.py
+      - run: |
+          node --check js/chronicles-online-combat.js
+          node --check js/confrontations.js
+          node --check js/master-shield.js
+          node --check js/chronicles-online.js
+          node --check script.js
+          grep -q "ChroniclesOnlineCombat?.render(activeChronicleRecord)" script.js
+          grep -q "await storage().listChronicleCastIds(preparation.chronicleId)" js/confrontations.js
+          grep -q "if (allowed()) void global.ConfrontationsUI.openCreate" js/master-shield.js
+          grep -q "chronicles-online-combat.css?v=online-combat-complete" index.html
+          grep -q "chronicles-online-combat.js?v=online-combat-complete" index.html
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add script.js js/confrontations.js js/master-shield.js js/chronicles-online.js js/chronicles-online-combat.js index.html
+          git commit -m "Complete online confrontations and active combat experience"
+          git push origin HEAD:main
