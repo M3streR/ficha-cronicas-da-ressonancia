@@ -1,5 +1,45 @@
 (function (global) {
   'use strict';
+
+  function ensureFinalPolishStyles() {
+    if (document.querySelector('link[data-final-polish]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'css/final-polish.css?v=2026-09-04-final-polish-1';
+    link.dataset.finalPolish = 'true';
+    document.head.append(link);
+  }
+
+  function installEntryGate() {
+    if (document.querySelector('.site-entry-gate')) return;
+    const gate = document.createElement('section');
+    gate.className = 'site-entry-gate';
+    gate.setAttribute('aria-label', 'Entrada de Crônicas da Ressonância');
+    gate.innerHTML = `
+      <div class="site-entry-card">
+        <span class="site-entry-kicker">Arquivo da Ressonância</span>
+        <h1 class="site-entry-title">Crônicas da Ressonância</h1>
+        <button class="site-entry-button" type="button">Entrar</button>
+      </div>`;
+
+    document.body.classList.add('site-entry-locked');
+    document.body.append(gate);
+
+    const enter = gate.querySelector('.site-entry-button');
+    enter.addEventListener('click', () => {
+      gate.classList.add('is-leaving');
+      document.body.classList.remove('site-entry-locked');
+      window.setTimeout(() => gate.remove(), 340);
+    }, { once: true });
+  }
+
+  ensureFinalPolishStyles();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installEntryGate, { once: true });
+  } else {
+    installEntryGate();
+  }
+
   function node(tag, text, className = '') { const el = document.createElement(tag); el.textContent = text; el.className = className; return el; }
   function row(record, destinations = []) {
     const item = node('li', '', 'roll-history-row');
