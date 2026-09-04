@@ -123,15 +123,27 @@
     return Boolean(data);
   }
 
-  async function setConfrontationActive(id, active, options = {}) {
+  async function setConfrontationActive(id, active, _options = {}) {
     const { client } = await context();
-    const { data, error } = await client.rpc('set_chronicle_confrontation_active', {
-      p_confrontation_id: id,
-      p_active: Boolean(active),
-      p_expected_updated_at: options.expectedUpdatedAt || null
-    });
-    if (error) throw error;
-    return getConfrontation(data);
+    const commit = async expectedUpdatedAt => {
+      const { data, error } = await client.rpc('set_chronicle_confrontation_active', {
+        p_confrontation_id: id,
+        p_active: Boolean(active),
+        p_expected_updated_at: expectedUpdatedAt
+      });
+      if (error) throw error;
+      return getConfrontation(data);
+    };
+
+    let current = await getConfrontation(id);
+    try {
+      return await commit(current.updatedAt);
+    } catch (error) {
+      const message = String(error?.message || '');
+      if (!message.includes('CONFRONTATION_UPDATE_CONFLICT')) throw error;
+      current = await getConfrontation(id);
+      return commit(current.updatedAt);
+    }
   }
 
   async function listConfrontationCharacterIds(id) {
@@ -282,12 +294,13 @@
     return getConfrontation(data);
   }
 
-  async function stepTurn(id, direction, expectedUpdatedAt) {
+  async function stepTurn(id, direction, _expectedUpdatedAt) {
     const { client } = await context();
+    const current = await getConfrontation(id);
     const { data, error } = await client.rpc('step_confrontation_turn', {
       p_confrontation_id: id,
       p_direction: direction,
-      p_expected_updated_at: expectedUpdatedAt
+      p_expected_updated_at: current.updatedAt
     });
     if (error) throw error;
     return getConfrontation(data);
