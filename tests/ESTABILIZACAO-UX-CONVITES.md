@@ -33,6 +33,7 @@ O parâmetro `invite` já preservado em `localStorage` continua pelo login/cadas
 - O estado vazio aparecia durante uma revalidação válida; agora os registros anteriores permanecem visíveis e o erro de background não apaga dados úteis.
 - Um link multiuso com entradas registradas podia receber o rótulo legado “Utilizado”; ele permanece “Ativo” até expirar, atingir o limite ou ser revogado.
 - O convite podia tentar abrir mais de um diálogo durante eventos próximos de Auth; a operação agora é coalescida.
+- O teste de início do Combate verificava “Encerrar” antes de o controle concluir sua transição no runner Linux; agora aguarda explicitamente o estado visível, eliminando a flutuação sem alterar o produto.
 
 ## Migrations aplicadas
 
@@ -80,6 +81,7 @@ A ferramenta de controle manual do navegador do ambiente não iniciou por ausên
 - `js/chronicles-sharing.js`
 - `tests/README.md`
 - `tests/stabilization.test.cjs`
+- `tests/combates-flow.test.cjs`
 - `tests/ux-stabilization.cjs`
 - `tests/reusable-invites-live.cjs`
 - sete migrations listadas acima
