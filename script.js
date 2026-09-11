@@ -1546,6 +1546,12 @@ function setChronicleCreationCover(cover, { action = 'replace', statusLabel = 'C
 }
 
 function removeChronicleCreationCover() {
+  // A removed image must not reappear when an earlier decode completes.
+  ++chronicleCoverProcessingToken;
+  isChronicleCoverProcessing = false;
+  document.getElementById('chronicleCoverInput').disabled = false;
+  document.getElementById('chronicleCoverInput').closest('label')?.removeAttribute('aria-busy');
+  if (!isCreatingChronicle && !isUpdatingChronicle) document.getElementById('createChronicleButton').disabled = false;
   revokeChronicleCreationPreviewUrl();
   chronicleCreationCover = null;
   if (chronicleFormMode === 'edit') chronicleFormCoverAction = 'remove';
@@ -1598,7 +1604,8 @@ async function encodeChronicleCover(canvas) {
 }
 
 async function prepareChronicleCover(file) {
-  if (!file?.type?.startsWith('image/')) throw new TypeError('CHRONICLE_COVER_INVALID_TYPE');
+  const online = window.ChroniclesOnline?.getSelectedStorage() === 'online';
+  if (online ? !['image/jpeg', 'image/png', 'image/webp'].includes(file?.type) : !file?.type?.startsWith('image/')) throw new TypeError('CHRONICLE_COVER_INVALID_TYPE');
   if (!file.size || file.size > CHRONICLE_COVER_LIMITS.sourceBytes) {
     throw new RangeError('CHRONICLE_COVER_SOURCE_TOO_LARGE');
   }
@@ -2720,6 +2727,7 @@ function closeChronicleActions({ restoreFocus = true } = {}) {
 }
 
 function teardownChronicleDetail() {
+  window.ChroniclesOnlineCombat?.reset();
   window.ChroniclesCollaboration?.reset();
   window.ChronicleFreeRolls?.reset();
   window.MasterShieldUI?.reset();
@@ -3129,7 +3137,7 @@ async function submitChronicleUpdate(event) {
       formSessionToken !== chronicleFormSessionToken
       || document.getElementById('characterManagerView')?.dataset.activeEnvironment !== 'chronicles'
     ) {
-      showNotification('Crônica atualizada com sucesso.');
+      showNotification(chronicle.coverCleanupPending ? 'Crônica atualizada. A limpeza da capa anterior será repetida ao entrar na conta.' : 'Crônica atualizada com sucesso.', chronicle.coverCleanupPending ? 'warning' : 'success');
       return;
     }
     activeChronicleId = chronicle.id;
@@ -3140,7 +3148,7 @@ async function submitChronicleUpdate(event) {
     setChroniclesSubview('detail');
     document.getElementById('managerChroniclesPanel').scrollIntoView({ block: 'start', behavior: 'auto' });
     requestAnimationFrame(() => document.getElementById('chronicleDetailTitle')?.focus());
-    showNotification('Crônica atualizada com sucesso.');
+    showNotification(chronicle.coverCleanupPending ? 'Crônica atualizada. A limpeza da capa anterior será repetida ao entrar na conta.' : 'Crônica atualizada com sucesso.', chronicle.coverCleanupPending ? 'warning' : 'success');
   } catch (error) {
     console.error('Não foi possível atualizar a Crônica:', error);
     const message = getChronicleStorageErrorMessage(error);
@@ -3165,7 +3173,9 @@ function openChronicleDeletionConfirmation() {
   if (chronicleFormMode !== 'edit' || !chronicleFormOriginal || isDeletingChronicle) return;
   const storedName = chronicleFormOriginal.name;
   const content = createModalContent(
-    `A Crônica “${storedName}” e sua capa serão removidas deste navegador.`,
+    chronicleFormOriginal.storage === 'online'
+      ? `A Crônica “${storedName}” e sua capa serão excluídas Online para todos os participantes.`
+      : `A Crônica “${storedName}” e sua capa serão removidas deste navegador.`,
     isChronicleEditDirty()
       ? 'As alterações ainda não salvas também serão descartadas.'
       : 'Esta ação não poderá ser desfeita nesta versão.'
@@ -3208,7 +3218,8 @@ async function deleteActiveChronicle() {
     const recordsTitle = document.getElementById('chroniclesRecordsTitle');
     recordsTitle?.focus({ preventScroll: true });
     recordsTitle?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-    showNotification('Crônica excluída com sucesso.');
+    const cleanupPending = chronicleId.startsWith('online:') && window.ChronicleCovers?.cleanupPending;
+    showNotification(cleanupPending ? 'Crônica excluída. A limpeza da capa está pendente e será repetida ao entrar na conta.' : 'Crônica excluída com sucesso.', cleanupPending ? 'warning' : 'success');
   } catch (error) {
     console.error('Não foi possível excluir a Crônica:', error);
     if (deletionCommitted) {
@@ -3251,7 +3262,7 @@ async function submitChronicleCreation(event) {
   try {
     const chronicle = await getChroniclesStorage().createChronicle(payload);
     await showChroniclesIndex({ focusId: chronicle.id });
-    showNotification('Crônica criada com sucesso.');
+    showNotification(chronicle.coverUploadFailed ? 'Crônica criada sem capa. Use Editar Crônica para tentar enviar a imagem novamente.' : 'Crônica criada com sucesso.', chronicle.coverUploadFailed ? 'warning' : 'success');
   } catch (error) {
     console.error('Não foi possível criar a Crônica:', error);
     const message = getChronicleStorageErrorMessage(error);
@@ -3640,10 +3651,54 @@ window.addEventListener('cronicas:character-sync-state', event => {
   }
 });
 
+let onlineChronicleRefreshTimer = null;
+let onlineChronicleRefreshEpoch = 0;
+let onlineAccountId = null;
+window.addEventListener('cronicas:auth-change', event => {
+  const next = event.detail?.user?.id || null;
+  if (next === onlineAccountId) return;
+  onlineAccountId = next;
+  ++onlineChronicleRefreshEpoch;
+  clearTimeout(onlineChronicleRefreshTimer);
+  if (activeChronicleRecord?.storage === 'online') {
+    resetChronicleCreationForm();
+    teardownChronicleDetail();
+    setChroniclesSubview('index');
+    void renderChroniclesIndex();
+  }
+});
 window.addEventListener('cronicas:online-chronicles-change', () => {
+  clearTimeout(onlineChronicleRefreshTimer);
+  const epoch = ++onlineChronicleRefreshEpoch;
+  onlineChronicleRefreshTimer = setTimeout(async () => {
   const manager = document.getElementById('characterManagerView');
   const index = document.getElementById('chroniclesIndexView');
-  if (manager?.dataset.activeEnvironment === 'chronicles' && index && !index.hidden) void renderChroniclesIndex();
+  if (manager?.dataset.activeEnvironment !== 'chronicles') return;
+  if (index && !index.hidden) { void renderChroniclesIndex(); return; }
+  const id = activeChronicleId;
+  const detail = document.getElementById('chronicleDetailView');
+  if (activeChronicleRecord?.storage !== 'online' || !detail || detail.hidden) return;
+  try {
+    const chronicle = await getChroniclesStorage().getChronicle(id);
+    if (epoch !== onlineChronicleRefreshEpoch || id !== activeChronicleId || detail.hidden) return;
+    if (!chronicle) { await showChroniclesIndex(); return; }
+    const cover = chronicle.hasCover ? await getChroniclesStorage().getChronicleCover(id) : null;
+    if (epoch !== onlineChronicleRefreshEpoch || id !== activeChronicleId || detail.hidden) return;
+    // Refresh public identity/cover without resetting an open cast editor.
+    activeChronicleRecord = chronicle;
+    document.getElementById('chronicleDetailTitle').textContent = chronicle.name;
+    document.getElementById('chronicleDetailType').textContent = getChronicleTypeLabel(chronicle.type);
+    const synopsis = document.getElementById('chronicleDetailSynopsis');
+    synopsis.textContent = chronicle.synopsis; synopsis.hidden = !chronicle.synopsis;
+    populateChronicleOverview(chronicle);
+    revokeChronicleDetailCoverUrl();
+    const image = document.getElementById('chronicleDetailCoverImage');
+    if (cover?.blob) { chronicleDetailCoverUrl = URL.createObjectURL(cover.blob); image.src = chronicleDetailCoverUrl; }
+    else image.removeAttribute('src');
+    image.hidden = !cover?.blob;
+    document.getElementById('chronicleDetailCoverPlaceholder').hidden = !!cover?.blob;
+  } catch (_) { /* Keep the last visible state through transient network errors. */ }
+  }, 180);
 });
 
 // Uma única engine atende à ficha, ao Rolador Rápido e ao combate online.
