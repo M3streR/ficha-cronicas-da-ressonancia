@@ -22,8 +22,10 @@
 /* Manager */
 .manager-topbar.manager-environment-brand { min-height: 64px; padding-block: .65rem; gap: .75rem; }
 .manager-topbar h1 { font-size: clamp(1.05rem, 1.8vw, 1.5rem); }
-.manager-workspace { min-height: calc(100dvh - 64px); grid-template-columns: 160px minmax(0, 1fr); }
-.manager-sidebar { padding-top: 1rem; }
+.manager-workspace { min-height: calc(100dvh - 64px); grid-template-columns: minmax(184px, 12vw) minmax(0, 1fr); }
+.manager-sidebar { padding: 1rem .8rem; min-width: 0; }
+.manager-navigation { min-width: 0; }
+.manager-nav-item { overflow: visible; padding-inline: .8rem; white-space: nowrap; }
 .manager-content { min-width: 0; padding-top: 1rem; }
 .manager-content-actions { margin-bottom: 1rem; }
 .character-gallery { grid-template-columns: repeat(auto-fill, minmax(195px, 230px)); gap: 1rem; }
@@ -72,6 +74,12 @@
 #managerChroniclesPanel .chronicle-detail-panel { padding: var(--ui-padding); }
 #managerChroniclesPanel :is(.chronicle-participant-row, .confrontation-index-row) { padding-block: .75rem; }
 :is(.chronicles-empty-state, .chronicle-cast-empty, .chronicle-participants-empty, .confrontation-empty, .chronicle-free-rolls-empty) { min-height: 0; padding: 1.15rem; gap: .75rem; }
+.chronicles-loading-state { display: flex; align-items: center; gap: .8rem; min-height: 84px; padding: 1rem; color: var(--color-text-muted); }
+.chronicles-loading-state[hidden] { display: none; }
+.chronicles-loading-state div { display: grid; gap: .2rem; }
+.chronicles-loading-state strong { color: var(--color-text-primary); }
+.chronicles-loading-mark { width: 24px; height: 24px; flex: 0 0 auto; border: 2px solid color-mix(in srgb, var(--color-accent) 22%, transparent); border-top-color: var(--color-accent-active); border-radius: 50%; animation: chronicles-loading-spin .7s linear infinite; }
+@keyframes chronicles-loading-spin { to { transform: rotate(360deg); } }
 .master-shield-heading { margin-block: 1rem; }
 .master-shield-heading h2 { font-size: clamp(1.6rem, 3vw, 2.25rem); }
 .master-dashboard > button { min-height: 105px; padding: 1rem; }
@@ -108,18 +116,20 @@
 .site-entry-title { font-size: clamp(2rem, 5vw, 3.3rem); }
 
 @media (max-width: 1024px) {
-  .manager-workspace { grid-template-columns: 140px minmax(0, 1fr); }
+  .manager-workspace { grid-template-columns: 176px minmax(0, 1fr); }
   .chronicles-archive-header { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
   .new-chronicle-entry { max-width: 440px; min-height: 85px; }
   .chronicle-create-form { grid-template-columns: minmax(0, 1fr); }
   .chronicle-cover-section { max-width: 460px; }
 }
+@media (max-width: 900px) {
+  .manager-workspace { display: block; }
+  .manager-sidebar { padding: .6rem var(--manager-gutter); }
+  .manager-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+  .manager-nav-item { min-height: 44px; padding: .65rem 1rem; width: auto; text-align: center; }
+}
 @media (max-width: 768px) {
   :root { --ui-control: 44px; }
-  .manager-workspace { display: block; }
-  .manager-sidebar { padding-block: .6rem; }
-  .manager-navigation { display: flex; flex-wrap: wrap; gap: .35rem; }
-  .manager-nav-item { min-height: 44px; padding: .65rem 1rem; width: auto; flex: 1; }
   .manager-topbar.manager-environment-brand { align-items: center; }
   .manager-topbar h1 { line-height: 1.2; }
   .character-gallery { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
@@ -153,4 +163,5 @@
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+  .chronicles-loading-mark { animation: none; border-color: var(--color-accent-active); }
 }

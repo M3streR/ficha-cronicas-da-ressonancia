@@ -1,0 +1,22 @@
+{
+  "checks": [
+    "Mestre gera um único link multiuso pela interface",
+    "Jogador aceita o mesmo link",
+    "Jogador aceita o mesmo link",
+    "Auth preserva o convite até o aceite e limpa a URL depois",
+    "Três jogadores aparecem e o contador registra três usos",
+    "Participante existente não duplica membership nem consome uso",
+    "Link revogado nega acesso a outro jogador",
+    "Participante existente continua idempotente após revogação",
+    "Remover participante revoga o acesso à Crônica",
+    "Primeiro uso respeita convite limitado",
+    "Limite atingido bloqueia o próximo jogador",
+    "Mestre cria convite com expiração",
+    "Convite chegou ao horário de expiração",
+    "Jogador de teste ainda não participa da Crônica expirada",
+    "Sessão da conta que testa expiração permanece isolada",
+    "Convite expirado é recusado: invitation is unavailable",
+    "Duas aceitações simultâneas são atômicas",
+    "Participação permanece após refresh"
+  ]
+}

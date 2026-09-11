@@ -13,6 +13,7 @@
   let inviteShell = null;
   let conversionDialog = null;
   let conversionShell = null;
+  let incomingInvitePromise = null;
 
   function getAuth() {
     if (!global.CronicasSupabase) throw new Error('ONLINE_AUTH_UNAVAILABLE');
@@ -101,7 +102,9 @@
     if (code === 'ONLINE_AUTH_UNAVAILABLE') return 'O serviço online ainda não ficou disponível. Recarregue a página.';
     if (message.includes('only the chronicle owner can create invitations')) return 'Somente o Mestre pode gerar convites para esta Crônica.';
     if (message.includes('only the chronicle owner can revoke invitations')) return 'Somente o Mestre pode cancelar este convite.';
-    if (message.includes('invitation is invalid') || message.includes('already used') || message.includes('revoked')) return 'Este convite não está mais disponível. Ele pode ter sido usado ou cancelado.';
+    if (message.includes('usage limit reached')) return 'Este link atingiu o limite de participantes.';
+    if (message.includes('invitation is expired')) return 'Este link de convite expirou.';
+    if (message.includes('invitation is invalid') || message.includes('invitation is unavailable') || message.includes('already used') || message.includes('revoked')) return 'Este convite não está mais disponível. Ele pode ter expirado, atingido o limite ou sido revogado.';
     if (message.includes('owner already has access')) return 'Você já é o Mestre desta Crônica.';
     if (message.includes('failed to fetch') || message.includes('network')) return 'Não foi possível alcançar o serviço online. Confira sua conexão.';
     return 'Não foi possível concluir esta operação online. Tente novamente.';
@@ -298,7 +301,7 @@
     const { auth } = await requireUser();
     const { data, error } = await auth.client
       .from('chronicle_invites')
-      .select('id, chronicle_id, code, created_at, revoked_at, used_at, used_by')
+      .select('id, chronicle_id, code, created_at, revoked_at, used_at, used_by, multi_use, max_uses, use_count, expires_at, last_used_at')
       .eq('chronicle_id', chronicle.remoteId)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -306,9 +309,23 @@
   }
 
   function inviteStatus(invite) {
-    if (invite.revoked_at) return { label: 'Cancelado', kind: 'revoked' };
-    if (invite.used_at) return { label: 'Utilizado', kind: 'used' };
-    return { label: 'Disponível', kind: 'active' };
+    if (invite.revoked_at) return { label: 'Revogado', kind: 'revoked' };
+    if (invite.expires_at && Date.parse(invite.expires_at) <= Date.now()) return { label: 'Expirado', kind: 'expired' };
+    if (invite.max_uses && invite.use_count >= invite.max_uses) return { label: 'Limite atingido', kind: 'limited' };
+    if (!invite.multi_use && invite.used_at) return { label: 'Utilizado', kind: 'used' };
+    return { label: 'Ativo', kind: 'active' };
+  }
+
+  function inviteUsageLabel(invite) {
+    const count = Number(invite.use_count) || (invite.used_at ? 1 : 0);
+    if (invite.max_uses) return `${count} / ${invite.max_uses} usos`;
+    return `${count} ${count === 1 ? 'pessoa entrou' : 'pessoas entraram'}`;
+  }
+
+  function expirationFromChoice(value) {
+    if (value === '24h') return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    if (value === '7d') return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    return null;
   }
 
   async function renderOwnerInviteDialog(message = '', kind = '') {
@@ -322,12 +339,20 @@
 
     const intro = document.createElement('p');
     intro.className = 'chronicle-sharing-lead';
-    intro.textContent = `Gere um link de acesso para “${chronicle?.name || 'esta Crônica'}”. Cada link pode ser usado uma única vez.`;
+    intro.textContent = `Gere um link para “${chronicle?.name || 'esta Crônica'}” e compartilhe o mesmo endereço com todo o grupo.`;
 
     const feedback = document.createElement('p');
     feedback.className = 'chronicle-sharing-feedback';
     feedback.dataset.kind = kind;
     feedback.textContent = message;
+
+    const options = document.createElement('div');
+    options.className = 'chronicle-invite-options';
+    const usesLabel = document.createElement('label');
+    usesLabel.innerHTML = '<span>Limite</span><select aria-label="Limite de usos do convite"><option value="">Sem limite</option><option value="5">5 jogadores</option><option value="10">10 jogadores</option><option value="20">20 jogadores</option></select>';
+    const expiryLabel = document.createElement('label');
+    expiryLabel.innerHTML = '<span>Expiração</span><select aria-label="Expiração do convite"><option value="">Nunca</option><option value="24h">24 horas</option><option value="7d">7 dias</option></select>';
+    options.append(usesLabel, expiryLabel);
 
     const create = document.createElement('button');
     create.type = 'button';
@@ -340,17 +365,21 @@
       await renderOwnerInviteDialog();
       try {
         const { auth } = await requireUser();
+        const maxUses = Number(usesLabel.querySelector('select').value) || null;
+        const expiresAt = expirationFromChoice(expiryLabel.querySelector('select').value);
         const { data, error } = await auth.client.rpc('create_chronicle_invite', {
-          p_chronicle_id: currentChronicle.remoteId
+          p_chronicle_id: currentChronicle.remoteId,
+          p_max_uses: maxUses,
+          p_expires_at: expiresAt
         });
         if (error) throw error;
         operationPending = false;
-        await renderOwnerInviteDialog('Convite criado. Copie o link e envie para o jogador.', 'success');
+        await renderOwnerInviteDialog('Link criado. Envie o mesmo endereço para todo o grupo.', 'success');
         const link = buildInviteUrl(data);
         try {
           await copyText(link);
           const feedbackElement = inviteShell.querySelector('.chronicle-sharing-feedback');
-          if (feedbackElement) feedbackElement.textContent = 'Convite criado e link copiado para a área de transferência.';
+          if (feedbackElement) feedbackElement.textContent = 'Link criado e copiado. Ele pode ser compartilhado com todo o grupo.';
         } catch {
           // O link permanece visível na lista mesmo se a cópia automática falhar.
         }
@@ -384,11 +413,17 @@
         top.className = 'chronicle-invite-card-top';
         const identity = document.createElement('div');
         const label = document.createElement('strong');
-        label.textContent = `Convite · ${formatDate(invite.created_at)}`;
+        label.textContent = `Link de convite · ${formatDate(invite.created_at)}`;
         const badge = document.createElement('span');
         badge.className = 'chronicle-invite-status';
         badge.textContent = status.label;
-        identity.append(label, badge);
+        const usage = document.createElement('span');
+        usage.className = 'chronicle-invite-usage';
+        usage.textContent = inviteUsageLabel(invite);
+        const expiry = document.createElement('span');
+        expiry.className = 'chronicle-invite-expiry';
+        expiry.textContent = invite.expires_at ? `Expira em ${formatDate(invite.expires_at)}` : 'Sem expiração';
+        identity.append(label, usage, expiry, badge);
         top.appendChild(identity);
 
         const link = document.createElement('input');
@@ -417,7 +452,7 @@
           const revoke = document.createElement('button');
           revoke.type = 'button';
           revoke.className = 'btn secondary chronicle-invite-revoke';
-          revoke.textContent = 'Cancelar convite';
+          revoke.textContent = 'Revogar';
           revoke.disabled = operationPending;
           revoke.addEventListener('click', async () => {
             if (operationPending) return;
@@ -428,7 +463,7 @@
               const { error } = await auth.client.rpc('revoke_chronicle_invite', { p_code: invite.code });
               if (error) throw error;
               operationPending = false;
-              await renderOwnerInviteDialog('Convite cancelado.', 'success');
+              await renderOwnerInviteDialog('Link revogado. Novos jogadores não poderão usá-lo.', 'success');
             } catch (error) {
               operationPending = false;
               await renderOwnerInviteDialog(humanizeError(error), 'error');
@@ -441,7 +476,7 @@
       });
     }
 
-    inviteShell.append(intro, feedback, create, list);
+    inviteShell.append(intro, feedback, options, create, list);
   }
 
   async function openOwnerInviteDialog() {
@@ -473,7 +508,7 @@
     note.className = 'chronicle-sharing-note';
     note.innerHTML = completedOnlineId
       ? '<strong>Acesso confirmado</strong><span>Esta conta agora é participante da Crônica compartilhada.</span>'
-      : '<strong>Convite individual</strong><span>Este link pode ser utilizado apenas uma vez e ficará associado à conta que o aceitar.</span>';
+      : '<strong>Link do grupo</strong><span>Cada conta entra uma única vez. Abrir novamente não duplica a participação nem consome outro uso.</span>';
 
     const feedback = document.createElement('p');
     feedback.className = 'chronicle-sharing-feedback';
@@ -532,7 +567,7 @@
       await renderIncomingInviteDialog(code);
       try {
         const { auth } = await requireUser();
-        const { data, error } = await auth.client.rpc('accept_chronicle_invite', { p_code: code });
+        const { data, error } = await auth.client.rpc('accept_reusable_chronicle_invite', { p_code: code });
         if (error) throw error;
         operationPending = false;
         clearInviteFromLocation();
@@ -552,9 +587,17 @@
   async function handleIncomingInvite() {
     const code = inviteCodeFromLocation();
     if (!code) return;
-    ensureDialogs();
-    await renderIncomingInviteDialog(code);
-    if (!inviteDialog.open) inviteDialog.showModal();
+    if (incomingInvitePromise) return incomingInvitePromise;
+    incomingInvitePromise = (async () => {
+      ensureDialogs();
+      await renderIncomingInviteDialog(code);
+      if (!inviteDialog.open) inviteDialog.showModal();
+    })();
+    try {
+      await incomingInvitePromise;
+    } finally {
+      incomingInvitePromise = null;
+    }
   }
 
   function bindActions() {
@@ -572,7 +615,7 @@
     syncActionButtons(currentChronicle);
     const code = inviteCodeFromLocation();
     if (code && global.CronicasSupabase?.authenticated) {
-      global.setTimeout(() => { void handleIncomingInvite(); }, 50);
+      void handleIncomingInvite();
     }
   });
 

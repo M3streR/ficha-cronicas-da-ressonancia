@@ -230,6 +230,7 @@ const server = http.createServer(async (req,res) => {
     check(await page.evaluate(async id=>(await ChroniclesStorage.listConfrontationCharacterIds(id)).length===1&&(await ChroniclesStorage.listConfrontationAdversaries(id)).length===2,prepared.id),'Um ID com Caçadores e dois adversários salvos');
     check(await page.evaluate(async id=>(await ChroniclesStorage.listConfrontationAdversaries(id)).find(a=>a.name==='Feiticeiro').pvCurrent===undefined,prepared.id),'Ameaça sem PV mantém campos opcionais ausentes');
     await page.locator('#startConfrontation').click();await page.waitForFunction(()=>!document.getElementById('confrontationView').hidden&&document.getElementById('chronicleMasterShieldView').hidden);
+    await page.locator('#endConfrontation').waitFor({state:'visible'});
     check(await page.locator('#endConfrontation').isVisible(),'Iniciar abre execução externa com Encerrar');
     check(await page.evaluate(async id=>(await ChroniclesStorage.getConfrontation(id)).active,prepared.id),'Iniciar grava somente active=true');
     check(await page.locator('#confrontationCharacters').textContent().then(t=>t.includes('Dylann')),'Execução usa Caçador selecionado');
