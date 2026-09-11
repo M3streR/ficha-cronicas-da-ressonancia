@@ -5,6 +5,8 @@
   const ALLOWED_TYPES = new Set(['campaign', 'oneshot']);
   const routerCache = new WeakMap();
   let realtimeChannel = null;
+  let realtimeUserId = null;
+  let realtimeEpoch = 0;
 
   function isOnlineId(id) {
     return typeof id === 'string' && id.startsWith(ONLINE_PREFIX);
@@ -60,7 +62,10 @@
       name: String(row.name).trim(),
       synopsis: typeof row.synopsis === 'string' ? row.synopsis : '',
       type: row.type,
-      hasCover: false,
+      hasCover: Boolean(row.cover_path),
+      coverPath: row.cover_path || null,
+      coverWidth: row.cover_width || null,
+      coverHeight: row.cover_height || null,
       createdAt,
       updatedAt
     };
@@ -74,15 +79,23 @@
   }
 
   function stopRealtime() {
+    ++realtimeEpoch;
     if (realtimeChannel && global.CronicasSupabase?.client) global.CronicasSupabase.client.removeChannel(realtimeChannel);
     realtimeChannel = null;
+    realtimeUserId = null;
   }
 
   function startRealtime() {
+    const userId = global.CronicasSupabase?.authenticated;
+    if (realtimeChannel && realtimeUserId === userId) return;
     stopRealtime();
     const client = global.CronicasSupabase?.client;
     if (!client || !global.CronicasSupabase?.authenticated) return;
-    const changed = payload => global.dispatchEvent(new CustomEvent('cronicas:online-chronicles-change', { detail: payload }));
+    realtimeUserId = userId;
+    const epoch = realtimeEpoch;
+    const changed = payload => {
+      if (epoch === realtimeEpoch) global.dispatchEvent(new CustomEvent('cronicas:online-chronicles-change', { detail: payload }));
+    };
     realtimeChannel = client.channel('online-chronicles-account')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicles' }, changed)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicle_members' }, changed)
@@ -95,7 +108,7 @@
     if (!user) return [];
     const { data, error } = await auth.client
       .from('chronicles')
-      .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+      .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(row => normalizeRow(row, user.id)).filter(Boolean);
@@ -106,7 +119,7 @@
     const { auth, user } = await requireUser();
     const { data, error } = await auth.client
       .from('chronicles')
-      .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+      .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
       .eq('id', remoteId)
       .maybeSingle();
     if (error) throw error;
@@ -115,34 +128,50 @@
 
   async function createOnlineChronicle(input) {
     const fields = normalizeFields(input);
-    if (input?.cover) throw new Error('ONLINE_COVER_UNSUPPORTED');
+    if (input?.cover) global.ChronicleCovers.validate(input.cover);
     const { auth, user } = await requireUser();
     const sourceLocalId = typeof input?.sourceLocalId === 'string' ? input.sourceLocalId : null;
     const { data, error } = await auth.client
       .from('chronicles')
       .insert({ ...fields, owner_id: user.id, source_local_id: sourceLocalId })
-      .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+      .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
       .single();
     if (error?.code === '23505' && sourceLocalId) {
       const existing = await auth.client.from('chronicles')
-        .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+        .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
         .eq('owner_id', user.id).eq('source_local_id', sourceLocalId).single();
       if (existing.error) throw existing.error;
       return normalizeRow(existing.data, user.id);
     }
     if (error) throw error;
-    return normalizeRow(data, user.id);
+    const created = normalizeRow(data, user.id);
+    if (input?.cover) {
+      try {
+        return await updateOnlineChronicle(created.id, fields, { coverAction: 'replace', cover: input.cover, expectedUpdatedAt: created.updatedAt });
+      } catch (error) {
+        console.warn('Crônica criada; envio da capa pendente:', error);
+        created.coverUploadFailed = true;
+        // The Chronicle already exists: return it and offer editing, rather than
+        // encouraging duplicate creation on retry after an upload failure.
+        global.showNotification?.('Crônica criada, mas a capa não foi enviada. Use Editar Crônica para tentar novamente.', 'warning');
+      }
+    }
+    return created;
   }
 
   async function updateOnlineChronicle(id, input, options = {}) {
     const remoteId = remoteIdFrom(id);
     const fields = normalizeFields(input);
-    if (options.coverAction && options.coverAction !== 'keep') throw new Error('ONLINE_COVER_UNSUPPORTED');
+    const action = options.coverAction || 'keep';
+    if (!['keep', 'replace', 'remove'].includes(action)) throw new Error('ONLINE_COVER_INVALID_ACTION');
     const { auth, user } = await requireUser();
     const current = await getOnlineChronicle(id);
     if (!current) throw new Error('CHRONICLE_NOT_FOUND');
     if (current.ownerId !== user.id) throw new Error('ONLINE_CHRONICLE_FORBIDDEN');
     const expectedUpdatedAt = typeof options.expectedUpdatedAt === 'string' ? options.expectedUpdatedAt : '';
+    if (expectedUpdatedAt && current.updatedAt !== expectedUpdatedAt) throw new Error('CHRONICLE_UPDATE_CONFLICT');
+    if (action === 'replace') Object.assign(fields, await global.ChronicleCovers.upload(auth.client, user.id, remoteId, options.cover));
+    if (action === 'remove') Object.assign(fields, { cover_path: null, cover_width: null, cover_height: null });
 
     let query = auth.client
       .from('chronicles')
@@ -151,7 +180,7 @@
     if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt);
 
     const { data, error } = await query
-      .select('id, owner_id, name, synopsis, type, created_at, updated_at')
+      .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
       .maybeSingle();
     if (error) throw error;
     if (!data) {
@@ -160,7 +189,8 @@
       if (expectedUpdatedAt && latest.updatedAt !== expectedUpdatedAt) throw new Error('CHRONICLE_UPDATE_CONFLICT');
       throw new Error('ONLINE_CHRONICLE_FORBIDDEN');
     }
-    return normalizeRow(data, user.id);
+    const cleanupDone = action === 'keep' || await global.ChronicleCovers.cleanup(auth.client, { notify: true });
+    return { ...normalizeRow(data, user.id), coverCleanupPending: !cleanupDone };
   }
 
   async function deleteOnlineChronicle(id) {
@@ -177,6 +207,7 @@
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error('CHRONICLE_NOT_FOUND');
+    await global.ChronicleCovers.cleanup(auth.client, { notify: true });
     return true;
   }
 
@@ -260,7 +291,7 @@
       if (local) local.checked = true;
     }
     feedback.textContent = authenticated
-      ? 'Crônicas online usam sua conta. Capas permanecem disponíveis nas Crônicas locais.'
+      ? 'Crônicas online e suas capas são compartilhadas somente com os participantes.'
       : 'Entre na sua conta para habilitar Crônicas online.';
     syncCoverControls();
   }
@@ -269,14 +300,13 @@
     const online = getSelectedStorage() === 'online';
     const section = document.getElementById('chronicleCoverPreview')?.closest('.chronicle-cover-section');
     if (!section) return;
-    section.dataset.onlineUnavailable = String(online);
+    section.dataset.onlineUnavailable = 'false';
     const input = document.getElementById('chronicleCoverInput');
-    const remove = document.getElementById('removeChronicleCover');
     const select = input?.closest('label');
-    if (online && remove && !remove.hidden) remove.click();
-    if (input) input.disabled = online;
-    if (select) select.setAttribute('aria-disabled', String(online));
-    if (remove) remove.disabled = online;
+    if (input) input.accept = online ? 'image/jpeg,image/png,image/webp' : 'image/*';
+    if (select) select.removeAttribute('aria-disabled');
+    const help = section.querySelector('.chronicle-form-section-heading > span');
+    if (help) help.textContent = online ? 'Privada · compartilhada com participantes' : 'Salva neste navegador';
   }
 
   function decorateRecord(card, metadata, chronicle) {
@@ -338,7 +368,9 @@
     const code = error?.message || '';
     if (code === 'ONLINE_AUTH_REQUIRED') return 'Entre na sua conta para usar Crônicas online.';
     if (code === 'ONLINE_AUTH_UNAVAILABLE') return 'O serviço online ainda não ficou disponível. Recarregue a página e tente novamente.';
-    if (code === 'ONLINE_COVER_UNSUPPORTED') return 'Crônicas online não aceitam capa. Remova a capa ou salve como Local.';
+    if (code === 'ONLINE_COVER_UPLOAD_FAILED') return 'Não foi possível enviar a capa. Confira sua conexão e tente novamente. A capa anterior foi preservada.';
+    if (code === 'ONLINE_COVER_TOO_LARGE') return 'A capa preparada deve ter no máximo 450 KiB.';
+    if (code.startsWith('ONLINE_COVER_INVALID')) return 'Escolha uma capa JPEG, PNG ou WebP válida.';
     if (code === 'ONLINE_CHRONICLE_FORBIDDEN') return 'Somente o Mestre pode alterar esta Crônica online.';
     if (code === 'INVALID_ONLINE_CHRONICLE_ID') return 'A referência desta Crônica online é inválida.';
     const message = String(error?.message || '').toLowerCase();
@@ -390,7 +422,10 @@
         return chronicle ? { ...chronicle, storage: 'local', role: 'local' } : null;
       },
       async getChronicleCover(id) {
-        if (isOnlineId(id)) return null;
+        if (isOnlineId(id)) {
+          const { auth } = await requireUser();
+          return global.ChronicleCovers.download(auth.client, await getOnlineChronicle(id));
+        }
         return localStorageApi.getChronicleCover(id);
       },
       async createChronicle(input) {
@@ -449,5 +484,14 @@
     deleteChronicle: deleteOnlineChronicle
   });
 
-  global.addEventListener('cronicas:auth-change', () => startRealtime());
+  global.addEventListener('cronicas:auth-change', event => {
+    if (event.detail?.event !== 'TOKEN_REFRESHED') stopRealtime();
+    startRealtime();
+    if (!event.detail?.authenticated) {
+      global.ChroniclesCollaboration?.reset();
+      global.ChroniclesOnlineCombat?.reset();
+    }
+  });
+  global.addEventListener('pagehide', stopRealtime);
+  global.addEventListener('pageshow', startRealtime);
 })(window);

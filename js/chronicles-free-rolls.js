@@ -8,6 +8,7 @@
   let epoch = 0;
   let refreshTimer = null;
   let renderedIds = new Set();
+  let refreshPending = false;
 
   const el = id => document.getElementById(id);
   const text = value => typeof value === 'string' ? value.trim() : '';
@@ -126,7 +127,10 @@
       if (token === epoch) status.textContent = 'Não foi possível carregar as Rolagens Livres. Tente atualizar.';
       return false;
     } finally {
-      if (token === epoch) setBusy(false);
+      if (token === epoch) {
+        setBusy(false);
+        if (refreshPending) { refreshPending = false; void render(currentChronicle); }
+      }
     }
   }
 
@@ -136,7 +140,8 @@
     refreshTimer = global.setTimeout(() => {
       const panel = el('chroniclePanelFreeRolls');
       if (currentChronicle?.storage === 'online' && panel && !panel.hidden) {
-        void render(currentChronicle, { announce: payload?.eventType === 'INSERT' });
+        if (busy) refreshPending = true;
+        else void render(currentChronicle, { announce: payload?.eventType === 'INSERT' });
       }
     }, 120);
   }
@@ -152,6 +157,13 @@
   }
 
   function applyDetailMode(chronicle) {
+    ++epoch;
+    setBusy(false);
+    refreshPending = false;
+    if (currentChronicle?.id !== chronicle?.id) {
+      el('chronicleFreeRollsList')?.replaceChildren();
+      if (el('loadMoreChronicleFreeRolls')) el('loadMoreChronicleFreeRolls').hidden = true;
+    }
     currentChronicle = chronicle || null;
     nextCursor = null;
     renderedIds = new Set();
@@ -160,12 +172,13 @@
   }
 
   function reset() {
+    refreshPending = false;
     ++epoch;
     stopRealtime();
     currentChronicle = null;
     nextCursor = null;
     renderedIds = new Set();
-    busy = false;
+    setBusy(false);
     el('chronicleFreeRollsList')?.replaceChildren();
     if (el('chronicleFreeRollsStatus')) el('chronicleFreeRollsStatus').textContent = '';
     if (el('chronicleFreeRollsAnnouncement')) el('chronicleFreeRollsAnnouncement').textContent = '';

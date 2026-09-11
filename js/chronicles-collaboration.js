@@ -7,6 +7,12 @@
   let pending = false;
   let realtimeChannel = null;
   let refreshTimer = null;
+  let viewEpoch = 0;
+  let participantsEpoch = 0;
+  let castEpoch = 0;
+  let managerEpoch = 0;
+  let syncEpoch = 0;
+  let syncUserId = null;
   let currentCastIds = new Set();
   const characterSyncStates = new Map();
   const characterSyncTimers = new Map();
@@ -204,6 +210,7 @@
   async function renderParticipants(chronicle = currentChronicle) {
     if (!isOnlineChronicle(chronicle)) return false;
     currentChronicle = chronicle;
+    const token = ++participantsEpoch, view = viewEpoch;
     const list = document.getElementById('chronicleParticipantsList');
     const empty = document.getElementById('chronicleParticipantsEmpty');
     const form = document.getElementById('chronicleParticipantForm');
@@ -214,6 +221,7 @@
     setParticipantFeedback('Carregando participantes…');
     try {
       const { owner, members } = await fetchParticipants(chronicle);
+      if (token !== participantsEpoch || view !== viewEpoch || currentChronicle?.id !== chronicle.id) return true;
       const entries = [owner, ...members];
       entries.forEach((entry, index) => list.appendChild(participantRow(entry, index, chronicle.role === 'owner')));
       empty.hidden = entries.length !== 0;
@@ -223,6 +231,7 @@
           : 'Estas são as contas com acesso a esta Crônica compartilhada.'
       );
     } catch (error) {
+      if (token !== participantsEpoch || view !== viewEpoch) return true;
       setParticipantFeedback(humanizeError(error), 'error');
     }
     return true;
@@ -237,7 +246,7 @@
       .order('created_at', { ascending: true });
     if (linkError) throw linkError;
     const ids = (links || []).map(row => row.character_id);
-    currentCastIds = new Set(ids);
+    if (currentChronicle?.id === active.id) currentCastIds = new Set(ids);
     if (!ids.length) return [];
     const { data: characters, error: characterError } = await auth.client
       .from('online_characters')
@@ -304,6 +313,7 @@
   async function renderCast(chronicle = currentChronicle) {
     if (!isOnlineChronicle(chronicle)) return false;
     currentChronicle = chronicle;
+    const token = ++castEpoch, view = viewEpoch;
     const list = document.getElementById('chronicleCastList');
     const empty = document.getElementById('chronicleCastEmpty');
     const count = document.getElementById('chronicleCastCount');
@@ -315,6 +325,7 @@
     try {
       const { user } = await requireContext(chronicle);
       const entries = await fetchCast(chronicle);
+      if (token !== castEpoch || view !== viewEpoch || currentChronicle?.id !== chronicle.id) return true;
       entries.forEach((entry, index) => list.appendChild(castMember(entry, index, user.id, chronicle.role === 'owner')));
       count.textContent = String(entries.length).padStart(2, '0');
       count.setAttribute('aria-label', entries.length === 1 ? '1 personagem no Elenco' : `${entries.length} personagens no Elenco`);
@@ -325,9 +336,10 @@
       }
       setCastFeedback(entries.length ? 'Elenco compartilhado entre os participantes desta Crônica.' : '');
     } catch (error) {
+      if (token !== castEpoch || view !== viewEpoch) return true;
       setCastFeedback(humanizeError(error), 'error');
     } finally {
-      list.removeAttribute('aria-busy');
+      if (token === castEpoch && view === viewEpoch) list.removeAttribute('aria-busy');
     }
     return true;
   }
@@ -356,8 +368,9 @@
     };
   }
 
-  async function upsertOnlineCharacter(localEntry) {
+  async function upsertOnlineCharacter(localEntry, expectedUserId = null) {
     const { auth, user } = await requireUser();
+    if (expectedUserId && user.id !== expectedUserId) throw new Error('ONLINE_AUTH_CHANGED');
     const character = localEntry.character || {};
     const fields = character.fields || {};
     const payload = {
@@ -380,16 +393,19 @@
   }
 
   async function synchronizePublishedCharacter(localId, character = null) {
+    const epoch = syncEpoch;
     const { auth, user } = await requireUser();
     const { data: published, error: lookupError } = await auth.client
       .from('online_characters').select('id').eq('owner_id', user.id).eq('source_local_id', localId).maybeSingle();
     if (lookupError) throw lookupError;
     if (!published) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return false; }
+    if (epoch !== syncEpoch) return false;
     const local = localCharacters().find(item => item.id === localId);
     if (!local) return false;
     const entry = character ? { ...local, character } : local;
     setCharacterSyncState(localId, 'syncing', 'Sincronizando');
-    await upsertOnlineCharacter(entry);
+    await upsertOnlineCharacter(entry, user.id);
+    if (epoch !== syncEpoch) return false;
     characterSyncRetries.delete(localId);
     setCharacterSyncState(localId, 'synced', 'Atualizado', { syncedAt: new Date().toISOString() });
     return true;
@@ -415,13 +431,18 @@
       return;
     }
     global.clearTimeout(characterSyncTimers.get(localId));
+    const epoch = syncEpoch;
     setCharacterSyncState(localId, 'pending', 'Alterações pendentes');
     characterSyncTimers.set(localId, global.setTimeout(() => {
       characterSyncTimers.delete(localId);
       const previous = characterSyncQueues.get(localId) || Promise.resolve();
-      const next = previous.catch(() => undefined).then(() => synchronizePublishedCharacter(localId, character));
+      const next = previous.catch(() => undefined).then(() => {
+        if (epoch !== syncEpoch) return;
+        return synchronizePublishedCharacter(localId, character);
+      });
       characterSyncQueues.set(localId, next);
       void next.catch(error => {
+        if (epoch !== syncEpoch) return;
         console.error('[Personagem online] Falha de sincronização:', error);
         setCharacterSyncState(localId, 'error', 'Erro de sincronização · nova tentativa agendada');
         scheduleSyncRetry(localId);
@@ -483,7 +504,7 @@
     setCastFeedback('Publicando personagem…', '', true);
     try {
       const { auth, user, chronicle } = await requireContext();
-      const online = await upsertOnlineCharacter(entry);
+      const online = await upsertOnlineCharacter(entry, user.id);
       setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado');
       const { error } = await auth.client
         .from('chronicle_cast_members')
@@ -603,6 +624,7 @@
 
   async function renderManagerList() {
     if (!castManagerOpen || !isOnlineChronicle()) return false;
+    const token = ++managerEpoch, view = viewEpoch;
     const list = document.getElementById('chronicleCastSelectionList');
     const noResults = document.getElementById('chronicleCastNoResults');
     if (!list || !noResults) return true;
@@ -610,6 +632,7 @@
     setCastFeedback('Carregando seus personagens…', '', true);
     try {
       const [published, cast] = await Promise.all([fetchOwnedPublishedCharacters(), fetchCast()]);
+      if (token !== managerEpoch || view !== viewEpoch || !castManagerOpen) return true;
       const publishedByLocal = new Map(published.map(row => [row.source_local_id, row]));
       const linkedIds = new Set(cast.map(entry => entry.id));
       const query = normalizeSearch(castSearch || document.getElementById('chronicleCastSearch')?.value || '');
@@ -626,6 +649,7 @@
       if (selectionCount) selectionCount.textContent = `${cast.length} no Elenco online`;
       setCastFeedback('Publique seus personagens para compartilhá-los com esta Crônica. A ficha local continua preservada neste navegador.', '', true);
     } catch (error) {
+      if (token !== managerEpoch || view !== viewEpoch || !castManagerOpen) return true;
       setCastFeedback(humanizeError(error), 'error', true);
     }
     return true;
@@ -685,11 +709,13 @@
 
   function scheduleRealtimeRefresh() {
     global.clearTimeout(refreshTimer);
+    const view = viewEpoch;
     refreshTimer = global.setTimeout(async () => {
-      if (!isOnlineChronicle()) return;
+      if (view !== viewEpoch || !isOnlineChronicle()) return;
       if (currentChronicle.role !== 'owner') {
         try {
           const accessible = await global.ChroniclesOnline?.getChronicle?.(currentChronicle.id);
+          if (view !== viewEpoch) return;
           if (!accessible) {
             global.showNotification?.('Seu acesso a esta Crônica foi removido.', 'warning');
             reset();
@@ -700,6 +726,7 @@
           // Erros transitórios de rede não expulsam o usuário da tela.
         }
       }
+      if (view !== viewEpoch || !isOnlineChronicle()) return;
       const participantsVisible = !document.getElementById('chroniclePanelParticipants')?.hidden;
       const castVisible = !document.getElementById('chroniclePanelCast')?.hidden;
       if (participantsVisible) void renderParticipants(currentChronicle);
@@ -709,6 +736,8 @@
   }
 
   function stopRealtime() {
+    global.clearTimeout(refreshTimer);
+    refreshTimer = null;
     if (realtimeChannel && global.CronicasSupabase?.client) {
       global.CronicasSupabase.client.removeChannel(realtimeChannel);
     }
@@ -744,6 +773,7 @@
   }
 
   function applyDetailMode(chronicle) {
+    ++viewEpoch;
     currentChronicle = chronicle || null;
     castManagerOpen = false;
     if (isOnlineChronicle(chronicle)) startRealtime(chronicle);
@@ -751,18 +781,28 @@
   }
 
   function reset() {
+    ++viewEpoch;
     stopRealtime();
     currentChronicle = null;
     castManagerOpen = false;
     castSearch = '';
     pending = false;
     currentCastIds = new Set();
+  }
+
+  global.addEventListener('cronicas:auth-change', event => {
+    const userId = event.detail?.user?.id || null;
+    if (userId === syncUserId) return;
+    syncUserId = userId;
+    ++syncEpoch;
+    reset();
     characterSyncTimers.forEach(timer => global.clearTimeout(timer));
     characterSyncTimers.clear();
     characterSyncQueues.clear();
     characterSyncRetries.clear();
     latestCharacterSnapshots.clear();
-  }
+    characterSyncStates.clear();
+  });
 
   global.ChroniclesCollaboration = Object.freeze({
     applyDetailMode,

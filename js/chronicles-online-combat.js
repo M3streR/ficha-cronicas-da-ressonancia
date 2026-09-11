@@ -11,6 +11,9 @@
   let selectedOwnCharacterId = '';
   let pending = false;
   let initiativeEditing = false;
+  let renderEpoch = 0;
+  let subscriptionEpoch = 0;
+  let directoryEpoch = 0;
 
   const text = value => typeof value === 'string' ? value.trim() : '';
   const isOnlineId = id => typeof id === 'string' && id.startsWith(ONLINE_PREFIX);
@@ -222,6 +225,7 @@
   }
 
   async function loadCastDirectory(chronicleId) {
+    const token = ++directoryEpoch;
     const { client } = await context();
     const remoteId = remoteChronicleId(chronicleId);
     const { data: links, error: linksError } = await client
@@ -231,6 +235,7 @@
       .order('created_at', { ascending: true });
     if (linksError) throw linksError;
     const ids = (links || []).map(row => row.character_id);
+    if (token !== directoryEpoch) return ids;
     if (!ids.length) {
       directoryCache = { entries: [], byId: new Map(), unavailable: false };
       snapshotCache = new Map();
@@ -241,6 +246,7 @@
       .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, snapshot, updated_at')
       .in('id', ids);
     if (characterError) throw characterError;
+    if (token !== directoryEpoch) return ids;
     const rawById = new Map((characters || []).map(row => [row.id, row]));
     const entries = ids.map((id, managerIndex) => {
       const row = rawById.get(id);
@@ -691,11 +697,13 @@
   async function render(chronicle = currentChronicle) {
     if (!chronicle || chronicle.storage !== 'online') return false;
     currentChronicle = chronicle;
+    const token = ++renderEpoch;
     const host = ensureActiveHost();
     if (!host) return true;
     try {
       const { user } = await context();
       const records = await listConfrontations(chronicle.id);
+      if (token !== renderEpoch || currentChronicle?.id !== chronicle.id) return true;
       const active = records.find(item => item.active);
       if (!active) {
         host.replaceChildren(); host.hidden = true; setIndexVisible(true);
@@ -703,9 +711,11 @@
         return true;
       }
       const full = await fetchFullConfrontation(active.id);
+      if (token !== renderEpoch || currentChronicle?.id !== chronicle.id) return true;
       renderActiveCombat(full, chronicle, user);
       startRealtime(chronicle);
     } catch (error) {
+      if (token !== renderEpoch || currentChronicle?.id !== chronicle.id) return true;
       setIndexVisible(false); host.hidden = false; host.replaceChildren();
       const state = node('div', 'online-combat-error');
       state.append(node('strong', '', 'Não foi possível carregar o combate online.'), node('p', '', 'O estado compartilhado foi preservado. Recarregue a Crônica e tente novamente.'));
@@ -723,6 +733,9 @@
   }
 
   function stopRealtime() {
+    ++subscriptionEpoch;
+    global.clearTimeout(refreshTimer);
+    refreshTimer = null;
     const client = global.CronicasSupabase?.client;
     if (client && realtimeChronicleChannel) client.removeChannel(realtimeChronicleChannel);
     if (client && realtimeCombatChannel) client.removeChannel(realtimeCombatChannel);
@@ -740,9 +753,11 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicle_confrontations', filter: `chronicle_id=eq.${chronicle.remoteId}` }, scheduleRefresh)
         .subscribe();
     }
+    const token = ++subscriptionEpoch;
     void listConfrontations(chronicle.id).then(records => {
+      if (token !== subscriptionEpoch || currentChronicle?.remoteId !== chronicle.remoteId) return;
       const active = records.find(item => item.active);
-      if (!active || currentChronicle?.remoteId !== chronicle.remoteId) {
+      if (!active) {
         if (realtimeCombatChannel) client.removeChannel(realtimeCombatChannel);
         realtimeCombatChannel = null;
         return;
@@ -758,10 +773,14 @@
           if (id && directoryCache.byId.has(id)) scheduleRefresh();
         })
         .subscribe();
+    }).catch(() => {
+      // Keep the current channel through transient network failures; a future
+      // render or Realtime event retries discovery without an unhandled promise.
     });
   }
 
   function applyDetailMode(chronicle) {
+    ++renderEpoch;
     if (chronicle?.storage === 'online') {
       currentChronicle = chronicle;
       startRealtime(chronicle);
@@ -769,6 +788,8 @@
   }
 
   function reset() {
+    ++directoryEpoch;
+    ++renderEpoch;
     stopRealtime();
     currentChronicle = null; selectedOwnCharacterId = ''; pending = false; initiativeEditing = false;
     directoryCache = { entries: [], byId: new Map(), unavailable: false };

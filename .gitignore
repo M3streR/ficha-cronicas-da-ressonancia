@@ -1,0 +1,5 @@
+node_modules/
+.test-secrets.json
+tests/artifacts/compact-audit/*.png
+supabase/.temp/
+debug.log

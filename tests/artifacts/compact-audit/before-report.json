@@ -1,0 +1,405 @@
+{
+  "results": [
+    {
+      "view": "manager",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "create",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 1920,
+      "height": 1080,
+      "scroll": 1920,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "create",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 1366,
+      "height": 768,
+      "scroll": 1366,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "create",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 1024,
+      "height": 768,
+      "scroll": 1024,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "create",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 768,
+      "height": 1024,
+      "scroll": 768,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": [
+        "chronicle-record-open"
+      ]
+    },
+    {
+      "view": "create",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 430,
+      "height": 932,
+      "scroll": 430,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": [
+        "chronicle-record-open"
+      ]
+    },
+    {
+      "view": "create",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 390,
+      "height": 844,
+      "scroll": 390,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": [
+        "chronicle-record-open"
+      ]
+    },
+    {
+      "view": "create",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 360,
+      "height": 800,
+      "scroll": 360,
+      "overflow": []
+    },
+    {
+      "view": "manager",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    },
+    {
+      "view": "index",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": [
+        "chronicle-record-open"
+      ]
+    },
+    {
+      "view": "create",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    },
+    {
+      "view": "detail",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    },
+    {
+      "view": "auth",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    },
+    {
+      "view": "sheet",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    },
+    {
+      "view": "dice",
+      "width": 320,
+      "height": 720,
+      "scroll": 320,
+      "overflow": []
+    }
+  ],
+  "errors": []
+}

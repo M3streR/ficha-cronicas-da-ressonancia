@@ -1,0 +1,156 @@
+/* Density layer: uses the existing palette, typography and angular identity. */
+:root {
+  --ui-gap: .75rem;
+  --ui-padding: clamp(.75rem, 1.35vw, 1.15rem);
+  --ui-control: 2.5rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+:where(button, input, select, textarea) { max-width: 100%; }
+:where(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+.btn { min-height: var(--ui-control); padding: .55rem .85rem; line-height: 1.3; white-space: normal; }
+.btn:disabled, button[aria-busy="true"] { cursor: wait; opacity: .65; }
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea) {
+  min-width: 0; border-radius: 6px; border-color: var(--color-border-default);
+}
+:where(input, select, textarea)[aria-invalid="true"] { outline: 2px solid var(--color-danger); outline-offset: 1px; }
+:where([role=status], [role=alert]) { overflow-wrap: anywhere; }
+[data-kind=error], [data-state=error] { --status-color: var(--color-danger); }
+[data-kind=success], [data-state=synced] { --status-color: var(--color-success); }
+:where(.chronicle-form-feedback, .account-dialog-feedback, .chronicle-cast-feedback, .chronicle-participants-feedback) { color: var(--status-color, var(--color-text-secondary)); line-height: 1.45; margin-block: .5rem; }
+:where(.chronicle-form-feedback, .account-dialog-feedback, .chronicle-cast-feedback, .chronicle-participants-feedback):empty { display: none; }
+
+/* Manager */
+.manager-topbar.manager-environment-brand { min-height: 64px; padding-block: .65rem; gap: .75rem; }
+.manager-topbar h1 { font-size: clamp(1.05rem, 1.8vw, 1.5rem); }
+.manager-workspace { min-height: calc(100dvh - 64px); grid-template-columns: 160px minmax(0, 1fr); }
+.manager-sidebar { padding-top: 1rem; }
+.manager-content { min-width: 0; padding-top: 1rem; }
+.manager-content-actions { margin-bottom: 1rem; }
+.character-gallery { grid-template-columns: repeat(auto-fill, minmax(195px, 230px)); gap: 1rem; }
+.manager-environment-characters .create-character-card, .character-card { min-height: 290px; }
+.character-card-portrait { height: 210px; min-height: 0; }
+.create-character-symbol { width: 60px; height: 60px; }
+.character-card-info { padding: .8rem; min-height: 72px; }
+.character-card:hover, .create-character-card:hover { transform: translateY(-3px); }
+
+/* Chronicle index, editor and detail */
+.chronicles-archive-header { gap: 1.25rem; padding-block: .5rem 1.15rem; grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); align-items: center; }
+.chronicles-title-block { padding-bottom: .65rem; }
+.chronicles-title-block h2, .chronicle-create-heading h2 { font-size: clamp(1.65rem, 3vw, 2.65rem); }
+.chronicles-title-block p { margin-top: .6rem; }
+.new-chronicle-entry { min-height: 100px; padding: 1rem; gap: .8rem; }
+.new-chronicle-symbol { width: 48px; height: 48px; font-size: 2rem; }
+.chronicles-records-heading { margin-bottom: .8rem; }
+.chronicles-record-grid { gap: .85rem; }
+.chronicle-record.chronicle-record-real { min-height: 150px; grid-template-columns: minmax(100px, .65fr) minmax(0, 1.35fr) 44px; gap: .8rem; padding: .6rem; }
+.chronicle-record-cover { min-height: 125px; grid-column: auto; aspect-ratio: auto; }
+.chronicle-record-real .chronicle-record-copy { padding-block: .5rem; gap: .5rem; }
+.chronicle-record-real .chronicle-record-copy h4 { font-size: 1.15rem; }
+.chronicle-record-metadata { flex-wrap: wrap; gap: .4rem; }
+.chronicle-record-synopsis { -webkit-line-clamp: 2; }
+.chronicle-create-heading { margin-bottom: 1rem; padding-bottom: .75rem; }
+.chronicle-create-back, .chronicle-detail-back { margin-bottom: 1rem; }
+.chronicle-create-heading p { margin-top: .5rem; }
+.chronicle-create-form { max-width: 1000px; gap: 1.1rem; padding: 1rem; grid-template-columns: minmax(210px, .75fr) minmax(0, 1.25fr); align-items: start; }
+.chronicle-cover-section { gap: .65rem; }
+.chronicle-cover-preview { aspect-ratio: 16/9; min-height: 0; max-height: 240px; }
+.chronicle-cover-placeholder { min-height: 0; }
+.chronicle-cover-placeholder > span { font-size: 2.5rem; }
+.chronicle-cover-actions { gap: .5rem; flex-wrap: wrap; }
+.chronicle-create-fields { gap: .85rem; min-width: 0; }
+.chronicle-create-submit-row, .chronicle-create-form > .chronicle-form-feedback { grid-column: 1/-1; }
+.chronicle-create-submit-row { padding-top: .7rem; margin-top: 0; gap: .65rem; }
+.chronicle-detail-masthead { min-height: 220px; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); }
+.chronicle-detail-cover { min-height: 0; }
+.chronicle-detail-cover-placeholder { min-height: 220px; }
+.chronicle-detail-cover img { position: absolute; inset: 0; }
+.chronicle-detail-identity { padding: 1.25rem 1.5rem; }
+.chronicle-detail-identity h2 { font-size: clamp(1.6rem, 3vw, 2.7rem); }
+.chronicle-detail-metadata { margin-bottom: .65rem; flex-wrap: wrap; }
+.chronicle-detail-tabs { gap: .4rem; margin-block: 1rem; }
+.chronicle-detail-tab { min-height: 44px; padding: .65rem .8rem; }
+#managerChroniclesPanel .chronicle-detail-panel { padding: var(--ui-padding); }
+#managerChroniclesPanel :is(.chronicle-participant-row, .confrontation-index-row) { padding-block: .75rem; }
+:is(.chronicles-empty-state, .chronicle-cast-empty, .chronicle-participants-empty, .confrontation-empty, .chronicle-free-rolls-empty) { min-height: 0; padding: 1.15rem; gap: .75rem; }
+.master-shield-heading { margin-block: 1rem; }
+.master-shield-heading h2 { font-size: clamp(1.6rem, 3vw, 2.25rem); }
+.master-dashboard > button { min-height: 105px; padding: 1rem; }
+.master-access-form, .master-recent-results { padding: 1rem; gap: .75rem; }
+.online-combat-header { gap: .8rem; padding: 1rem; }
+.online-combat-layout { gap: .85rem; }
+.online-combat-initiative-row { padding: .65rem; gap: .5rem; }
+.chronicle-free-rolls-list { gap: .7rem; }
+.chronicle-free-roll-card { padding: .8rem; }
+
+/* Sheet, dialogs and quick dice */
+.sheet-layout { gap: .8rem; padding: .85rem; }
+.sheet-layout > .panel { padding: .9rem; }
+.panel-title-row { gap: .6rem; margin-bottom: .7rem; }
+.account-dialog { width: min(calc(100vw - 24px), 440px); max-height: calc(100dvh - 24px); overflow-y: auto; }
+.account-dialog-shell { padding: 1rem; gap: .75rem; }
+.account-dialog-header h2 { font-size: 1.4rem; }
+.account-dialog-close { min-width: 40px; min-height: 40px; }
+.account-auth-toggle { min-height: 40px; }
+.app-modal { width: min(100%, 500px); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; padding: var(--ui-padding); }
+.modal-overlay { padding: 12px; }
+.modal-actions { gap: .5rem; flex-wrap: wrap; }
+.modal-close { width: 40px; height: 40px; }
+.chronicle-online-storage-fieldset { padding: .65rem; }
+.chronicle-online-storage-options { gap: .5rem; }
+.chronicle-online-storage-options label { padding: .65rem; }
+.chronicle-online-storage-options input { width: auto; min-height: auto; flex: 0 0 auto; }
+.chronicle-online-storage-help { font-size: .8rem; margin-top: .6rem; }
+.quick-dice-panel { max-height: calc(100dvh - 90px); overflow-y: auto; padding: 1rem; }
+.roll-history-row { padding: 0; }
+.roll-history-summary { padding: .65rem .8rem; }
+.roll-history-row details { margin-top: 0; }
+.site-entry-card { max-width: 480px; padding: clamp(1.5rem, 5vw, 2.5rem); }
+.site-entry-title { font-size: clamp(2rem, 5vw, 3.3rem); }
+
+@media (max-width: 1024px) {
+  .manager-workspace { grid-template-columns: 140px minmax(0, 1fr); }
+  .chronicles-archive-header { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+  .new-chronicle-entry { max-width: 440px; min-height: 85px; }
+  .chronicle-create-form { grid-template-columns: minmax(0, 1fr); }
+  .chronicle-cover-section { max-width: 460px; }
+}
+@media (max-width: 768px) {
+  :root { --ui-control: 44px; }
+  .manager-workspace { display: block; }
+  .manager-sidebar { padding-block: .6rem; }
+  .manager-navigation { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .manager-nav-item { min-height: 44px; padding: .65rem 1rem; width: auto; flex: 1; }
+  .manager-topbar.manager-environment-brand { align-items: center; }
+  .manager-topbar h1 { line-height: 1.2; }
+  .character-gallery { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .chronicle-detail-masthead { grid-template-columns: minmax(0, 1fr); }
+  .chronicle-detail-cover { width: 100%; height: clamp(150px, 35vw, 220px); aspect-ratio: auto; clip-path: none; }
+  .chronicle-detail-cover-placeholder { min-height: 100%; }
+  .chronicle-detail-identity { padding: 1rem; }
+  .chronicle-detail-tabs { display: flex; flex-wrap: wrap; }
+  .chronicle-detail-tabs > * { flex: 1 1 auto; }
+  .chronicle-create-form { padding: .8rem; }
+  .chronicle-form-section-heading { align-items: start; flex-wrap: wrap; gap: .35rem; }
+  .chronicle-detail-tab { letter-spacing: .02em; }
+  :where(.account-auth-form, .chronicle-create-form, .master-access-form, .quick-dice-panel) :is(input,select,textarea) { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  .character-gallery { grid-template-columns: minmax(0, 1fr); max-width: 100%; }
+  .manager-environment-characters .create-character-card { min-height: 180px; height: auto; }
+  .character-card { min-height: 220px; }
+  .character-card-portrait { height: 170px; }
+  .create-character-symbol { width: 48px; height: 48px; }
+  .manager-content-actions .btn { width: 100%; }
+  .chronicle-record.chronicle-record-real { grid-template-columns: 72px minmax(0, 1fr) 44px; min-height: 130px; gap: .5rem; }
+  .chronicle-record-cover { min-height: 115px; }
+  .chronicle-record-real .chronicle-record-copy h4 { font-size: 1rem; }
+  .chronicle-record-synopsis { font-size: .75rem; }
+  .chronicle-create-submit-row .btn { min-width: 0; flex: 1 1 110px; }
+  .chronicle-cover-actions .btn, .chronicle-cover-select { min-width: 0; flex: 1 1 120px; }
+  .quick-dice-panel { width: calc(100vw - 16px); max-width: none; right: 8px; padding: .8rem; }
+  .sheet-layout { padding: .5rem; gap: .6rem; }
+  .sheet-layout > .panel { padding: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+}

@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "Preview do arquivo antes de enviar",
+    "Formulário cria Online com capa persistida",
+    "Arquivo inválido mantém capa atual no editor",
+    "Falha de upload mantém formulário e informa erro",
+    "Falha de upload preserva capa persistida",
+    "Tentar novamente substitui capa pelo formulário",
+    "Remover pelo formulário persiste ausência da capa"
+  ]
+}
