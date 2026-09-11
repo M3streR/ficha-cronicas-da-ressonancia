@@ -31,3 +31,4 @@ jobs:
           node tests/chronicles-v6.test.cjs
           node tests/combates-flow.test.cjs
           node tests/free-rolls.test.cjs
+          node tests/ux-stabilization.cjs

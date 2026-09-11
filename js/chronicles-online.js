@@ -3,10 +3,15 @@
 
   const ONLINE_PREFIX = 'online:';
   const ALLOWED_TYPES = new Set(['campaign', 'oneshot']);
+  const CACHE_PREFIX = 'cronicasRessonanciaOnlineIndex:';
+  const CACHE_FRESH_MS = 15000;
   const routerCache = new WeakMap();
   let realtimeChannel = null;
   let realtimeUserId = null;
   let realtimeEpoch = 0;
+  let onlineCache = { userId: '', records: [], ready: false, refreshedAt: 0 };
+  let onlineListRequest = null;
+  let onlineListRequestUserId = '';
 
   function isOnlineId(id) {
     return typeof id === 'string' && id.startsWith(ONLINE_PREFIX);
@@ -71,6 +76,47 @@
     };
   }
 
+  function hydrateOnlineCache(userId) {
+    if (onlineCache.userId === userId) return;
+    onlineCache = { userId, records: [], ready: false, refreshedAt: 0 };
+    try {
+      const saved = JSON.parse(global.sessionStorage?.getItem(`${CACHE_PREFIX}${userId}`) || 'null');
+      if (!saved || !Array.isArray(saved.records)) return;
+      const records = saved.records.filter(record => record?.storage === 'online' && record?.ownerId);
+      onlineCache = { userId, records, ready: true, refreshedAt: Number(saved.refreshedAt) || 0 };
+    } catch (error) {
+      console.warn('O cache de sessão das Crônicas Online não pôde ser recuperado.', error);
+    }
+  }
+
+  function persistOnlineCache() {
+    if (!onlineCache.userId || !onlineCache.ready) return;
+    try {
+      global.sessionStorage?.setItem(`${CACHE_PREFIX}${onlineCache.userId}`, JSON.stringify({
+        records: onlineCache.records,
+        refreshedAt: onlineCache.refreshedAt
+      }));
+    } catch (error) {
+      console.warn('O cache de sessão das Crônicas Online não pôde ser atualizado.', error);
+    }
+  }
+
+  function updateCachedRecord(record, userId) {
+    if (!record?.remoteId || !userId) return;
+    hydrateOnlineCache(userId);
+    const index = onlineCache.records.findIndex(item => item.id === record.id);
+    if (index >= 0) onlineCache.records[index] = record;
+    else onlineCache.records.unshift(record);
+    onlineCache.ready = true;
+    persistOnlineCache();
+  }
+
+  function removeCachedRecord(id) {
+    if (!onlineCache.ready) return;
+    onlineCache.records = onlineCache.records.filter(record => record.id !== id);
+    persistOnlineCache();
+  }
+
   async function requireUser() {
     const auth = await getAuth();
     const user = await auth.getUser();
@@ -94,7 +140,9 @@
     realtimeUserId = userId;
     const epoch = realtimeEpoch;
     const changed = payload => {
-      if (epoch === realtimeEpoch) global.dispatchEvent(new CustomEvent('cronicas:online-chronicles-change', { detail: payload }));
+      if (epoch !== realtimeEpoch) return;
+      onlineCache.refreshedAt = 0;
+      void refreshOnlineChronicles({ force: true, detail: payload });
     };
     realtimeChannel = client.channel('online-chronicles-account')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chronicles' }, changed)
@@ -102,16 +150,59 @@
       .subscribe();
   }
 
-  async function listOnlineChronicles() {
+  async function refreshOnlineChronicles({ force = false, detail = null } = {}) {
     const auth = await getAuth();
     const user = await auth.getUser();
     if (!user) return [];
-    const { data, error } = await auth.client
-      .from('chronicles')
-      .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data || []).map(row => normalizeRow(row, user.id)).filter(Boolean);
+    hydrateOnlineCache(user.id);
+    if (!force && onlineCache.ready && Date.now() - onlineCache.refreshedAt < CACHE_FRESH_MS) {
+      return onlineCache.records.slice();
+    }
+    if (onlineListRequest && onlineListRequestUserId === user.id) return onlineListRequest;
+    onlineListRequestUserId = user.id;
+    onlineListRequest = (async () => {
+      const { data, error } = await auth.client
+        .from('chronicles')
+        .select('id, owner_id, name, synopsis, type, cover_path, cover_width, cover_height, created_at, updated_at')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const records = (data || []).map(row => normalizeRow(row, user.id)).filter(Boolean);
+      if (onlineCache.userId !== user.id) return records;
+      onlineCache = { userId: user.id, records, ready: true, refreshedAt: Date.now() };
+      persistOnlineCache();
+      if (detail) {
+        global.dispatchEvent(new CustomEvent('cronicas:online-chronicles-change', {
+          detail: { ...detail, source: 'refresh' }
+        }));
+      }
+      return records.slice();
+    })();
+    try {
+      return await onlineListRequest;
+    } finally {
+      if (onlineListRequestUserId === user.id) {
+        onlineListRequest = null;
+        onlineListRequestUserId = '';
+      }
+    }
+  }
+
+  async function listOnlineChronicles({ preferCache = false } = {}) {
+    const auth = await getAuth();
+    const user = await auth.getUser();
+    if (!user) return [];
+    hydrateOnlineCache(user.id);
+    if (preferCache && onlineCache.ready) {
+      if (Date.now() - onlineCache.refreshedAt >= CACHE_FRESH_MS) {
+        void refreshOnlineChronicles().catch(error => console.warn('A atualização das Crônicas Online falhou em segundo plano.', error));
+      }
+      return onlineCache.records.slice();
+    }
+    return refreshOnlineChronicles();
+  }
+
+  function primeOnlineChronicles() {
+    return listOnlineChronicles({ preferCache: true });
   }
 
   async function getOnlineChronicle(id) {
@@ -145,6 +236,7 @@
     }
     if (error) throw error;
     const created = normalizeRow(data, user.id);
+    updateCachedRecord(created, user.id);
     if (input?.cover) {
       try {
         return await updateOnlineChronicle(created.id, fields, { coverAction: 'replace', cover: input.cover, expectedUpdatedAt: created.updatedAt });
@@ -190,7 +282,9 @@
       throw new Error('ONLINE_CHRONICLE_FORBIDDEN');
     }
     const cleanupDone = action === 'keep' || await global.ChronicleCovers.cleanup(auth.client, { notify: true });
-    return { ...normalizeRow(data, user.id), coverCleanupPending: !cleanupDone };
+    const updated = { ...normalizeRow(data, user.id), coverCleanupPending: !cleanupDone };
+    updateCachedRecord(updated, user.id);
+    return updated;
   }
 
   async function deleteOnlineChronicle(id) {
@@ -207,6 +301,7 @@
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error('CHRONICLE_NOT_FOUND');
+    removeCachedRecord(id);
     await global.ChronicleCovers.cleanup(auth.client, { notify: true });
     return true;
   }
@@ -389,18 +484,19 @@
         let online = [];
         let onlineError = null;
 
-        try {
-          local = await localStorageApi.listChronicles();
-        } catch (error) {
-          localError = error;
-          console.warn('As Crônicas locais não puderam ser carregadas; tentando preservar o acesso online.', error);
+        const [localResult, onlineResult] = await Promise.allSettled([
+          localStorageApi.listChronicles(),
+          listOnlineChronicles({ preferCache: true })
+        ]);
+        if (localResult.status === 'fulfilled') local = localResult.value;
+        else {
+          localError = localResult.reason;
+          console.warn('As Crônicas locais não puderam ser carregadas; tentando preservar o acesso online.', localError);
         }
-
-        try {
-          online = await listOnlineChronicles();
-        } catch (error) {
-          onlineError = error;
-          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', error);
+        if (onlineResult.status === 'fulfilled') online = onlineResult.value;
+        else {
+          onlineError = onlineResult.reason;
+          console.warn('As Crônicas online não puderam ser carregadas; os registros locais foram preservados.', onlineError);
         }
 
         const authenticated = Boolean(global.CronicasSupabase?.authenticated);
@@ -478,6 +574,7 @@
     applyDetailMode,
     getErrorMessage,
     listChronicles: listOnlineChronicles,
+    primeChronicles: primeOnlineChronicles,
     getChronicle: getOnlineChronicle,
     createChronicle: createOnlineChronicle,
     updateChronicle: updateOnlineChronicle,
@@ -488,8 +585,11 @@
     if (event.detail?.event !== 'TOKEN_REFRESHED') stopRealtime();
     startRealtime();
     if (!event.detail?.authenticated) {
+      onlineCache = { userId: '', records: [], ready: false, refreshedAt: 0 };
       global.ChroniclesCollaboration?.reset();
       global.ChroniclesOnlineCombat?.reset();
+    } else if (event.detail?.event !== 'TOKEN_REFRESHED') {
+      void primeOnlineChronicles().catch(error => console.warn('Não foi possível antecipar o índice de Crônicas Online.', error));
     }
   });
   global.addEventListener('pagehide', stopRealtime);

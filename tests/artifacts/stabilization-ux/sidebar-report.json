@@ -1,0 +1,281 @@
+{
+  "checks": [
+    {
+      "width": 1920,
+      "zoom": 1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 204,
+          "scrollWidth": 204,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 230.390625,
+          "navigationWidth": 204.796875,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 204,
+          "scrollWidth": 204,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 230.390625,
+          "navigationWidth": 204.796875,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1745,
+      "zoom": 1.1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 183,
+          "scrollWidth": 183,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 209.390625,
+          "navigationWidth": 183.796875,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 183,
+          "scrollWidth": 183,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 209.390625,
+          "navigationWidth": 183.796875,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1536,
+      "zoom": 1.25,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 158,
+          "scrollWidth": 158,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184.3125,
+          "navigationWidth": 158.71875,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 158,
+          "scrollWidth": 158,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184.3125,
+          "navigationWidth": 158.71875,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1366,
+      "zoom": 1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1242,
+      "zoom": 1.1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1093,
+      "zoom": 1.25,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 157,
+          "scrollWidth": 157,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 184,
+          "navigationWidth": 158.40625,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "zoom": 1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 149,
+          "scrollWidth": 149,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 176,
+          "navigationWidth": 150.40625,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 149,
+          "scrollWidth": 149,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 176,
+          "navigationWidth": 150.40625,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 931,
+      "zoom": 1.1,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 149,
+          "scrollWidth": 149,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 176,
+          "navigationWidth": 150.40625,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 149,
+          "scrollWidth": 149,
+          "fontSize": "12.8px",
+          "padding": "12.48px 12.8px",
+          "sidebarWidth": 176,
+          "navigationWidth": 150.40625,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "width": 819,
+      "zoom": 1.25,
+      "items": [
+        {
+          "text": "Personagens",
+          "textFits": true,
+          "clientWidth": 382,
+          "scrollWidth": 382,
+          "fontSize": "12.8px",
+          "padding": "10.4px 16px",
+          "sidebarWidth": 819,
+          "navigationWidth": 769.875,
+          "inside": true,
+          "visible": true
+        },
+        {
+          "text": "Crônicas",
+          "textFits": true,
+          "clientWidth": 382,
+          "scrollWidth": 382,
+          "fontSize": "12.8px",
+          "padding": "10.4px 16px",
+          "sidebarWidth": 819,
+          "navigationWidth": 769.875,
+          "inside": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "preservedIndexDuringRefresh": true
+    },
+    {
+      "navigationCycles": 5
+    }
+  ],
+  "errors": []
+}

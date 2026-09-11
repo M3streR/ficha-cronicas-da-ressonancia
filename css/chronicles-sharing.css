@@ -111,6 +111,24 @@
   justify-self: start;
 }
 
+.chronicle-invite-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.chronicle-invite-options label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.chronicle-invite-options select {
+  width: 100%;
+}
+
 .chronicle-invite-list {
   display: grid;
   gap: 12px;
@@ -153,7 +171,9 @@
 }
 
 .chronicle-invite-card.is-used,
-.chronicle-invite-card.is-revoked {
+.chronicle-invite-card.is-revoked,
+.chronicle-invite-card.is-expired,
+.chronicle-invite-card.is-limited {
   opacity: 0.66;
 }
 
@@ -167,11 +187,26 @@
 
 .chronicle-invite-card-top > div {
   width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: stretch;
+  gap: 4px 12px;
 }
 
 .chronicle-invite-card strong {
   font-size: 0.91rem;
 }
+
+.chronicle-invite-usage,
+.chronicle-invite-expiry {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.chronicle-invite-usage { grid-column: 1; }
+.chronicle-invite-expiry { grid-column: 1; }
+.chronicle-invite-status { grid-column: 2; grid-row: 1 / span 3; }
 
 .chronicle-invite-status {
   flex: 0 0 auto;
@@ -187,7 +222,9 @@
 }
 
 .is-used .chronicle-invite-status,
-.is-revoked .chronicle-invite-status {
+.is-revoked .chronicle-invite-status,
+.is-expired .chronicle-invite-status,
+.is-limited .chronicle-invite-status {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: rgba(245, 241, 255, 0.58);
@@ -236,13 +273,19 @@
     display: grid;
   }
 
+  .chronicle-invite-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .chronicle-sharing-actions .btn,
   .chronicle-invite-card-actions .btn {
     width: 100%;
   }
 
   .chronicle-invite-card-top > div {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
   }
+
+  .chronicle-invite-status { grid-column: 1; grid-row: auto; justify-self: start; }
 }

@@ -916,7 +916,6 @@ function showManagerSection(sectionId = 'characters', { focusPanel = false } = {
   const previousSection = managerView?.dataset.activeEnvironment;
   if (previousSection === 'chronicles' && activeSection !== 'chronicles') {
     resetChronicleCreationForm();
-    teardownChroniclesIndex();
     teardownChronicleDetail();
   }
   if (managerView) managerView.dataset.activeEnvironment = activeSection;
@@ -1443,6 +1442,8 @@ function teardownChroniclesIndex() {
   chroniclesRenderToken += 1;
   revokeChronicleCardObjectUrls();
   document.getElementById('chroniclesRecordGrid')?.replaceChildren();
+  const loading = document.getElementById('chroniclesLoadingState');
+  if (loading) loading.hidden = true;
 }
 
 function setChronicleFormFeedback(message = '', kind = '') {
@@ -2084,30 +2085,38 @@ function createChronicleRecordElement(chronicle, index) {
   return { card, coverImage, coverPlaceholder, openButton };
 }
 
-async function renderChroniclesIndex({ focusId = '' } = {}) {
+async function renderChroniclesIndex({ focusId = '', preserve = false } = {}) {
   const grid = document.getElementById('chroniclesRecordGrid');
   const emptyState = document.getElementById('chroniclesEmptyState');
+  const loadingState = document.getElementById('chroniclesLoadingState');
   const count = document.getElementById('chroniclesRecordCount');
-  if (!grid || !emptyState || !count) return;
+  if (!grid || !emptyState || !loadingState || !count) return;
 
   const renderToken = ++chroniclesRenderToken;
-  revokeChronicleCardObjectUrls();
-  grid.replaceChildren();
-  grid.hidden = true;
+  const hasVisibleRecords = preserve && !grid.hidden && grid.childElementCount > 0;
+  if (!hasVisibleRecords) {
+    revokeChronicleCardObjectUrls();
+    grid.replaceChildren();
+    grid.hidden = true;
+    count.textContent = '—';
+    count.setAttribute('aria-label', 'Carregando registros');
+  }
   emptyState.hidden = true;
+  loadingState.hidden = hasVisibleRecords;
   grid.setAttribute('aria-busy', 'true');
-  count.textContent = '—';
-  count.setAttribute('aria-label', 'Carregando registros');
 
   try {
     const chronicles = await getChroniclesStorage().listChronicles();
     if (renderToken !== chroniclesRenderToken) return;
 
+    const fragment = document.createDocumentFragment();
     const cards = chronicles.map((chronicle, index) => {
       const parts = createChronicleRecordElement(chronicle, index);
-      grid.appendChild(parts.card);
+      fragment.appendChild(parts.card);
       return { chronicle, ...parts };
     });
+    revokeChronicleCardObjectUrls();
+    grid.replaceChildren(fragment);
 
     count.textContent = String(chronicles.length).padStart(2, '0');
     count.setAttribute('aria-label', `${chronicles.length} ${chronicles.length === 1 ? 'registro' : 'registros'}`);
@@ -2146,14 +2155,19 @@ async function renderChroniclesIndex({ focusId = '' } = {}) {
   } catch (error) {
     if (renderToken !== chroniclesRenderToken) return;
     console.error('Não foi possível listar as Crônicas:', error);
-    emptyState.hidden = false;
-    emptyState.querySelector('strong').textContent = 'Não foi possível acessar o arquivo de Crônicas.';
-    emptyState.querySelector('span').textContent = 'Seus personagens permanecem intactos. Tente novamente neste navegador.';
-    count.textContent = '—';
-    count.setAttribute('aria-label', 'Registros indisponíveis');
+    if (!hasVisibleRecords) {
+      emptyState.hidden = false;
+      emptyState.querySelector('strong').textContent = 'Não foi possível acessar o arquivo de Crônicas.';
+      emptyState.querySelector('span').textContent = 'Seus personagens permanecem intactos. Tente novamente neste navegador.';
+      count.textContent = '—';
+      count.setAttribute('aria-label', 'Registros indisponíveis');
+    }
     showNotification('Não foi possível acessar as Crônicas neste navegador.', 'error');
   } finally {
-    if (renderToken === chroniclesRenderToken) grid.removeAttribute('aria-busy');
+    if (renderToken === chroniclesRenderToken) {
+      grid.removeAttribute('aria-busy');
+      loadingState.hidden = true;
+    }
   }
 }
 
@@ -3038,7 +3052,7 @@ async function showChroniclesIndex({ focusId = '' } = {}) {
   resetChronicleCreationForm();
   teardownChronicleDetail();
   setChroniclesSubview('index');
-  await renderChroniclesIndex({ focusId });
+  await renderChroniclesIndex({ focusId, preserve: true });
 }
 
 function openChronicleCreation() {
@@ -3459,6 +3473,15 @@ function bindChronicles() {
 function bindCharacterManager() {
   document.getElementById('managerCreateCharacter').addEventListener('click', createNewCharacter);
   document.querySelectorAll('[data-manager-section]').forEach(button => {
+    if (button.dataset.managerSection === 'chronicles') {
+      const prefetch = () => {
+        void window.ChroniclesOnline?.primeChronicles?.().catch(error => {
+          console.warn('Não foi possível antecipar as Crônicas Online.', error);
+        });
+      };
+      button.addEventListener('pointerenter', prefetch);
+      button.addEventListener('focus', prefetch);
+    }
     button.addEventListener('click', () => {
       const targetSection = button.dataset.managerSection;
       if (
@@ -3660,6 +3683,7 @@ window.addEventListener('cronicas:auth-change', event => {
   onlineAccountId = next;
   ++onlineChronicleRefreshEpoch;
   clearTimeout(onlineChronicleRefreshTimer);
+  teardownChroniclesIndex();
   if (activeChronicleRecord?.storage === 'online') {
     resetChronicleCreationForm();
     teardownChronicleDetail();
@@ -3674,7 +3698,7 @@ window.addEventListener('cronicas:online-chronicles-change', () => {
   const manager = document.getElementById('characterManagerView');
   const index = document.getElementById('chroniclesIndexView');
   if (manager?.dataset.activeEnvironment !== 'chronicles') return;
-  if (index && !index.hidden) { void renderChroniclesIndex(); return; }
+  if (index && !index.hidden) { void renderChroniclesIndex({ preserve: true }); return; }
   const id = activeChronicleId;
   const detail = document.getElementById('chronicleDetailView');
   if (activeChronicleRecord?.storage !== 'online' || !detail || detail.hidden) return;

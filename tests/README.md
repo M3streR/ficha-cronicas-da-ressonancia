@@ -13,3 +13,9 @@ Os demais arquivos desta pasta registram checkpoints históricos dos sistemas pr
 `node tests/visual-audit.cjs` captura 12 telas em 1920×1080, 1366×768, 1024×768, 768×1024, 430×932, 390×844, 360×800 e 320×720. Precisa de Playwright/Chromium e acesso ao CDN do cliente Supabase. Os JSONs ficam em `tests/artifacts/compact-audit`; as imagens completas ficam localmente e uma seleção acompanha o PR.
 
 Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase configurado e criam/excluem fixtures. Exigem `.test-secrets.json` ignorado pelo Git com três contas descartáveis no formato `[{"email":"...","password":"...","id":"uuid"}, ...]`. Não use contas reais. `AUDIT_ONLINE=1 node tests/storage-live.cjs` também valida publicação/sincronização, Combate, Realtime e captura nove telas Online nas oito resoluções. `node tests/cover-ui.cjs` verifica o formulário mobile, preview, formato inválido, falha de rede, retry, substituição e remoção. As contas temporárias da execução registrada foram removidas após a auditoria.
+
+## Estabilização de navegação e convites
+
+`node tests/ux-stabilization.cjs` percorre repetidamente Personagens e Crônicas, valida a sidebar em 1920×1080, 1366×768 e 1024 com zoom efetivo de 100%, 110% e 125%, e confirma que a lista de Crônicas permanece visível durante a atualização em segundo plano.
+
+`reusable-invites-live.cjs` é **opt-in** e usa cinco contas descartáveis. Com `AUDIT_INVITES=1`, ele cria um único link, aceita com três jogadores, passa pelo login no meio do convite, testa idempotência, revogação, remoção de membro, expiração, limite de usos e duas aceitações simultâneas. Todas as fixtures e contas devem ser removidas ao concluir a auditoria.
