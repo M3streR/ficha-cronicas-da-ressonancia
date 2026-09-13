@@ -39,16 +39,29 @@ const classDefinitions = {
     pnBase: 8,
     pnPerLevel: 2,
     description: 'O Vanguarda é o especialista em combate corpo a corpo. Sua função é permanecer na linha de frente, enfrentando os maiores perigos enquanto protege seus companheiros através da própria presença em combate. Essa Classe domina praticamente qualquer arma de curto alcance, desde espadas e lanças até machados, foices, manoplas, escudos e inúmeras outras possibilidades. Mais do que dominar uma arma específica, um Vanguarda aprende a transformar qualquer confronto direto em sua vantagem. Embora possua grande resistência e capacidade ofensiva, cada Vanguarda luta de maneira diferente, pois seu verdadeiro diferencial continua sendo o Nexo que carrega.',
-    ability: {
-      nome: 'Postura de Combate',
-      nivel: '1',
-      custo: '1 PN',
-      acao: 'Livre',
-      frequencia: 'Uma vez por rodada',
-      alcance: '',
-      duracao: '',
-      efeito: 'Você assume uma postura de combate até o início do seu próximo turno. Escolha um dos efeitos:\n\nPostura Agressiva: recebe +2 em testes de ataque corpo a corpo;\n\nPostura Defensiva: recebe +2 na Defesa.\n\nApenas uma postura pode permanecer ativa por vez.'
-    },
+    abilities: [
+      {
+        nome: 'Postura de Combate', nivel: '1', custo: '1 PN', acao: 'Livre',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: 'Até o início do seu próximo turno',
+        favoriteId: 'vanguarda',
+        efeito: 'Você assume uma postura de combate até o início do seu próximo turno. Escolha um dos efeitos:\n\nPostura Agressiva: recebe +2 em testes de ataque corpo a corpo;\n\nPostura Defensiva: recebe +2 na Defesa.\n\nApenas uma postura pode permanecer ativa por vez.'
+      },
+      {
+        nome: 'Ímpeto de Batalha', nivel: '4', custo: '1 PN', acao: '',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        efeito: 'Uma vez por rodada, depois de acertar um ataque corpo a corpo, você pode gastar 1 PN para se deslocar uma distância curta sem consumir sua ação de movimento.\n\nEsse deslocamento pode ser utilizado para continuar perseguindo o alvo atingido, aproximar-se de outro inimigo, ocupar uma posição próxima mais vantajosa, proteger uma passagem ou um aliado ou reposicionar-se dentro do confronto.\n\nO movimento deve manter o personagem envolvido diretamente no combate. Ele não representa uma fuga completa, mas um avanço agressivo ou uma mudança rápida de posição.'
+      },
+      {
+        nome: 'Tenacidade', nivel: '7', custo: '', acao: '',
+        frequencia: 'Uma vez por combate', alcance: '', duracao: 'Até o final do combate',
+        efeito: 'Uma vez por combate, quando seus PV forem reduzidos à metade do valor máximo ou menos, você recebe uma quantidade de PV temporários igual ao seu nível + Vigor.\n\nOs PV temporários absorvem dano antes dos seus PV normais e desaparecem ao final do combate caso ainda restem.\n\nAo ativar Tenacidade, você também pode utilizar imediatamente Postura de Combate, sem gastar PN e sem consumir uma ação. Essa ativação pode ocorrer mesmo que você já tenha utilizado Postura de Combate naquela rodada. Nesse caso, a nova postura substitui a anterior.'
+      },
+      {
+        nome: 'Postura Perfeita', nivel: '10', custo: '4 PN', acao: 'Livre',
+        frequencia: 'Uma vez por cena', alcance: '', duracao: '3 rodadas',
+        efeito: 'Uma vez por cena, como uma ação livre, você pode gastar 4 PN para ativar Postura Perfeita durante 3 rodadas. Enquanto ela estiver ativa, recebe +3 na Defesa, +3 em testes de ataque corpo a corpo e +3 no dano causado por ataques corpo a corpo.\n\nPostura Perfeita pode permanecer ativa ao mesmo tempo que Postura de Combate. Seus bônus são cumulativos.\n\nA duração começa na rodada em que a habilidade é ativada e termina no final da terceira rodada do personagem.'
+      }
+    ],
     progression: [
       ['1', 'Postura de Combate; 2 Manifestações iniciais; 6 perícias Praticantes'],
       ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
@@ -65,16 +78,29 @@ const classDefinitions = {
     pnBase: 10,
     pnPerLevel: 3,
     description: 'O Atirador especializou sua vida em eliminar ameaças à distância. Seja utilizando armas de fogo, arcos, bestas, facas de arremesso ou qualquer outro armamento de longo alcance, sua maior característica é a precisão. Enquanto outras Classes precisam se aproximar do perigo, o Atirador prefere analisar o campo de batalha, encontrar a melhor posição possível e atacar no momento exato. Quando combinado com um Nexo criativo, torna-se capaz de transformar projéteis comuns em técnicas extremamente perigosas e imprevisíveis.',
-    ability: {
-      nome: 'Mira Precisa',
-      nivel: '1',
-      custo: '1 PN',
-      acao: 'Livre',
-      frequencia: 'Uma vez por rodada',
-      alcance: '',
-      duracao: '',
-      efeito: 'Antes de realizar um ataque à distância, você pode rolar +1d20 no teste de ataque e manter apenas o maior resultado entre todos os dados.\n\nEsse dado adicional é temporário e não aumenta seu atributo de Agilidade.'
-    },
+    abilities: [
+      {
+        nome: 'Mira Precisa', nivel: '1', custo: '1 PN', acao: 'Livre',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        favoriteId: 'atirador',
+        efeito: 'Antes de realizar um ataque à distância, você pode rolar +1d20 no teste de ataque e manter apenas o maior resultado entre todos os dados.\n\nEsse dado adicional é temporário e não aumenta seu atributo de Agilidade.'
+      },
+      {
+        nome: 'Reposicionamento Tático', nivel: '4', custo: '', acao: '',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        efeito: 'Uma vez por rodada, depois de realizar um ataque à distância, você pode se deslocar uma distância curta sem consumir sua ação de movimento.\n\nVocê pode utilizar esse deslocamento para alcançar uma cobertura próxima, afastar-se de um inimigo, obter uma linha de visão melhor, mudar o ângulo de seus próximos ataques ou ocupar uma posição elevada ou protegida.\n\nO ataque não precisa acertar para permitir o reposicionamento. A habilidade representa a movimentação treinada que acontece logo após o disparo ou arremesso.'
+      },
+      {
+        nome: 'Ponto Fraco', nivel: '7', custo: '2 PN', acao: '',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        efeito: 'Uma vez por rodada, quando acertar um ataque à distância utilizando Mira Precisa, você pode gastar 2 PN para causar um dado adicional de dano da arma.\n\nO dado adicional deve ser do mesmo tipo utilizado no dano principal da arma. Por exemplo, 1d10 passa a 2d10, 2d6 passa a 3d6 e 3d4 passa a 4d4.\n\nBônus fixos de dano não são duplicados. Ponto Fraco deve ser ativado depois que o ataque acertar, mas antes da rolagem de dano.'
+      },
+      {
+        nome: 'Olho do Predador', nivel: '10', custo: '4 PN', acao: 'Livre',
+        frequencia: 'Uma vez por cena', alcance: '', duracao: '3 rodadas',
+        efeito: 'Uma vez por cena, como uma ação livre, você pode gastar 4 PN para ativar Olho do Predador durante 3 rodadas. Durante esse período, você recebe +3 em testes de ataque à distância, +3 no dano de ataques à distância, pode utilizar Mira Precisa gratuitamente uma vez por rodada, ignora penalidades provocadas pela distância e ignora os benefícios de cobertura parcial utilizados pelo alvo.\n\nCobertura total ainda impede o ataque caso você não consiga enxergar ou atingir o alvo. A utilização gratuita de Mira Precisa continua respeitando o limite de uma vez por rodada.'
+      }
+    ],
     progression: [
       ['1', 'Mira Precisa; 2 Manifestações iniciais; 6 perícias Praticantes'],
       ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
@@ -91,16 +117,29 @@ const classDefinitions = {
     pnBase: 16,
     pnPerLevel: 4,
     description: 'O Arcano dedica praticamente toda a sua vida ao domínio da Ressonância. Para essa Classe, o Nexo não é apenas uma ferramenta de combate, mas sua principal arma. Sua força está na criatividade e na capacidade de explorar ao máximo sua Assinatura, desenvolvendo habilidades capazes de controlar o campo de batalha, causar grandes quantidades de dano ou resolver situações das formas mais inesperadas. Apesar de possuir menor resistência física que outras Classes, um Arcano bem preparado pode mudar completamente o rumo de um combate através do uso inteligente de seu Nexo.',
-    ability: {
-      nome: 'Canalização Arcana',
-      nivel: '1',
-      custo: '1 PN adicional',
-      acao: 'Padrão',
-      frequencia: 'Uma vez por rodada',
-      alcance: '',
-      duracao: '',
-      efeito: 'Ao utilizar Canalização Arcana, escolha uma Manifestação conhecida que cause dano ou recupere Pontos de Vida e utilize-a como parte desta mesma ação.\n\nAo calcular o dano ou a cura dessa Manifestação, adicione +1 dado adicional do mesmo tipo utilizado por ela. Por exemplo, uma Manifestação que normalmente cause 2d8 de dano passa a causar 3d8, enquanto uma Manifestação que recupere 2d6 + Intelecto PV passa a recuperar 3d6 + Intelecto PV.\n\nO custo normal da Manifestação ainda deve ser pago, além do custo da Canalização Arcana. Canalização Arcana não aumenta efeitos que não utilizem dados de dano ou cura e não modifica outros efeitos da Manifestação.'
-    },
+    abilities: [
+      {
+        nome: 'Canalização Arcana', nivel: '1', custo: '1 PN adicional', acao: 'Padrão',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        favoriteId: 'arcano',
+        efeito: 'Ao utilizar Canalização Arcana, escolha uma Manifestação conhecida que cause dano ou recupere Pontos de Vida e utilize-a como parte desta mesma ação.\n\nAo calcular o dano ou a cura dessa Manifestação, adicione +1 dado adicional do mesmo tipo utilizado por ela. Por exemplo, uma Manifestação que normalmente cause 2d8 de dano passa a causar 3d8, enquanto uma Manifestação que recupere 2d6 + Intelecto PV passa a recuperar 3d6 + Intelecto PV.\n\nO custo normal da Manifestação ainda deve ser pago, além do custo da Canalização Arcana. Canalização Arcana não aumenta efeitos que não utilizem dados de dano ou cura e não modifica outros efeitos da Manifestação.'
+      },
+      {
+        nome: 'Moldagem Ressonante', nivel: '4', custo: '1 PN adicional', acao: '',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        efeito: 'Uma vez por rodada, ao utilizar uma Manifestação, você pode gastar 1 PN adicional para escolher um dos seguintes aprimoramentos: aumentar o alcance em uma categoria, aumentar a área afetada ou aumentar sua duração em 1 rodada.\n\nUma Manifestação de alcance curto poderia alcançar distância média, e uma de alcance médio poderia alcançar distância longa. O aumento de área deve ser determinado pelo mestre de acordo com a forma original da capacidade.\n\nA duração só pode ser aumentada caso a Manifestação permaneça ativa por rodadas. Efeitos instantâneos não recebem esse benefício. O aprimoramento escolhido precisa ser compatível com a Manifestação.'
+      },
+      {
+        nome: 'Canalização Acelerada', nivel: '7', custo: '4 PN adicionais', acao: '',
+        frequencia: 'Uma vez por rodada', alcance: '', duracao: '',
+        efeito: 'Uma vez por rodada, você pode gastar 4 PN adicionais para utilizar como ação de movimento uma Manifestação que normalmente exigiria uma ação padrão. O custo normal da Manifestação também deve ser pago.\n\nPor exemplo, caso uma Manifestação custe 3 PN, utilizá-la através de Canalização Acelerada custará um total de 7 PN. Depois disso, você ainda conserva sua ação padrão e pode utilizá-la normalmente, inclusive para realizar outra Manifestação.\n\nManifestações que exigem ação completa, reação, condições especiais ou preparação não podem ser aceleradas, salvo quando o mestre determinar que a capacidade é compatível com essa habilidade.'
+      },
+      {
+        nome: 'Convergência Arcana', nivel: '10', custo: 'Custos normais das Manifestações', acao: '',
+        frequencia: 'Uma vez por cena', alcance: '', duracao: '',
+        efeito: 'Uma vez por cena, quando utilizar uma Manifestação como ação padrão, você pode utilizar duas Manifestações diferentes como parte da mesma ação.\n\nAs duas Manifestações são resolvidas separadamente, exigem o pagamento normal de seus custos, podem possuir alvos e efeitos diferentes e seguem normalmente seus testes, alcances e limitações. Você não pode utilizar duas vezes a mesma Manifestação através de Convergência Arcana.\n\nEssa habilidade pode ser combinada com Canalização Acelerada. Nesse caso, você pode utilizar uma Manifestação como ação de movimento e outras duas através de Convergência Arcana como ação padrão, totalizando até três Manifestações no mesmo turno. Todos os custos precisam ser pagos normalmente.'
+      }
+    ],
     progression: [
       ['1', 'Canalização Arcana; 2 Manifestações iniciais; 6 perícias Praticantes'],
       ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
@@ -4971,6 +5010,7 @@ function handleSelectedPhoto(file, input) {
 
 function getAutomaticAbilityFavoriteId(className, ability = null) {
   const classId = normalizeFilterText(className).replace(/\s+/g, '-');
+  if (typeof ability?.favoriteId === 'string' && ability.favoriteId) return ability.favoriteId;
   if (!ability || !Array.isArray(classDefinitions[className]?.abilities)) return classId;
   const abilityId = normalizeFilterText(ability.nome).replace(/\s+/g, '-');
   return `${classId}-${ability.nivel}-${abilityId}`;
