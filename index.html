@@ -601,7 +601,9 @@
               <option>Vanguarda</option>
               <option>Atirador</option>
               <option>Arcano</option>
-              <option>Guardião</option>
+              <option value="Guardião" disabled>Guardião — escolha um caminho</option>
+              <option>Guardião Bastião</option>
+              <option>Guardião Regente</option>
             </select>
           </label>
           <label class="identity-level-field"><span>Nível</span><input id="nivel" type="number" min="1" max="11" value="1"></label>
@@ -849,6 +851,18 @@
           </div>
           <button class="btn small" id="adicionarHabilidade" type="button">+ Adicionar</button>
         </div>
+        <section class="class-reference" id="classReference" aria-live="polite" hidden>
+          <header class="class-reference-header">
+            <div>
+              <span class="section-kicker">Classe selecionada</span>
+              <h3 id="classReferenceTitle"></h3>
+            </div>
+            <span class="class-reference-level" id="classReferenceLevel"></span>
+          </header>
+          <p class="class-reference-description" id="classReferenceDescription"></p>
+          <dl class="class-reference-stats" id="classReferenceStats"></dl>
+          <div class="class-reference-progression" id="classReferenceProgression"></div>
+        </section>
         <div class="card-list" id="listaHabilidades"></div>
         <p class="favorite-empty-state" data-favorite-empty="ability" hidden>Nenhum favorito nesta seção.</p>
       </article>

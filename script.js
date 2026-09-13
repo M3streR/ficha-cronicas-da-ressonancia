@@ -86,6 +86,7 @@ const classDefinitions = {
     pvPerLevel: 5,
     pnBase: 12,
     pnPerLevel: 3,
+    legacy: true,
     ability: {
       nome: 'Pulso Restaurador',
       nivel: '1',
@@ -96,6 +97,82 @@ const classDefinitions = {
       duracao: '',
       efeito: 'Escolha você ou uma criatura em alcance curto que possa enxergar. O alvo recupera 2d4 + Intelecto Pontos de Vida.\n\nEssa habilidade não pode ser utilizada em personagens mortos.'
     }
+  },
+  'Guardião Bastião': {
+    pvBase: 22,
+    pvPerLevel: 5,
+    pnBase: 12,
+    pnPerLevel: 3,
+    description: 'O Guardião Bastião acredita que proteger também é uma forma de lutar. Feito para ocupar a linha de frente, ele transforma sua própria presença em uma barreira entre o perigo e seus aliados, resistindo a ataques, impedindo avanços e segurando posições que outros não conseguiriam manter. Um Bastião não luta apenas para sobreviver, mas para garantir que aqueles ao seu lado continuem de pé. Ainda assim, proteção não significa passividade: quando chega a hora de avançar, ele sabe usar sua força para pressionar o inimigo e abrir espaço para a equipe.',
+    abilities: [
+      {
+        nome: 'Guarda Ressonante', nivel: '1', custo: '1 PN', acao: 'Livre',
+        frequencia: 'Uma vez por rodada', alcance: 'Curto', duracao: 'Até o início do seu próximo turno',
+        efeito: 'Como uma Ação Livre, uma vez por rodada, você pode gastar 1 PN e escolher você ou um aliado em alcance curto que possa perceber. O alvo recebe +2 de Defesa até o início do seu próximo turno.\n\nVocê só pode manter uma criatura sob o efeito de Guarda Ressonante por vez. Utilizar essa habilidade novamente encerra o efeito anterior.'
+      },
+      {
+        nome: 'Intervenção Ressonante', nivel: '4', custo: '2 PN', acao: 'Reação',
+        frequencia: 'Uma vez por rodada', alcance: 'Curto', duracao: '',
+        efeito: 'Quando você ou um aliado em alcance curto sofrer dano, utilize sua Reação depois que o dano for anunciado, mas antes que seja aplicado aos PV, para reduzi-lo em 1d8 + Intelecto.\n\nA redução pode diminuir o dano até 0, mas nunca transformá-lo em cura. Você precisa perceber o aliado ou compreender que ele está sendo atacado.'
+      },
+      {
+        nome: 'Guarda Inabalável', nivel: '7', custo: '', acao: '',
+        frequencia: 'Ao usar Intervenção Ressonante', alcance: 'Curto', duracao: 'Até o início do seu próximo turno',
+        efeito: 'Sempre que utilizar Intervenção Ressonante em uma criatura, ela também recebe +2 de Defesa até o início do seu próximo turno.\n\nSe a Intervenção reduzir completamente o dano a 0, o alvo não pode ser empurrado, derrubado ou deslocado contra a própria vontade pelo efeito daquele ataque.'
+      },
+      {
+        nome: 'Fortaleza Ressonante', nivel: '10', custo: '5 PN', acao: 'Livre',
+        frequencia: 'Uma vez por cena', alcance: 'Curto', duracao: '3 rodadas',
+        efeito: 'Você cria uma área que acompanha seus movimentos. Você e seus aliados em alcance curto recebem +3 de Defesa, redução de 2 de dano contra todas as fontes e resistência contra efeitos que tentem empurrar, derrubar ou deslocar.\n\nUma vez durante a duração, quando você ou um aliado em alcance curto fosse reduzido a 0 PV, utilize sua Reação para fazer com que permaneça com 1 PV.'
+      }
+    ],
+    progression: [
+      ['1', 'Guarda Ressonante; 2 Manifestações iniciais; 6 perícias Praticantes'],
+      ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
+      ['4', 'Intervenção Ressonante'], ['5', 'Nova Manifestação'],
+      ['6', '+1 em um atributo; 2 avanços de domínio; desbloqueia Experiente'],
+      ['7', 'Guarda Inabalável'], ['8', 'Nova Manifestação'],
+      ['9', '+1 em um atributo; 2 avanços de domínio; desbloqueia Mestre'],
+      ['10', 'Fortaleza Ressonante'], ['11', 'Ápice do Nexo']
+    ]
+  },
+  'Guardião Regente': {
+    pvBase: 22,
+    pvPerLevel: 5,
+    pnBase: 12,
+    pnPerLevel: 3,
+    description: 'O Guardião Regente acredita que proteger um grupo também significa garantir que cada aliado consiga lutar em sua melhor condição. Especialista em suporte, restauração e controle do ritmo de combate, utiliza seu Nexo para fortalecer aliados, enfraquecer inimigos e impedir que pequenos problemas se transformem em derrotas. Sua função não é apenas curar: um Regente experiente observa o campo, identifica quem precisa de ajuda e interfere no momento certo.',
+    abilities: [
+      {
+        nome: 'Pulso Restaurador', nivel: '1', custo: '1 PN', acao: 'Padrão',
+        frequencia: 'Uma vez por rodada', alcance: 'Curto', duracao: '',
+        efeito: 'Escolha você ou uma criatura em alcance curto que possa enxergar. O alvo recupera 2d4 + Intelecto Pontos de Vida.\n\nPulso Restaurador não pode recuperar personagens mortos.'
+      },
+      {
+        nome: 'Ordem Ressonante', nivel: '4', custo: '2 PN', acao: 'Padrão',
+        frequencia: 'Uma vez por rodada', alcance: 'Curto', duracao: 'Até o início do seu próximo turno',
+        efeito: 'Escolha uma criatura em alcance curto e um efeito.\n\nFortalecer: um aliado recebe +1d20 no próximo Teste que realizar até o início do seu próximo turno.\n\nEnfraquecer: um inimigo realiza um Teste de Vontade contra seu Limiar de Ressonância. Se falhar, recebe -1d20 no próximo Teste que realizar até o início do seu próximo turno.'
+      },
+      {
+        nome: 'Regência Compartilhada', nivel: '7', custo: '+1 PN', acao: '',
+        frequencia: 'Ao usar Ordem Ressonante ou Pulso Restaurador', alcance: 'Curto', duracao: '',
+        efeito: 'Ao utilizar Ordem Ressonante, gaste 1 PN adicional para escolher uma segunda criatura em alcance curto. Cada criatura resolve seus efeitos e Testes separadamente.\n\nAo utilizar Pulso Restaurador, gaste 1 PN adicional para escolher uma segunda criatura em alcance curto. Ela recupera metade da cura total gerada, incluindo Intelecto e outros bônus, arredondada para baixo.'
+      },
+      {
+        nome: 'Campo de Regência', nivel: '10', custo: '5 PN', acao: 'Livre',
+        frequencia: 'Uma vez por cena', alcance: 'Curto', duracao: '3 rodadas',
+        efeito: 'A área acompanha seus movimentos. Aliados em alcance curto recebem +1d20 no primeiro Teste de cada rodada e +1d6 nas curas realizadas por habilidades do Guardião Regente.\n\nAntes do primeiro Teste de cada rodada, inimigos em alcance curto realizam Vontade contra seu Limiar de Ressonância; em caso de falha, recebem -1d20 nesse Teste. Uma vez durante a duração, remova uma Condição negativa de um aliado em alcance curto sem gastar ação adicional.'
+      }
+    ],
+    progression: [
+      ['1', 'Pulso Restaurador; 2 Manifestações iniciais; 6 perícias Praticantes'],
+      ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
+      ['4', 'Ordem Ressonante'], ['5', 'Nova Manifestação'],
+      ['6', '+1 em um atributo; 2 avanços de domínio; desbloqueia Experiente'],
+      ['7', 'Regência Compartilhada'], ['8', 'Nova Manifestação'],
+      ['9', '+1 em um atributo; 2 avanços de domínio; desbloqueia Mestre'],
+      ['10', 'Campo de Regência'], ['11', 'Ápice do Nexo']
+    ]
   }
 };
 
@@ -4862,8 +4939,41 @@ function handleSelectedPhoto(file, input) {
   input.value = '';
 }
 
-function getAutomaticAbilityFavoriteId(className) {
-  return normalizeFilterText(className).replace(/\s+/g, '-');
+function getAutomaticAbilityFavoriteId(className, ability = null) {
+  const classId = normalizeFilterText(className).replace(/\s+/g, '-');
+  if (!ability || !Array.isArray(classDefinitions[className]?.abilities)) return classId;
+  const abilityId = normalizeFilterText(ability.nome).replace(/\s+/g, '-');
+  return `${classId}-${ability.nivel}-${abilityId}`;
+}
+
+function getClassOfficialAbilities(className) {
+  const definition = classDefinitions[className];
+  if (!definition) return [];
+  if (Array.isArray(definition.abilities)) return definition.abilities;
+  return definition.ability ? [definition.ability] : [];
+}
+
+function getValidAutomaticAbilityFavoriteIds() {
+  const ids = new Set(['guardiao']);
+  Object.keys(classDefinitions).forEach(className => {
+    const abilities = getClassOfficialAbilities(className);
+    if (!abilities.length) ids.add(getAutomaticAbilityFavoriteId(className));
+    abilities.forEach(ability => ids.add(getAutomaticAbilityFavoriteId(className, ability)));
+  });
+  return ids;
+}
+
+function migrateLegacyGuardianAutomaticFavorite(className) {
+  if (className !== 'Guardião Regente') return;
+  if (!isPlainObject(state.automaticAbilityFavorites)) state.automaticAbilityFavorites = {};
+  if (state.automaticAbilityFavorites.guardiao !== true) return;
+  const pulso = getClassOfficialAbilities(className).find(ability => ability.nome === 'Pulso Restaurador');
+  if (!pulso) return;
+  const regentFavoriteId = getAutomaticAbilityFavoriteId(className, pulso);
+  if (state.automaticAbilityFavorites[regentFavoriteId] !== true) {
+    state.automaticAbilityFavorites[regentFavoriteId] = true;
+  }
+  delete state.automaticAbilityFavorites.guardiao;
 }
 
 function setFavoriteButtonState(card, favorite) {
@@ -6538,15 +6648,16 @@ function addDynamicCard(containerId, templateId, values = {}, defaultTitle = '',
   return card;
 }
 
-function addAutomaticClassAbility(className) {
+function addAutomaticClassAbility(className, ability) {
   const definition = classDefinitions[className];
-  if (!definition) return null;
+  if (!definition || !ability) return null;
 
   const template = document.getElementById('templateHabilidade');
   const card = template.content.firstElementChild.cloneNode(true);
   card.classList.add('automatic-class-ability');
   card.dataset.cardType = 'ability';
   card.dataset.automaticClass = className;
+  card.dataset.automaticAbility = ability.nome;
   card.open = false;
 
   const removeButton = card.querySelector('.remove-card');
@@ -6554,33 +6665,97 @@ function addAutomaticClassAbility(className) {
 
   const badge = document.createElement('span');
   badge.className = 'automatic-badge';
-  badge.textContent = `${className} · automática`;
+  badge.textContent = `${className} · oficial`;
   const favoriteButton = card.querySelector('.favorite-card-button');
   card.querySelector('summary').insertBefore(badge, favoriteButton);
 
-  const automaticAbilityId = getAutomaticAbilityFavoriteId(className);
+  const automaticAbilityId = getAutomaticAbilityFavoriteId(className, ability);
+  card.dataset.automaticAbilityId = automaticAbilityId;
   bindFavoriteButton(card, {
     favorite: state.automaticAbilityFavorites?.[automaticAbilityId] === true,
     automaticAbilityId
   });
 
   card.querySelectorAll('[data-field]').forEach(field => {
-    field.value = definition.ability[field.dataset.field] ?? '';
+    field.value = ability[field.dataset.field] ?? '';
     field.readOnly = true;
     field.classList.add('automatic-field');
   });
 
-  updateCardSummary(card, definition.ability.nome);
-  document.getElementById('listaHabilidades').prepend(card);
+  updateCardSummary(card, ability.nome);
+  const container = document.getElementById('listaHabilidades');
+  const firstPersonalAbility = container.querySelector('.editable-card:not(.automatic-class-ability)');
+  container.insertBefore(card, firstPersonalAbility);
   applyFavoriteFilter('ability');
   return card;
+}
+
+function appendClassReferenceStat(container, label, value) {
+  const wrapper = document.createElement('div');
+  const term = document.createElement('dt');
+  const description = document.createElement('dd');
+  term.textContent = label;
+  description.textContent = value;
+  wrapper.append(term, description);
+  container.appendChild(wrapper);
+}
+
+function renderClassReference(className, level) {
+  const reference = document.getElementById('classReference');
+  const definition = classDefinitions[className];
+  const hasReference = Boolean(definition?.progression || definition?.legacy);
+  reference.hidden = !hasReference;
+  reference.classList.toggle('legacy', Boolean(definition?.legacy));
+  if (!hasReference) return;
+
+  document.getElementById('classReferenceTitle').textContent = definition.legacy
+    ? 'Guardião legado'
+    : className;
+  document.getElementById('classReferenceLevel').textContent = definition.legacy
+    ? 'Escolha um caminho'
+    : `Nível ${level}`;
+  document.getElementById('classReferenceDescription').textContent = definition.legacy
+    ? 'Esta ficha foi criada antes da separação dos caminhos. Escolha Guardião Bastião ou Guardião Regente no campo Classe. Seus recursos e habilidades personalizadas serão preservados.'
+    : definition.description;
+
+  const stats = document.getElementById('classReferenceStats');
+  stats.replaceChildren();
+  appendClassReferenceStat(stats, 'PV iniciais', '22 + Vigor');
+  appendClassReferenceStat(stats, 'PN iniciais', '12 + Intelecto');
+  appendClassReferenceStat(stats, 'PS iniciais', '20');
+  appendClassReferenceStat(stats, 'Por nível', '+5 PV · +3 PN · +2 PS');
+
+  const progression = document.getElementById('classReferenceProgression');
+  progression.replaceChildren();
+  if (definition.legacy) return;
+  const heading = document.createElement('h4');
+  heading.textContent = 'Progressão';
+  const list = document.createElement('ol');
+  definition.progression.forEach(([progressionLevel, benefit]) => {
+    const item = document.createElement('li');
+    const marker = document.createElement('strong');
+    const text = document.createElement('span');
+    const unlocked = Number(progressionLevel) <= level;
+    marker.textContent = progressionLevel;
+    text.textContent = benefit;
+    item.classList.toggle('unlocked', unlocked);
+    item.setAttribute('aria-label', `Nível ${progressionLevel}: ${benefit}${unlocked ? ', alcançado' : ''}`);
+    item.append(marker, text);
+    list.appendChild(item);
+  });
+  progression.append(heading, list);
 }
 
 function syncClassAbility() {
   document.querySelectorAll('.automatic-class-ability').forEach(card => card.remove());
   const className = document.getElementById('classe').value;
-  if (classDefinitions[className]) addAutomaticClassAbility(className);
-  else applyFavoriteFilter('ability');
+  const level = integerBetween(document.getElementById('nivel').value, 1, 11);
+  migrateLegacyGuardianAutomaticFavorite(className);
+  getClassOfficialAbilities(className)
+    .filter(ability => integerBetween(ability.nivel, 1, 11) <= level)
+    .forEach(ability => addAutomaticClassAbility(className, ability));
+  renderClassReference(className, level);
+  applyFavoriteFilter('ability');
 }
 
 function getCardFieldValue(card, fieldName) {
@@ -6705,6 +6880,7 @@ function bindSimpleFields() {
         if (normalizedAttributeIds.includes('agilidade')) recalculateDefense();
         updateResonanceThreshold();
         recalculateClassResources({ trigger: 'nivel' });
+        syncClassAbility();
       }
 
       if (id === 'classe') {
@@ -7065,9 +7241,7 @@ function validateImportedSheet(imported) {
     if (!isPlainObject(imported.automaticAbilityFavorites)) {
       corrections.push('Os favoritos das habilidades automáticas foram ajustados.');
     } else {
-      const validAutomaticAbilityIds = new Set(
-        Object.keys(classDefinitions).map(getAutomaticAbilityFavoriteId)
-      );
+      const validAutomaticAbilityIds = getValidAutomaticAbilityFavoriteIds();
       for (const [abilityId, favorite] of Object.entries(imported.automaticAbilityFavorites)) {
         if (!validAutomaticAbilityIds.has(abilityId)) {
           corrections.push('Um favorito de habilidade automática desconhecida foi removido.');

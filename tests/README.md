@@ -19,3 +19,7 @@ Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase c
 `node tests/ux-stabilization.cjs` percorre repetidamente Personagens e Crônicas, valida a sidebar em 1920×1080, 1366×768 e 1024 com zoom efetivo de 100%, 110% e 125%, e confirma que a lista de Crônicas permanece visível durante a atualização em segundo plano.
 
 `reusable-invites-live.cjs` é **opt-in** e usa cinco contas descartáveis. Com `AUDIT_INVITES=1`, ele cria um único link, aceita com três jogadores, passa pelo login no meio do convite, testa idempotência, revogação, remoção de membro, expiração, limite de usos e duas aceitações simultâneas. Todas as fixtures e contas devem ser removidas ao concluir a auditoria.
+
+## Caminhos de Guardião
+
+`node tests/guardian-paths.test.cjs` valida a migração do Guardião legado, as trocas Bastião ↔ Regente, habilidades oficiais derivadas do nível, preservação de habilidades personalizadas e favoritos, persistência Local, payload Online e responsividade da seleção e da referência de Classe.
