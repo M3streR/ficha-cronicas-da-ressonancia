@@ -4040,7 +4040,7 @@ function bindQuickDice() {
 function calculateResonanceThreshold(level, intellect) {
   const safeLevel = integerBetween(level, 1, 11);
   const safeIntellect = integerBetween(intellect, 1, safeLevel === 11 ? 6 : 5);
-  return 15 + safeIntellect + Math.ceil(safeLevel / 2);
+  return 15 + safeIntellect + Math.floor(safeLevel / 2);
 }
 
 function updateResonanceThreshold() {

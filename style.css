@@ -8143,6 +8143,18 @@ button:disabled {
   z-index: 1;
 }
 
+.character-sheet-view > .app-header {
+  z-index: 60;
+}
+
+.character-sheet-view > .mobile-resource-bar {
+  z-index: 45;
+}
+
+.character-sheet-view > .mobile-nav {
+  z-index: 40;
+}
+
 .character-sheet-view .app-header {
   border-bottom-color: color-mix(in srgb, var(--color-focus) 18%, transparent);
   background:
@@ -8151,8 +8163,14 @@ button:disabled {
       transparent 26%,
       color-mix(in srgb, var(--color-info) 5%, transparent) 76%,
       transparent),
-    color-mix(in srgb, var(--color-bg-primary) 94%, transparent);
+    var(--color-bg-primary);
   box-shadow: 0 16px 40px rgba(1, 2, 12, 0.38);
+}
+
+@media (max-width: 1279px) {
+  .character-sheet-view > .app-header {
+    position: static;
+  }
 }
 
 .character-sheet-view .app-header::before {
@@ -8428,7 +8446,7 @@ button:disabled {
   .character-sheet-view .app-header {
     background:
       linear-gradient(115deg, color-mix(in srgb, var(--color-resonance-magenta) 6%, transparent), transparent 44%, color-mix(in srgb, var(--color-info) 5%, transparent)),
-      color-mix(in srgb, var(--color-bg-primary) 96%, transparent);
+      var(--color-bg-primary);
   }
 
   .sheet-layout {
