@@ -36,13 +36,18 @@ function names(cards) {
 
     const options = await page.locator('#classe option').evaluateAll(elements => elements.map(option => ({
       value: option.value,
-      disabled: option.disabled
+      disabled: option.disabled,
+      hidden: option.hidden
     })));
     assert.deepEqual(options.slice(-3), [
-      { value: 'Guardião', disabled: true },
-      { value: 'Guardião Bastião', disabled: false },
-      { value: 'Guardião Regente', disabled: false }
+      { value: 'Guardião', disabled: true, hidden: true },
+      { value: 'Guardião Bastião', disabled: false, hidden: false },
+      { value: 'Guardião Regente', disabled: false, hidden: false }
     ]);
+    assert.deepEqual(
+      options.filter(option => !option.hidden && !option.disabled).map(option => option.value),
+      ['', 'Vanguarda', 'Atirador', 'Arcano', 'Guardião Bastião', 'Guardião Regente']
+    );
 
     await page.evaluate(() => {
       const character = createEmptyCharacterState();
@@ -63,6 +68,64 @@ function names(cards) {
     assert.equal(await page.locator('.automatic-class-ability').count(), 1);
     assert.equal(await page.locator('.ability-card:not(.automatic-class-ability)').count(), 2);
     assert.match(await page.locator('#classReference').innerText(), /escolha Guardião Bastião ou Guardião Regente/i);
+
+    const legacyFlows = await page.evaluate(async () => {
+      const legacy = createEmptyCharacterState();
+      Object.assign(legacy.fields, { nome: 'Guardião Antigo', classe: 'Guardião', nivel: '5' });
+      legacy.abilities = [{ nome: 'Habilidade preservada', efeito: 'Conteúdo pessoal.' }];
+
+      const localId = 'guardian-legacy-local';
+      writeStoredCharacter(localId, legacy);
+      let manager = readCharacterManager() || createEmptyCharacterManager();
+      manager = setCharacterSummary(manager, localId, await createCharacterSummary(legacy));
+      writeCharacterManager(manager);
+      await openCharacter(localId);
+      const local = {
+        className: document.getElementById('classe').value,
+        title: document.getElementById('classReferenceTitle').textContent,
+        personalAbilities: state.abilities.map(ability => ability.nome)
+      };
+
+      const imported = JSON.parse(JSON.stringify(legacy));
+      imported.fields.nome = 'Guardião Importado';
+      const validation = validateImportedSheet(imported);
+      const importedId = await storeImportedCharacterAsNew(validation.normalized);
+      await openCharacter(importedId);
+      return {
+        local,
+        imported: {
+          valid: validation.valid,
+          normalizedClass: validation.normalized.fields.classe,
+          selectedClass: document.getElementById('classe').value,
+          title: document.getElementById('classReferenceTitle').textContent,
+          personalAbilities: state.abilities.map(ability => ability.nome)
+        }
+      };
+    });
+    assert.deepEqual(legacyFlows.local, {
+      className: 'Guardião', title: 'Guardião legado', personalAbilities: ['Habilidade preservada']
+    });
+    assert.deepEqual(legacyFlows.imported, {
+      valid: true,
+      normalizedClass: 'Guardião',
+      selectedClass: 'Guardião',
+      title: 'Guardião legado',
+      personalAbilities: ['Habilidade preservada']
+    });
+
+    await page.evaluate(() => {
+      const character = createEmptyCharacterState();
+      Object.assign(character.fields, {
+        classe: 'Guardião', nivel: '10', vigor: '3', intelecto: '4',
+        pvAtual: '33', pvMax: '70', pnAtual: '21', pnMax: '43', psAtual: '12', psMax: '38'
+      });
+      character.abilities = [
+        { nome: 'Pulso Restaurador', nivel: '3', efeito: 'Versão personalizada do jogador.', favorite: true },
+        { nome: 'Técnica Pessoal', nivel: '2', efeito: 'Não pertence à Classe.' }
+      ];
+      character.automaticAbilityFavorites = { guardiao: true };
+      restoreState(character);
+    });
 
     const initialResources = await page.evaluate(() => ['pvAtual', 'pvMax', 'pnAtual', 'pnMax', 'psAtual', 'psMax']
       .map(id => document.getElementById(id).value));

@@ -23,3 +23,5 @@ Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase c
 ## Caminhos de Guardião
 
 `node tests/guardian-paths.test.cjs` valida a migração do Guardião legado, as trocas Bastião ↔ Regente, habilidades oficiais derivadas do nível, preservação de habilidades personalizadas e favoritos, persistência Local, payload Online e responsividade da seleção e da referência de Classe.
+
+`node tests/class-reference.test.cjs` valida os painéis de Vanguarda, Atirador, Arcano, Guardião Bastião e Guardião Regente, a versão atual da Canalização Arcana, a ausência de automação das habilidades futuras e o layout nas oito resoluções de referência.

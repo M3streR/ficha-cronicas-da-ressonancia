@@ -38,6 +38,7 @@ const classDefinitions = {
     pvPerLevel: 6,
     pnBase: 8,
     pnPerLevel: 2,
+    description: 'O Vanguarda é o especialista em combate corpo a corpo. Sua função é permanecer na linha de frente, enfrentando os maiores perigos enquanto protege seus companheiros através da própria presença em combate. Essa Classe domina praticamente qualquer arma de curto alcance, desde espadas e lanças até machados, foices, manoplas, escudos e inúmeras outras possibilidades. Mais do que dominar uma arma específica, um Vanguarda aprende a transformar qualquer confronto direto em sua vantagem. Embora possua grande resistência e capacidade ofensiva, cada Vanguarda luta de maneira diferente, pois seu verdadeiro diferencial continua sendo o Nexo que carrega.',
     ability: {
       nome: 'Postura de Combate',
       nivel: '1',
@@ -47,13 +48,23 @@ const classDefinitions = {
       alcance: '',
       duracao: '',
       efeito: 'Você assume uma postura de combate até o início do seu próximo turno. Escolha um dos efeitos:\n\nPostura Agressiva: recebe +2 em testes de ataque corpo a corpo;\n\nPostura Defensiva: recebe +2 na Defesa.\n\nApenas uma postura pode permanecer ativa por vez.'
-    }
+    },
+    progression: [
+      ['1', 'Postura de Combate; 2 Manifestações iniciais; 6 perícias Praticantes'],
+      ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
+      ['4', 'Ímpeto de Batalha'], ['5', 'Nova Manifestação'],
+      ['6', '+1 em um atributo; 2 avanços de domínio; desbloqueia Experiente'],
+      ['7', 'Tenacidade'], ['8', 'Nova Manifestação'],
+      ['9', '+1 em um atributo; 2 avanços de domínio; desbloqueia Mestre'],
+      ['10', 'Postura Perfeita'], ['11', 'Ápice do Nexo']
+    ]
   },
   Atirador: {
     pvBase: 20,
     pvPerLevel: 5,
     pnBase: 10,
     pnPerLevel: 3,
+    description: 'O Atirador especializou sua vida em eliminar ameaças à distância. Seja utilizando armas de fogo, arcos, bestas, facas de arremesso ou qualquer outro armamento de longo alcance, sua maior característica é a precisão. Enquanto outras Classes precisam se aproximar do perigo, o Atirador prefere analisar o campo de batalha, encontrar a melhor posição possível e atacar no momento exato. Quando combinado com um Nexo criativo, torna-se capaz de transformar projéteis comuns em técnicas extremamente perigosas e imprevisíveis.',
     ability: {
       nome: 'Mira Precisa',
       nivel: '1',
@@ -63,23 +74,42 @@ const classDefinitions = {
       alcance: '',
       duracao: '',
       efeito: 'Antes de realizar um ataque à distância, você pode rolar +1d20 no teste de ataque e manter apenas o maior resultado entre todos os dados.\n\nEsse dado adicional é temporário e não aumenta seu atributo de Agilidade.'
-    }
+    },
+    progression: [
+      ['1', 'Mira Precisa; 2 Manifestações iniciais; 6 perícias Praticantes'],
+      ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
+      ['4', 'Reposicionamento Tático'], ['5', 'Nova Manifestação'],
+      ['6', '+1 em um atributo; 2 avanços de domínio; desbloqueia Experiente'],
+      ['7', 'Ponto Fraco'], ['8', 'Nova Manifestação'],
+      ['9', '+1 em um atributo; 2 avanços de domínio; desbloqueia Mestre'],
+      ['10', 'Olho do Predador'], ['11', 'Ápice do Nexo']
+    ]
   },
   Arcano: {
     pvBase: 16,
     pvPerLevel: 4,
     pnBase: 16,
     pnPerLevel: 4,
+    description: 'O Arcano dedica praticamente toda a sua vida ao domínio da Ressonância. Para essa Classe, o Nexo não é apenas uma ferramenta de combate, mas sua principal arma. Sua força está na criatividade e na capacidade de explorar ao máximo sua Assinatura, desenvolvendo habilidades capazes de controlar o campo de batalha, causar grandes quantidades de dano ou resolver situações das formas mais inesperadas. Apesar de possuir menor resistência física que outras Classes, um Arcano bem preparado pode mudar completamente o rumo de um combate através do uso inteligente de seu Nexo.',
     ability: {
       nome: 'Canalização Arcana',
       nivel: '1',
-      custo: '1 PN',
-      acao: 'Livre',
+      custo: '1 PN adicional',
+      acao: 'Padrão',
       frequencia: 'Uma vez por rodada',
       alcance: '',
       duracao: '',
-      efeito: 'Antes de realizar um teste relacionado a uma Manifestação, você pode rolar +1d20 e manter apenas o maior resultado entre todos os dados.\n\nEsse dado adicional é temporário e não aumenta permanentemente nenhum atributo.'
-    }
+      efeito: 'Ao utilizar Canalização Arcana, escolha uma Manifestação conhecida que cause dano ou recupere Pontos de Vida e utilize-a como parte desta mesma ação.\n\nAo calcular o dano ou a cura dessa Manifestação, adicione +1 dado adicional do mesmo tipo utilizado por ela. Por exemplo, uma Manifestação que normalmente cause 2d8 de dano passa a causar 3d8, enquanto uma Manifestação que recupere 2d6 + Intelecto PV passa a recuperar 3d6 + Intelecto PV.\n\nO custo normal da Manifestação ainda deve ser pago, além do custo da Canalização Arcana. Canalização Arcana não aumenta efeitos que não utilizem dados de dano ou cura e não modifica outros efeitos da Manifestação.'
+    },
+    progression: [
+      ['1', 'Canalização Arcana; 2 Manifestações iniciais; 6 perícias Praticantes'],
+      ['2', 'Nova Manifestação'], ['3', '+1 em um atributo; 2 avanços de domínio'],
+      ['4', 'Moldagem Ressonante'], ['5', 'Nova Manifestação'],
+      ['6', '+1 em um atributo; 2 avanços de domínio; desbloqueia Experiente'],
+      ['7', 'Canalização Acelerada'], ['8', 'Nova Manifestação'],
+      ['9', '+1 em um atributo; 2 avanços de domínio; desbloqueia Mestre'],
+      ['10', 'Convergência Arcana'], ['11', 'Ápice do Nexo']
+    ]
   },
   Guardião: {
     pvBase: 22,
@@ -6720,10 +6750,10 @@ function renderClassReference(className, level) {
 
   const stats = document.getElementById('classReferenceStats');
   stats.replaceChildren();
-  appendClassReferenceStat(stats, 'PV iniciais', '22 + Vigor');
-  appendClassReferenceStat(stats, 'PN iniciais', '12 + Intelecto');
+  appendClassReferenceStat(stats, 'PV iniciais', `${definition.pvBase} + Vigor`);
+  appendClassReferenceStat(stats, 'PN iniciais', `${definition.pnBase} + Intelecto`);
   appendClassReferenceStat(stats, 'PS iniciais', '20');
-  appendClassReferenceStat(stats, 'Por nível', '+5 PV · +3 PN · +2 PS');
+  appendClassReferenceStat(stats, 'Por nível', `+${definition.pvPerLevel} PV · +${definition.pnPerLevel} PN · +2 PS`);
 
   const progression = document.getElementById('classReferenceProgression');
   progression.replaceChildren();
