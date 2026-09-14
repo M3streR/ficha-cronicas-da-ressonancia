@@ -22,11 +22,9 @@
 /* Manager */
 .manager-topbar.manager-environment-brand { min-height: 64px; padding-block: .65rem; gap: .75rem; }
 .manager-topbar h1 { font-size: clamp(1.05rem, 1.8vw, 1.5rem); }
-.manager-workspace { min-height: calc(100dvh - 64px); grid-template-columns: minmax(184px, 12vw) minmax(0, 1fr); }
-.manager-sidebar { padding: 1rem .8rem; min-width: 0; }
-.manager-navigation { min-width: 0; }
+.manager-sidebar { padding: 1rem .8rem; }
 .manager-nav-item { overflow: visible; padding-inline: .8rem; white-space: nowrap; }
-.manager-content { min-width: 0; padding-top: 1rem; }
+.manager-content { padding-top: 1rem; }
 .manager-content-actions { margin-bottom: 1rem; }
 .character-gallery { grid-template-columns: repeat(auto-fill, minmax(195px, 230px)); gap: 1rem; }
 .manager-environment-characters .create-character-card, .character-card { min-height: 290px; }
@@ -116,16 +114,14 @@
 .site-entry-title { font-size: clamp(2rem, 5vw, 3.3rem); }
 
 @media (max-width: 1024px) {
-  .manager-workspace { grid-template-columns: 176px minmax(0, 1fr); }
   .chronicles-archive-header { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
   .new-chronicle-entry { max-width: 440px; min-height: 85px; }
   .chronicle-create-form { grid-template-columns: minmax(0, 1fr); }
   .chronicle-cover-section { max-width: 460px; }
 }
 @media (max-width: 900px) {
-  .manager-workspace { display: block; }
   .manager-sidebar { padding: .6rem var(--manager-gutter); }
-  .manager-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+  .manager-navigation { gap: .35rem; }
   .manager-nav-item { min-height: 44px; padding: .65rem 1rem; width: auto; text-align: center; }
 }
 @media (max-width: 768px) {

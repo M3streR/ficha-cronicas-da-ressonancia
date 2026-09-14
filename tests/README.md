@@ -10,7 +10,9 @@ Os demais arquivos desta pasta registram checkpoints históricos dos sistemas pr
 
 `node --test tests/online-chronicles.test.cjs tests/online-rolls.test.cjs tests/stabilization.test.cjs` cobre concorrência com microssegundos, destinos/resultados de rolagem, subscriptions atrasadas, reserva de upload e falhas de cleanup.
 
-`node tests/visual-audit.cjs` captura 12 telas em 1920×1080, 1366×768, 1024×768, 768×1024, 430×932, 390×844, 360×800 e 320×720. Precisa de Playwright/Chromium e acesso ao CDN do cliente Supabase. Os JSONs ficam em `tests/artifacts/compact-audit`; as imagens completas ficam localmente e uma seleção acompanha o PR.
+`node tests/visual-audit.cjs` captura 12 telas em 1920×1080, 1366×768, 1280×800, 1279×800, 1024×768, 768×1024, 430×932, 390×844, 360×800 e 320×720. O relatório também registra as medidas computadas dos containers estruturais. Precisa de Playwright/Chromium; quando o cliente Online não estiver disponível, a tela de Auth é ignorada e as demais continuam sendo auditadas. Os JSONs ficam em `tests/artifacts/compact-audit`; as imagens completas ficam localmente e uma seleção acompanha o PR.
+
+A linha de base da fundação estrutural está em `tests/artifacts/layout-foundation`: Gerenciador, índice de Crônicas e Ficha nas dez larguras, acompanhados por `audit-summary.json` com a comparação antes/depois e as medidas da transição 1280/1279 px.
 
 Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase configurado e criam/excluem fixtures. Exigem `.test-secrets.json` ignorado pelo Git com três contas descartáveis no formato `[{"email":"...","password":"...","id":"uuid"}, ...]`. Não use contas reais. `AUDIT_ONLINE=1 node tests/storage-live.cjs` também valida publicação/sincronização, Combate, Realtime e captura nove telas Online nas oito resoluções. `node tests/cover-ui.cjs` verifica o formulário mobile, preview, formato inválido, falha de rede, retry, substituição e remoção. As contas temporárias da execução registrada foram removidas após a auditoria.
 
