@@ -16,7 +16,7 @@ const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 const pericias = [
   ['Acrobacia', 'Vigor'], ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
   ['Carisma', 'Presença'], ['Ciências', 'Intelecto'], ['Combate', 'Força'],
-  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'], ['Enganação', 'Presença'],
+  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'],
   ['Fortitude', 'Vigor'], ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
   ['Intuição', 'Presença'], ['Investigação', 'Intelecto'], ['Medicina', 'Intelecto'],
   ['Percepção', 'Presença'], ['Pilotagem', 'Agilidade'], ['Pontaria', 'Agilidade'],
@@ -25,12 +25,24 @@ const pericias = [
   ['Vontade', 'Presença']
 ];
 
+const legacyPericias = [
+  ['Enganação', 'Presença']
+];
+
 const graus = {
   'Sem Domínio': 0,
   'Praticante': 3,
   'Experiente': 6,
   'Mestre': 9
 };
+
+const skillDegreeSteps = {
+  'Sem Domínio': 0,
+  'Praticante': 1,
+  'Experiente': 2,
+  'Mestre': 3
+};
+const INITIAL_PRACTITIONER_SKILLS = 6;
 
 const classDefinitions = {
   Vanguarda: {
@@ -285,6 +297,8 @@ const favoriteFilterModes = {
   ability: 'all',
   manifestation: 'all'
 };
+
+let loadedSkillDistributionWasIncompatible = false;
 
 const favoriteSectionContainers = {
   equipment: 'listaEquipamentos',
@@ -4497,11 +4511,18 @@ function restoreState(saved) {
 
   setPhoto(state.photo);
 
+  syncLegacySkillRows();
   document.querySelectorAll('.skill-row').forEach(row => {
-    const selected = state.skills[row.dataset.skill] || 'Sem Domínio';
-    row.querySelector('select').value = selected;
+    const selected = Object.prototype.hasOwnProperty.call(graus, state.skills[row.dataset.skill])
+      ? state.skills[row.dataset.skill]
+      : 'Sem Domínio';
+    const select = row.querySelector('select');
+    select.value = selected;
+    select.dataset.previousDegree = selected;
     updateSkillBonus(row);
   });
+  loadedSkillDistributionWasIncompatible = analyzeSkillDistribution().incompatible;
+  updateSkillProgressionUI();
   applySkillFilters();
 
   restoreDynamicList('listaEquipamentos', 'templateEquipamento', state.equipment, 'Novo equipamento');
@@ -4536,30 +4557,255 @@ function restoreDynamicList(containerId, templateId, items, defaultTitle) {
   items.forEach(item => addDynamicCard(containerId, templateId, item, defaultTitle, { startOpen: false }));
 }
 
+function createSkillRow(nome, atributo, { legacy = false } = {}) {
+  const row = document.createElement('div');
+  row.className = `skill-row${legacy ? ' legacy-skill-row' : ''}`;
+  row.dataset.skill = nome;
+  row.dataset.skillAttribute = normalizeFilterText(atributo);
+  row.dataset.skillLegacy = String(legacy);
+  row.innerHTML = `
+    <div class="skill-name">
+      ${nome}
+      ${legacy ? '<span class="legacy-skill-badge">Legado</span>' : ''}
+      <span class="skill-attribute">${atributo}</span>
+    </div>
+    <select aria-label="Grau de domínio em ${nome}" aria-describedby="skillProgressAvailability skillProgressFeedback skillCompatibilityWarning">
+      ${Object.keys(graus).map(grau => `<option>${grau}</option>`).join('')}
+    </select>
+    <span class="skill-bonus">+0</span>
+  `;
+  const select = row.querySelector('select');
+  select.dataset.previousDegree = 'Sem Domínio';
+  select.addEventListener('change', () => handleSkillDegreeChange(row));
+  return row;
+}
+
 function buildSkills() {
   const container = document.getElementById('listaPericias');
   container.innerHTML = '';
-
   pericias.forEach(([nome, atributo]) => {
-    const row = document.createElement('div');
-    row.className = 'skill-row';
-    row.dataset.skill = nome;
-    row.dataset.skillAttribute = normalizeFilterText(atributo);
-    row.innerHTML = `
-      <div class="skill-name">${nome}<span class="skill-attribute">${atributo}</span></div>
-      <select aria-label="Grau de domínio em ${nome}">
-        ${Object.keys(graus).map(grau => `<option>${grau}</option>`).join('')}
-      </select>
-      <span class="skill-bonus">+0</span>
-    `;
-    row.querySelector('select').addEventListener('change', () => {
-      updateSkillBonus(row);
-      recalculateDefense();
-      applySkillFilters();
-      scheduleSave();
-    });
+    container.appendChild(createSkillRow(nome, atributo));
+  });
+}
+
+function syncLegacySkillRows() {
+  const section = document.getElementById('legacySkillsSection');
+  const container = document.getElementById('listaPericiasLegado');
+  if (!section || !container) return;
+  container.replaceChildren();
+
+  legacyPericias.forEach(([nome, atributo]) => {
+    if (!Object.prototype.hasOwnProperty.call(state.skills, nome)) return;
+    const row = createSkillRow(nome, atributo, { legacy: true });
+    const select = row.querySelector('select');
+    const savedDegree = Object.prototype.hasOwnProperty.call(graus, state.skills[nome])
+      ? state.skills[nome]
+      : 'Sem Domínio';
+    select.value = savedDegree;
+    select.dataset.previousDegree = savedDegree;
+    updateSkillBonus(row);
     container.appendChild(row);
   });
+
+  section.hidden = container.childElementCount === 0;
+}
+
+function getSkillAdvancesForLevel(level) {
+  const safeLevel = integerBetween(level, 1, 11);
+  return (safeLevel >= 3 ? 2 : 0) + (safeLevel >= 6 ? 2 : 0) + (safeLevel >= 9 ? 2 : 0);
+}
+
+function getMaximumSkillDegreeStep(level) {
+  const safeLevel = integerBetween(level, 1, 11);
+  if (safeLevel >= 9) return skillDegreeSteps.Mestre;
+  if (safeLevel >= 6) return skillDegreeSteps.Experiente;
+  return skillDegreeSteps.Praticante;
+}
+
+function getOfficialSkillDegrees() {
+  return Object.fromEntries([...document.querySelectorAll('#listaPericias .skill-row')].map(row => [
+    row.dataset.skill,
+    row.querySelector('select').value
+  ]));
+}
+
+function analyzeSkillDistribution(
+  degrees = getOfficialSkillDegrees(),
+  level = integerBetween(document.getElementById('nivel')?.value, 1, 11)
+) {
+  const safeLevel = integerBetween(level, 1, 11);
+  const entries = pericias.map(([name]) => ({
+    name,
+    degree: Object.prototype.hasOwnProperty.call(skillDegreeSteps, degrees[name])
+      ? degrees[name]
+      : 'Sem Domínio',
+    step: skillDegreeSteps[degrees[name]] || 0
+  }));
+  const trainedCount = entries.filter(entry => entry.step >= skillDegreeSteps.Praticante).length;
+  const initialUsed = Math.min(trainedCount, INITIAL_PRACTITIONER_SKILLS);
+  const advancesEarned = getSkillAdvancesForLevel(safeLevel);
+  const advancesUsed = (
+    Math.max(0, trainedCount - INITIAL_PRACTITIONER_SKILLS)
+    + entries.reduce((total, entry) => total + Math.max(0, entry.step - skillDegreeSteps.Praticante), 0)
+  );
+  const lockedExperienced = safeLevel < 6
+    ? entries.filter(entry => entry.step === skillDegreeSteps.Experiente).map(entry => entry.name)
+    : [];
+  const lockedMaster = safeLevel < 9
+    ? entries.filter(entry => entry.step === skillDegreeSteps.Mestre).map(entry => entry.name)
+    : [];
+  const excessAdvances = Math.max(0, advancesUsed - advancesEarned);
+
+  return {
+    level: safeLevel,
+    trainedCount,
+    initialUsed,
+    initialRemaining: Math.max(0, INITIAL_PRACTITIONER_SKILLS - initialUsed),
+    advancesEarned,
+    advancesUsed,
+    advancesAvailable: Math.max(0, advancesEarned - advancesUsed),
+    excessAdvances,
+    lockedExperienced,
+    lockedMaster,
+    incompatible: excessAdvances > 0 || lockedExperienced.length > 0 || lockedMaster.length > 0
+  };
+}
+
+function validateSkillDegreeChange(row, nextDegree) {
+  const select = row.querySelector('select');
+  const previousDegree = select.dataset.previousDegree || select.value || 'Sem Domínio';
+  const previousStep = skillDegreeSteps[previousDegree] || 0;
+  const nextStep = skillDegreeSteps[nextDegree];
+  if (nextStep === undefined) return { allowed: false, message: 'Escolha um grau de domínio reconhecido.' };
+
+  if (row.dataset.skillLegacy === 'true') {
+    return nextStep <= previousStep
+      ? { allowed: true }
+      : { allowed: false, message: `${row.dataset.skill} é um dado legado e não pode receber novos avanços.` };
+  }
+  if (nextStep <= previousStep) return { allowed: true };
+  if (nextStep - previousStep > 1) {
+    return { allowed: false, message: 'Cada avanço eleva a perícia em apenas um grau.' };
+  }
+
+  const level = integerBetween(document.getElementById('nivel')?.value, 1, 11);
+  if (nextStep > getMaximumSkillDegreeStep(level)) {
+    const requiredLevel = nextStep === skillDegreeSteps.Mestre ? 9 : 6;
+    return { allowed: false, message: `${nextDegree} fica disponível somente a partir do nível ${requiredLevel}.` };
+  }
+
+  const currentDegrees = getOfficialSkillDegrees();
+  currentDegrees[row.dataset.skill] = previousDegree;
+  const current = analyzeSkillDistribution(currentDegrees, level);
+  if (current.incompatible) {
+    return { allowed: false, message: 'Corrija primeiro a distribuição incompatível antes de aplicar novos avanços.' };
+  }
+
+  const candidateDegrees = { ...currentDegrees };
+  candidateDegrees[row.dataset.skill] = nextDegree;
+  const candidate = analyzeSkillDistribution(candidateDegrees, level);
+  if (candidate.advancesUsed > candidate.advancesEarned) {
+    return {
+      allowed: false,
+      message: level < 3 && candidate.trainedCount > INITIAL_PRACTITIONER_SKILLS
+        ? 'No nível 1, apenas 6 perícias podem começar como Praticante.'
+        : 'Não há avanços de domínio disponíveis para esta melhoria.'
+    };
+  }
+  return { allowed: true };
+}
+
+function updateSkillSelectAvailability(analysis = analyzeSkillDistribution()) {
+  document.querySelectorAll('.skill-row').forEach(row => {
+    const select = row.querySelector('select');
+    const currentDegree = select.value;
+    const currentStep = skillDegreeSteps[currentDegree] || 0;
+    [...select.options].forEach(option => {
+      const optionStep = skillDegreeSteps[option.value] || 0;
+      option.disabled = option.value !== currentDegree
+        && optionStep > currentStep
+        && !validateSkillDegreeChange(row, option.value).allowed;
+    });
+
+    const lockedByLevel = (
+      (currentStep === skillDegreeSteps.Experiente && analysis.level < 6)
+      || (currentStep === skillDegreeSteps.Mestre && analysis.level < 9)
+    );
+    row.classList.toggle('is-incompatible', row.dataset.skillLegacy !== 'true' && lockedByLevel);
+    select.setAttribute('aria-invalid', String(row.dataset.skillLegacy !== 'true' && lockedByLevel));
+    if (row.dataset.skillLegacy === 'true') {
+      select.title = 'Conteúdo legado: o grau pode ser mantido ou reduzido, mas não aumentado.';
+    } else if (analysis.incompatible) {
+      select.title = 'Reduza graus incompatíveis antes de aplicar novos avanços.';
+    } else {
+      select.title = `Até ${Object.keys(skillDegreeSteps).find(name => skillDegreeSteps[name] === getMaximumSkillDegreeStep(analysis.level))}.`;
+    }
+  });
+}
+
+function updateSkillProgressionUI(feedback = '', feedbackType = '') {
+  const analysis = analyzeSkillDistribution();
+  const initialCount = document.getElementById('skillInitialCount');
+  const advanceCount = document.getElementById('skillAdvanceCount');
+  const availability = document.getElementById('skillProgressAvailability');
+  const feedbackElement = document.getElementById('skillProgressFeedback');
+  const warning = document.getElementById('skillCompatibilityWarning');
+  const warningText = document.getElementById('skillCompatibilityText');
+
+  if (initialCount) initialCount.value = `${analysis.initialUsed} / ${INITIAL_PRACTITIONER_SKILLS}`;
+  if (advanceCount) advanceCount.value = `${analysis.advancesUsed} / ${analysis.advancesEarned}`;
+  if (availability) {
+    const unlocked = analysis.level >= 9
+      ? 'Praticante, Experiente e Mestre'
+      : analysis.level >= 6 ? 'Praticante e Experiente' : 'Praticante';
+    const remaining = analysis.initialRemaining > 0
+      ? `${analysis.initialRemaining} escolha(s) inicial(is) restante(s)`
+      : `${analysis.advancesAvailable} avanço(s) disponível(is)`;
+    availability.textContent = `Graus liberados: ${unlocked} · ${remaining}.`;
+  }
+  if (feedbackElement) {
+    feedbackElement.textContent = feedback;
+    feedbackElement.classList.toggle('warning', feedbackType === 'warning');
+  }
+
+  if (warning && warningText) {
+    const issues = [];
+    if (analysis.excessAdvances) issues.push(`${analysis.excessAdvances} avanço(s) acima do permitido`);
+    if (analysis.lockedExperienced.length) issues.push(`Experiente antes do nível 6: ${analysis.lockedExperienced.join(', ')}`);
+    if (analysis.lockedMaster.length) issues.push(`Mestre antes do nível 9: ${analysis.lockedMaster.join(', ')}`);
+    warning.hidden = !analysis.incompatible;
+    if (analysis.incompatible) {
+      const origin = loadedSkillDistributionWasIncompatible ? 'A distribuição carregada' : 'A distribuição atual';
+      warningText.textContent = `${origin} não segue a progressão da Alpha 1.0: ${issues.join('; ')}. Os valores foram preservados. Reduza os graus manualmente para corrigir.`;
+    } else {
+      warningText.textContent = '';
+      loadedSkillDistributionWasIncompatible = false;
+    }
+  }
+
+  updateSkillSelectAvailability(analysis);
+  return analysis;
+}
+
+function handleSkillDegreeChange(row) {
+  const select = row.querySelector('select');
+  const nextDegree = select.value;
+  const validation = validateSkillDegreeChange(row, nextDegree);
+  if (!validation.allowed) {
+    select.value = select.dataset.previousDegree || 'Sem Domínio';
+    updateSkillBonus(row);
+    updateSkillProgressionUI(validation.message, 'warning');
+    select.focus({ preventScroll: true });
+    return false;
+  }
+
+  select.dataset.previousDegree = nextDegree;
+  updateSkillBonus(row);
+  recalculateDefense();
+  applySkillFilters();
+  updateSkillProgressionUI();
+  scheduleSave();
+  return true;
 }
 
 function updateSkillBonus(row) {
@@ -4586,7 +4832,7 @@ function applySkillFilters() {
   const searchInput = document.getElementById('skillSearch');
   const attributeSelect = document.getElementById('skillAttributeFilter');
   const activeDomainButton = document.querySelector('[data-skill-domain].active');
-  const rows = [...document.querySelectorAll('.skill-row')];
+  const rows = [...document.querySelectorAll('#listaPericias .skill-row')];
   if (!searchInput || !attributeSelect || !activeDomainButton) return;
 
   const query = normalizeFilterText(searchInput.value);
@@ -6919,6 +7165,7 @@ function bindSimpleFields() {
         element.value = restoredLevel;
         element.dataset.lastValidValue = String(restoredLevel);
         updateResonanceThreshold();
+        updateSkillProgressionUI();
       });
     }
 
@@ -6951,6 +7198,7 @@ function bindSimpleFields() {
         updateResonanceThreshold();
         recalculateClassResources({ trigger: 'nivel' });
         syncClassAbility();
+        updateSkillProgressionUI();
       }
 
       if (id === 'classe') {

@@ -32,3 +32,4 @@ jobs:
           node tests/combates-flow.test.cjs
           node tests/free-rolls.test.cjs
           node tests/ux-stabilization.cjs
+          node tests/skills-progression.test.cjs

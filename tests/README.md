@@ -25,3 +25,7 @@ Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase c
 `node tests/guardian-paths.test.cjs` valida a migração do Guardião legado, as trocas Bastião ↔ Regente, habilidades oficiais derivadas do nível, preservação de habilidades personalizadas e favoritos, persistência Local, payload Online e responsividade da seleção e da referência de Classe.
 
 `node tests/class-reference.test.cjs` valida os painéis de Vanguarda, Atirador, Arcano, Guardião Bastião e Guardião Regente, habilidades oficiais derivadas nos níveis 1, 4, 7 e 10, trocas de nível e Classe, favoritos, fluxos Local e Online e o layout nas oito resoluções de referência.
+
+## Progressão de Perícias
+
+`node tests/skills-progression.test.cjs` valida as 26 Perícias oficiais, as seis escolhas iniciais, os avanços dos níveis 3, 6 e 9, os limites de Experiente e Mestre, mudanças repetidas de nível e a preservação de distribuições antigas e de Enganação como conteúdo legado. Também cobre importação, armazenamento Local, snapshot Online, acessibilidade básica e as oito resoluções de referência.

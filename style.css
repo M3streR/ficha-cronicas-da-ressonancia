@@ -6314,6 +6314,94 @@ body.notes-view-open {
 }
 
 /* Alpha — Perícias como registro técnico de domínio */
+.skill-progress-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: -0.2rem 0 0.72rem;
+  padding: 0.68rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent-active) 22%, transparent);
+  border-radius: 3px 11px 3px 11px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--color-accent) 9%, var(--color-surface-primary)), var(--color-bg-secondary));
+}
+
+.skill-progress-metric {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.skill-progress-metric span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 820;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.skill-progress-metric output {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-progress-summary > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 0.48rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent-active) 14%, transparent);
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.4;
+}
+
+.skill-progress-feedback {
+  min-height: 0;
+  margin: 0 0 0.65rem;
+  color: var(--accent-strong);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.skill-progress-feedback:empty {
+  display: none;
+}
+
+.skill-progress-feedback.warning {
+  color: var(--color-warning);
+}
+
+.skill-compatibility-warning {
+  margin: 0 0 0.72rem;
+  padding: 0.65rem 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 38%, transparent);
+  border-left: 3px solid var(--color-warning);
+  border-radius: 2px 9px 2px 9px;
+  background: color-mix(in srgb, var(--color-warning) 7%, var(--color-surface-primary));
+}
+
+.skill-compatibility-warning[hidden],
+.legacy-skills-section[hidden] {
+  display: none;
+}
+
+.skill-compatibility-warning strong {
+  color: var(--color-warning);
+  font-size: 0.72rem;
+}
+
+.skill-compatibility-warning p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.67rem;
+  line-height: 1.45;
+}
+
 .skills-panel .panel-help {
   margin: -0.15rem 0 0.85rem;
   padding: 0.45rem 0 0.45rem 0.65rem;
@@ -6449,6 +6537,16 @@ body.notes-view-open {
   background-position: left center;
 }
 
+.skill-row.is-incompatible {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 6%, transparent);
+}
+
+.skill-row select[aria-invalid="true"] {
+  border-bottom-color: color-mix(in srgb, var(--color-warning) 58%, transparent);
+  color: var(--color-warning);
+}
+
 .skill-name {
   min-width: 0;
   color: var(--text);
@@ -6480,6 +6578,55 @@ body.notes-view-open {
   color: var(--muted);
   font-size: 0.7rem;
   font-weight: 720;
+}
+
+.legacy-skills-section {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 26%, transparent);
+  border-radius: 3px 11px 3px 11px;
+  background: color-mix(in srgb, var(--color-warning) 4%, var(--color-surface-primary));
+}
+
+.legacy-skills-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.legacy-skills-heading h3 {
+  margin: 0.12rem 0 0;
+  font-size: 0.88rem;
+}
+
+.legacy-skills-heading > span,
+.legacy-skill-badge {
+  color: var(--color-warning);
+  font-size: 0.56rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.legacy-skill-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+}
+
+.legacy-skills-section > p {
+  margin: 0.45rem 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.legacy-skills-list {
+  border-color: color-mix(in srgb, var(--color-warning) 22%, transparent);
+}
+
+.legacy-skill-row {
+  border-left-color: color-mix(in srgb, var(--color-warning) 52%, transparent);
 }
 
 .skill-row select:hover:not(:focus) {
@@ -6525,12 +6672,28 @@ body.notes-view-open {
 }
 
 @media (max-width: 620px) {
+  .skill-progress-summary {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+    padding: 0.62rem;
+  }
+
+  .skill-progress-summary > p {
+    grid-column: 1;
+  }
+
+  .legacy-skills-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
   .skill-filters {
     padding-inline: 0.58rem;
   }
 
   .skill-row {
-    grid-template-columns: minmax(0, 1fr) 108px 42px;
+    grid-template-columns: minmax(0, 1fr) 118px 42px;
     gap: 0.4rem;
     padding-inline: 0.55rem 0.35rem;
   }

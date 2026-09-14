@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
   <title>Ficha — Crônicas da Ressonância</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-13-threshold-header">
+  <link rel="stylesheet" href="style.css?v=2026-09-14-skills-progression">
   <link rel="stylesheet" href="css/chronicles-workspace.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/account-auth.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/chronicles-online.css?v=2026-09-11-stable">
@@ -777,6 +777,22 @@
           <h2>Perícias</h2>
         </div>
       </div>
+      <section class="skill-progress-summary" id="skillProgressSummary" aria-label="Progressão de Perícias">
+        <div class="skill-progress-metric">
+          <span>Perícias iniciais</span>
+          <output id="skillInitialCount">0 / 6</output>
+        </div>
+        <div class="skill-progress-metric">
+          <span>Avanços utilizados</span>
+          <output id="skillAdvanceCount">0 / 0</output>
+        </div>
+        <p id="skillProgressAvailability">Graus liberados: Praticante · 6 escolhas iniciais restantes.</p>
+      </section>
+      <p class="skill-progress-feedback" id="skillProgressFeedback" role="status" aria-live="polite"></p>
+      <aside class="skill-compatibility-warning" id="skillCompatibilityWarning" role="status" aria-live="polite" hidden>
+        <strong>Distribuição incompatível</strong>
+        <p id="skillCompatibilityText"></p>
+      </aside>
       <div class="skill-filters" aria-label="Filtros de perícias">
         <label class="skill-search">
           <span>Buscar por nome</span>
@@ -802,10 +818,21 @@
             </select>
           </label>
         </div>
-        <p class="skill-filter-count" id="skillFilterCount" aria-live="polite">Exibindo 27 de 27 perícias</p>
+        <p class="skill-filter-count" id="skillFilterCount" aria-live="polite">Exibindo 26 de 26 perícias</p>
       </div>
       <p class="panel-help">Escolha o grau de domínio. O bônus é preenchido automaticamente.</p>
       <div class="skills-list" id="listaPericias"></div>
+      <section class="legacy-skills-section" id="legacySkillsSection" aria-labelledby="legacySkillsTitle" hidden>
+        <div class="legacy-skills-heading">
+          <div>
+            <span class="section-kicker">Compatibilidade</span>
+            <h3 id="legacySkillsTitle">Perícias legadas</h3>
+          </div>
+          <span>Fora da lista oficial</span>
+        </div>
+        <p>Estes valores foram preservados de uma ficha antiga. Eles não entram na contagem da Alpha 1.0 e podem ser mantidos ou reduzidos.</p>
+        <div class="skills-list legacy-skills-list" id="listaPericiasLegado"></div>
+      </section>
     </section>
 
     <section class="content-column mobile-section" data-mobile-section="conteudo">
@@ -1106,6 +1133,6 @@
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-09-13-threshold-header"></script>
+  <script src="script.js?v=2026-09-14-skills-progression"></script>
 </body>
 </html>
