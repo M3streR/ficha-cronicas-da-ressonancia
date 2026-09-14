@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
   <title>Ficha — Crônicas da Ressonância</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-14-skills-progression">
+  <link rel="stylesheet" href="style.css?v=2026-09-14-critical-states">
   <link rel="stylesheet" href="css/chronicles-workspace.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/account-auth.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/chronicles-online.css?v=2026-09-11-stable">
@@ -582,10 +582,75 @@
               <span class="defense-label">DEF</span>
               <strong id="defesaTotal">11</strong>
             </div>
-            <small class="defense-formula">10 + Agilidade + Reflexos + modificadores aplicáveis</small>
+            <small class="defense-formula">10 + Agilidade + Reflexos + modificadores aplicáveis<span id="defensePenaltySummary" hidden> · −3 recuperação ressonante</span></small>
           </article>
         </div>
       </div>
+
+      <section class="critical-states" id="criticalStatesSection" aria-labelledby="criticalStatesTitle" hidden>
+        <div class="critical-states-heading">
+          <div>
+            <span class="section-kicker">Estado crítico</span>
+            <h3 id="criticalStatesTitle">Acompanhamento</h3>
+          </div>
+          <span id="criticalStatesCount" aria-live="polite">0 ativos</span>
+        </div>
+
+        <div class="critical-state-list">
+          <article class="critical-state-card dying-state" id="dyingStatePanel" aria-labelledby="dyingStateTitle" hidden>
+            <div class="critical-state-card-heading">
+              <div>
+                <span class="critical-state-kind">PV em 0</span>
+                <h4 id="dyingStateTitle">Morrendo</h4>
+              </div>
+              <output id="dyingRoundLabel">Rodada 1 de 3</output>
+            </div>
+            <p>O personagem está inconsciente e não pode agir.</p>
+            <div class="critical-round-track" id="dyingRoundTrack" aria-label="Rodadas concluídas em Morrendo"></div>
+            <p class="critical-state-reference"><strong>Medicina — DT 20</strong> · O teste deve ser realizado manualmente.</p>
+            <p class="critical-state-outcome" id="dyingStateOutcome" role="status" aria-live="polite" hidden></p>
+            <div class="critical-state-actions">
+              <button class="btn danger small" id="advanceDyingRound" type="button">Concluir rodada sem estabilização</button>
+              <button class="btn secondary small" id="undoDyingRound" type="button">Desfazer rodada</button>
+              <button class="btn small" id="stabilizeDying" type="button">Estabilizar por Medicina</button>
+              <button class="btn secondary small" id="healDying" type="button">Registrar cura</button>
+            </div>
+          </article>
+
+          <article class="critical-state-card losing-mind-state" id="losingMindStatePanel" aria-labelledby="losingMindStateTitle" hidden>
+            <div class="critical-state-card-heading">
+              <div>
+                <span class="critical-state-kind">PS em 0</span>
+                <h4 id="losingMindStateTitle">Enlouquecendo</h4>
+              </div>
+              <output id="losingMindRoundLabel">Rodada 1 de 3</output>
+            </div>
+            <p>O personagem perdeu o controle da própria mente.</p>
+            <div class="critical-round-track" id="losingMindRoundTrack" aria-label="Rodadas concluídas em Enlouquecendo"></div>
+            <p class="critical-state-reference"><strong>Diplomacia — DT 20</strong> · O teste deve ser realizado manualmente.</p>
+            <p class="critical-state-outcome" id="losingMindStateOutcome" role="status" aria-live="polite" hidden></p>
+            <div class="critical-state-actions">
+              <button class="btn danger small" id="advanceLosingMindRound" type="button">Registrar falha e concluir rodada</button>
+              <button class="btn secondary small" id="undoLosingMindRound" type="button">Desfazer rodada</button>
+              <button class="btn small" id="resolveLosingMind" type="button">Registrar sucesso</button>
+            </div>
+          </article>
+
+          <article class="critical-state-card resonant-recovery-state" id="resonantRecoveryPanel" aria-labelledby="resonantRecoveryTitle" hidden>
+            <div class="critical-state-card-heading">
+              <div>
+                <span class="critical-state-kind">Efeito derivado</span>
+                <h4 id="resonantRecoveryTitle">Recuperação ressonante</h4>
+              </div>
+              <strong>−3 DEF</strong>
+            </div>
+            <p>A penalidade permanece até o personagem descansar adequadamente.</p>
+            <div class="critical-state-actions">
+              <button class="btn secondary small" id="registerRest" type="button">Registrar descanso</button>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <section class="identity-section" aria-labelledby="identitySectionTitle">
         <div class="section-blade-heading">
@@ -644,6 +709,7 @@
             <span>Efeitos cadastrados</span>
             <button class="btn secondary small" id="adicionarEfeitoExpandido" type="button">+ Adicionar efeito</button>
           </div>
+          <div class="active-effects-list system-active-effects-list" id="listaEfeitosSistema"></div>
           <div class="active-effects-list" id="listaEfeitosAtivos"></div>
           <p class="active-effects-empty" id="activeEffectsEmpty">Nenhum efeito ativo.</p>
         </div>
@@ -1133,6 +1199,6 @@
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-09-14-skills-progression"></script>
+  <script src="script.js?v=2026-09-14-critical-states"></script>
 </body>
 </html>

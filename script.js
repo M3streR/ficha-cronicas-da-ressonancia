@@ -279,6 +279,24 @@ const simpleFieldIds = [
   'bonusDefesaEquipamento', 'protecaoPrincipal'
 ];
 
+function createDefaultCriticalStates() {
+  return {
+    dyingRounds: 0,
+    losingMindRounds: 0,
+    resonantRecoveryDefensePenalty: false
+  };
+}
+
+function normalizeCriticalStates(value) {
+  const source = isPlainObject(value) ? value : {};
+  const clampRounds = rounds => Math.max(0, Math.min(3, Math.trunc(Number(rounds) || 0)));
+  return {
+    dyingRounds: clampRounds(source.dyingRounds),
+    losingMindRounds: clampRounds(source.losingMindRounds),
+    resonantRecoveryDefensePenalty: source.resonantRecoveryDefensePenalty === true
+  };
+}
+
 const state = {
   schemaVersion: '0.3-pre-alpha',
   photo: '',
@@ -289,7 +307,8 @@ const state = {
   manifestations: [],
   automaticAbilityFavorites: {},
   notes: [],
-  activeEffects: []
+  activeEffects: [],
+  criticalStates: createDefaultCriticalStates()
 };
 
 const favoriteFilterModes = {
@@ -4237,6 +4256,7 @@ function captureState() {
   state.manifestations = captureDynamicList('listaManifestacoes');
   state.notes = captureNotes();
   state.activeEffects = captureActiveEffects();
+  state.criticalStates = normalizeCriticalStates(state.criticalStates);
   if (
     isPlainObject(state.automaticAbilityFavorites)
     && !Object.keys(state.automaticAbilityFavorites).length
@@ -4384,12 +4404,244 @@ function updateResourceUI(resourceId) {
   if (resourceId === 'pnAtual') updateAllManifestationUseStates();
   updateMobileResource(resourceId);
   if (document.getElementById('ajusteRecurso')?.value === resourceId) updateResourceAdjusterContext();
+  if (resourceId === 'pvAtual' || resourceId === 'psAtual') reconcileCriticalStates();
 }
 
 function updateAllResources() {
   Object.keys(resourceLabels).forEach(updateResourceUI);
   const temporaryInput = document.getElementById('pvTemporarios');
   if (temporaryInput) temporaryInput.value = Math.max(0, Number(temporaryInput.value || 0));
+}
+
+function isCriticalResourceEmpty(resourceId) {
+  return numberValue(resourceId) === 0 && numberValue(getMaximumId(resourceId)) > 0;
+}
+
+function renderCriticalRoundTrack(container, completedRounds) {
+  if (!container) return;
+  container.replaceChildren();
+  for (let round = 1; round <= 3; round += 1) {
+    const marker = document.createElement('span');
+    marker.textContent = String(round);
+    marker.classList.toggle('completed', round <= completedRounds);
+    marker.classList.toggle('current', round === completedRounds + 1 && completedRounds < 3);
+    container.appendChild(marker);
+  }
+  container.setAttribute('aria-label', `${completedRounds} de 3 rodadas concluídas`);
+}
+
+function updateCriticalStatePanel({
+  panelId,
+  active,
+  rounds,
+  roundLabelId,
+  roundTrackId,
+  outcomeId,
+  terminalMessage,
+  normalControlIds,
+  undoControlId
+}) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.hidden = !active;
+  if (!active) return;
+
+  const terminal = rounds >= 3;
+  const roundLabel = document.getElementById(roundLabelId);
+  if (roundLabel) {
+    roundLabel.value = terminal
+      ? '3 de 3 concluídas'
+      : `Rodada ${rounds + 1} de 3 · ${rounds} concluída${rounds === 1 ? '' : 's'}`;
+  }
+  renderCriticalRoundTrack(document.getElementById(roundTrackId), rounds);
+
+  const outcome = document.getElementById(outcomeId);
+  if (outcome) {
+    outcome.hidden = !terminal;
+    outcome.textContent = terminal ? terminalMessage : '';
+  }
+  normalControlIds.forEach(id => {
+    const control = document.getElementById(id);
+    if (control) control.disabled = terminal;
+  });
+  const undoControl = document.getElementById(undoControlId);
+  if (undoControl) undoControl.disabled = rounds === 0;
+  panel.classList.toggle('is-terminal', terminal);
+}
+
+function renderCriticalStates() {
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  state.criticalStates = criticalStates;
+  const dyingActive = isCriticalResourceEmpty('pvAtual');
+  const losingMindActive = isCriticalResourceEmpty('psAtual');
+  const penaltyActive = criticalStates.resonantRecoveryDefensePenalty;
+
+  updateCriticalStatePanel({
+    panelId: 'dyingStatePanel',
+    active: dyingActive,
+    rounds: criticalStates.dyingRounds,
+    roundLabelId: 'dyingRoundLabel',
+    roundTrackId: 'dyingRoundTrack',
+    outcomeId: 'dyingStateOutcome',
+    terminalMessage: 'A terceira rodada terminou sem estabilização. O personagem morreu.',
+    normalControlIds: ['advanceDyingRound', 'stabilizeDying', 'healDying'],
+    undoControlId: 'undoDyingRound'
+  });
+  updateCriticalStatePanel({
+    panelId: 'losingMindStatePanel',
+    active: losingMindActive,
+    rounds: criticalStates.losingMindRounds,
+    roundLabelId: 'losingMindRoundLabel',
+    roundTrackId: 'losingMindRoundTrack',
+    outcomeId: 'losingMindStateOutcome',
+    terminalMessage: 'As três rodadas terminaram. As consequências devem ser resolvidas com o Mestre.',
+    normalControlIds: ['advanceLosingMindRound', 'resolveLosingMind'],
+    undoControlId: 'undoLosingMindRound'
+  });
+
+  const penaltyPanel = document.getElementById('resonantRecoveryPanel');
+  if (penaltyPanel) penaltyPanel.hidden = !penaltyActive;
+  const penaltySummary = document.getElementById('defensePenaltySummary');
+  if (penaltySummary) penaltySummary.hidden = !penaltyActive;
+
+  const activeCount = Number(dyingActive) + Number(losingMindActive) + Number(penaltyActive);
+  const section = document.getElementById('criticalStatesSection');
+  if (section) section.hidden = activeCount === 0;
+  const count = document.getElementById('criticalStatesCount');
+  if (count) count.textContent = activeCount === 1 ? '1 ativo' : `${activeCount} ativos`;
+
+  renderSystemActiveEffects();
+  updateActiveEffectsSummary();
+}
+
+function reconcileCriticalStates() {
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  if (!isCriticalResourceEmpty('pvAtual')) criticalStates.dyingRounds = 0;
+  if (!isCriticalResourceEmpty('psAtual')) criticalStates.losingMindRounds = 0;
+  state.criticalStates = criticalStates;
+  renderCriticalStates();
+}
+
+function setCriticalResource(resourceId, value, feedback) {
+  const input = document.getElementById(resourceId);
+  const maximum = numberValue(getMaximumId(resourceId));
+  if (!input || maximum <= 0) return false;
+  input.value = Math.max(0, Math.min(maximum, value));
+  updateResourceUI(resourceId);
+  scheduleSave();
+  if (feedback) showNotification(feedback);
+  return true;
+}
+
+function advanceCriticalRound(kind) {
+  const key = kind === 'dying' ? 'dyingRounds' : 'losingMindRounds';
+  const resourceId = kind === 'dying' ? 'pvAtual' : 'psAtual';
+  if (!isCriticalResourceEmpty(resourceId)) return;
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  if (criticalStates[key] >= 3) return;
+  criticalStates[key] += 1;
+  state.criticalStates = criticalStates;
+  renderCriticalStates();
+  scheduleSave();
+}
+
+function undoCriticalRound(kind) {
+  const key = kind === 'dying' ? 'dyingRounds' : 'losingMindRounds';
+  const resourceId = kind === 'dying' ? 'pvAtual' : 'psAtual';
+  if (!isCriticalResourceEmpty(resourceId)) return;
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  if (criticalStates[key] <= 0) return;
+  criticalStates[key] -= 1;
+  state.criticalStates = criticalStates;
+  renderCriticalStates();
+  scheduleSave();
+}
+
+function openDyingRecoveryModal() {
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  if (!isCriticalResourceEmpty('pvAtual') || criticalStates.dyingRounds >= 3) return;
+
+  const form = document.createElement('div');
+  form.className = 'critical-recovery-form';
+  const amountLabel = document.createElement('label');
+  amountLabel.textContent = 'PV recuperados';
+  const amountInput = document.createElement('input');
+  amountInput.type = 'number';
+  amountInput.min = '1';
+  amountInput.step = '1';
+  amountInput.value = '1';
+  amountInput.inputMode = 'numeric';
+  amountLabel.appendChild(amountInput);
+  const resonantLabel = document.createElement('label');
+  resonantLabel.className = 'critical-recovery-choice';
+  const resonantInput = document.createElement('input');
+  resonantInput.type = 'checkbox';
+  resonantLabel.append(resonantInput, document.createTextNode(' Cura ressonante (aplica −3 DEF até descanso)'));
+  const error = document.createElement('p');
+  error.className = 'effect-form-error';
+  error.setAttribute('role', 'alert');
+  error.hidden = true;
+  form.append(amountLabel, resonantLabel, error);
+
+  openModal({
+    title: 'Registrar cura',
+    content: form,
+    actions: [
+      {
+        label: 'Aplicar cura',
+        close: false,
+        onClick: () => {
+          const amount = Math.trunc(Number(amountInput.value));
+          if (!Number.isFinite(amount) || amount < 1) {
+            error.textContent = 'Informe uma quantidade de PV maior que zero.';
+            error.hidden = false;
+            amountInput.focus();
+            return;
+          }
+          if (resonantInput.checked) {
+            state.criticalStates = normalizeCriticalStates(state.criticalStates);
+            state.criticalStates.resonantRecoveryDefensePenalty = true;
+          }
+          if (!setCriticalResource('pvAtual', amount)) return;
+          recalculateDefense();
+          closeModal();
+          showNotification(resonantInput.checked
+            ? `Cura registrada. ${numberValue('pvAtual')} PV e −3 DEF até descanso.`
+            : `Cura registrada. ${numberValue('pvAtual')} PV.`);
+        }
+      },
+      { label: 'Cancelar', className: 'secondary' }
+    ]
+  });
+  requestAnimationFrame(() => amountInput.focus());
+}
+
+function bindCriticalStates() {
+  document.getElementById('advanceDyingRound')?.addEventListener('click', () => advanceCriticalRound('dying'));
+  document.getElementById('undoDyingRound')?.addEventListener('click', () => undoCriticalRound('dying'));
+  document.getElementById('advanceLosingMindRound')?.addEventListener('click', () => advanceCriticalRound('losingMind'));
+  document.getElementById('undoLosingMindRound')?.addEventListener('click', () => undoCriticalRound('losingMind'));
+  document.getElementById('stabilizeDying')?.addEventListener('click', () => {
+    const criticalStates = normalizeCriticalStates(state.criticalStates);
+    if (criticalStates.dyingRounds >= 3) return;
+    setCriticalResource('pvAtual', 1, 'Estabilização por Medicina registrada. O personagem retornou com 1 PV.');
+  });
+  document.getElementById('healDying')?.addEventListener('click', openDyingRecoveryModal);
+  document.getElementById('resolveLosingMind')?.addEventListener('click', () => {
+    const criticalStates = normalizeCriticalStates(state.criticalStates);
+    if (criticalStates.losingMindRounds >= 3) return;
+    setCriticalResource('psAtual', 1, 'Sucesso em Diplomacia registrado. O personagem retornou com 1 PS.');
+  });
+  document.getElementById('registerRest')?.addEventListener('click', () => {
+    const criticalStates = normalizeCriticalStates(state.criticalStates);
+    if (!criticalStates.resonantRecoveryDefensePenalty) return;
+    criticalStates.resonantRecoveryDefensePenalty = false;
+    state.criticalStates = criticalStates;
+    recalculateDefense();
+    renderCriticalStates();
+    scheduleSave();
+    showNotification('Descanso registrado. A penalidade de −3 DEF foi removida.');
+  });
 }
 
 function setAdjusterFeedback(message, kind = '') {
@@ -4471,7 +4723,8 @@ function createEmptyCharacterState() {
     manifestations: [{ nome: 'Manifestação 1' }],
     automaticAbilityFavorites: {},
     notes: [],
-    activeEffects: []
+    activeEffects: [],
+    criticalStates: createDefaultCriticalStates()
   };
 }
 
@@ -4490,6 +4743,7 @@ function restoreState(saved) {
   state.manifestations = Array.isArray(restored.manifestations) ? cloneCharacterState(restored.manifestations) : [];
   state.notes = Array.isArray(restored.notes) ? cloneCharacterState(restored.notes) : [];
   state.activeEffects = Array.isArray(restored.activeEffects) ? cloneCharacterState(restored.activeEffects) : [];
+  state.criticalStates = normalizeCriticalStates(restored.criticalStates);
   state.automaticAbilityFavorites = isPlainObject(restored.automaticAbilityFavorites)
     ? { ...restored.automaticAbilityFavorites }
     : {};
@@ -4896,7 +5150,9 @@ function getReflexDefenseBonus() {
 function recalculateDefense() {
   const agilidade = Number(document.getElementById('agilidade').value || 0);
   const equipamento = Number(document.getElementById('bonusDefesaEquipamento').value || 0);
-  const defense = 10 + agilidade + getReflexDefenseBonus() + equipamento;
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  const resonantRecoveryPenalty = criticalStates.resonantRecoveryDefensePenalty ? -3 : 0;
+  const defense = 10 + agilidade + getReflexDefenseBonus() + equipamento + resonantRecoveryPenalty;
   document.getElementById('defesaTotal').textContent = defense;
   const mobileDefense = document.getElementById('mobileDefesa');
   if (mobileDefense) mobileDefense.textContent = defense;
@@ -5753,6 +6009,72 @@ function getActiveEffectTypeLabel(type) {
   }[type] || 'Neutro';
 }
 
+function getSystemActiveEffects() {
+  const criticalStates = normalizeCriticalStates(state.criticalStates);
+  const effects = [];
+  if (isCriticalResourceEmpty('pvAtual')) {
+    effects.push({
+      id: 'system-dying',
+      name: criticalStates.dyingRounds >= 3 ? 'Morte confirmada' : 'Morrendo',
+      type: 'negative',
+      description: criticalStates.dyingRounds >= 3
+        ? 'A terceira rodada terminou com 0 PV.'
+        : 'Inconsciente e incapaz de agir.',
+      duration: criticalStates.dyingRounds >= 3 ? 'Desfecho encerrado' : `${criticalStates.dyingRounds} de 3 rodadas concluídas`
+    });
+  }
+  if (isCriticalResourceEmpty('psAtual')) {
+    effects.push({
+      id: 'system-losing-mind',
+      name: 'Enlouquecendo',
+      type: 'negative',
+      description: criticalStates.losingMindRounds >= 3
+        ? 'As consequências devem ser resolvidas com o Mestre.'
+        : 'O personagem perdeu o controle da própria mente.',
+      duration: criticalStates.losingMindRounds >= 3 ? 'Tentativas encerradas' : `${criticalStates.losingMindRounds} de 3 rodadas concluídas`
+    });
+  }
+  if (criticalStates.resonantRecoveryDefensePenalty) {
+    effects.push({
+      id: 'system-resonant-recovery',
+      name: 'Recuperação ressonante',
+      type: 'negative',
+      description: '−3 de Defesa.',
+      duration: 'Até descanso adequado'
+    });
+  }
+  return effects;
+}
+
+function renderSystemActiveEffects() {
+  const container = document.getElementById('listaEfeitosSistema');
+  if (!container) return;
+  container.replaceChildren();
+  getSystemActiveEffects().forEach(effect => {
+    const card = document.createElement('article');
+    card.className = 'active-effect-card system-active-effect-card';
+    card.dataset.effectId = effect.id;
+    card.dataset.effectName = effect.name;
+    card.dataset.effectType = effect.type;
+    card.innerHTML = `
+      <div class="active-effect-card-header">
+        <div class="active-effect-identity">
+          <strong class="active-effect-name"></strong>
+          <span class="active-effect-type"> · Sistema</span>
+        </div>
+        <span class="system-active-effect-badge">Somente leitura</span>
+      </div>
+      <p class="active-effect-description"></p>
+      <p class="active-effect-duration"><strong>Duração: </strong></p>
+    `;
+    card.querySelector('.active-effect-name').textContent = effect.name;
+    card.querySelector('.active-effect-description').textContent = effect.description;
+    card.querySelector('.active-effect-duration').append(document.createTextNode(effect.duration));
+    container.appendChild(card);
+  });
+  container.hidden = container.childElementCount === 0;
+}
+
 function captureActiveEffects() {
   return [...document.querySelectorAll('#listaEfeitosAtivos .active-effect-card')].map(card => ({
     id: card.dataset.effectId,
@@ -5830,20 +6152,22 @@ function createActiveEffectCard(effect) {
 
 function updateActiveEffectsSummary() {
   const cards = [...document.querySelectorAll('#listaEfeitosAtivos .active-effect-card')];
+  const systemCards = [...document.querySelectorAll('#listaEfeitosSistema .active-effect-card')];
+  const allCards = [...systemCards, ...cards];
   const count = document.getElementById('activeEffectsCount');
   const markers = document.getElementById('activeEffectsMarkers');
   const empty = document.getElementById('activeEffectsEmpty');
-  count.textContent = String(cards.length);
+  count.textContent = String(allCards.length);
   markers.replaceChildren();
 
-  if (!cards.length) {
+  if (!allCards.length) {
     const none = document.createElement('span');
     none.className = 'active-effects-none';
     none.textContent = 'Nenhum efeito ativo';
     markers.appendChild(none);
   } else {
     const markerLimit = window.matchMedia('(max-width: 620px)').matches ? 2 : 3;
-    cards.slice(0, markerLimit).forEach(card => {
+    allCards.slice(0, markerLimit).forEach(card => {
       const marker = document.createElement('span');
       marker.className = 'active-effect-marker';
       marker.dataset.effectType = card.dataset.effectType;
@@ -5851,14 +6175,14 @@ function updateActiveEffectsSummary() {
       marker.title = card.dataset.effectName;
       markers.appendChild(marker);
     });
-    if (cards.length > markerLimit) {
+    if (allCards.length > markerLimit) {
       const overflow = document.createElement('span');
       overflow.className = 'active-effects-overflow';
-      overflow.textContent = `+${cards.length - markerLimit}`;
+      overflow.textContent = `+${allCards.length - markerLimit}`;
       markers.appendChild(overflow);
     }
   }
-  empty.hidden = cards.length > 0;
+  empty.hidden = allCards.length > 0;
 }
 
 function setActiveEffectsExpanded(expanded) {
@@ -6671,6 +6995,7 @@ function renderActiveEffects(effects) {
   const container = document.getElementById('listaEfeitosAtivos');
   container.replaceChildren();
   effects.forEach(effect => container.appendChild(createActiveEffectCard(effect)));
+  renderSystemActiveEffects();
   setActiveEffectsExpanded(false);
   updateActiveEffectsSummary();
 }
@@ -7533,7 +7858,8 @@ function validateImportedSheet(imported) {
     manifestations: JSON.parse(JSON.stringify(imported.manifestations)),
     automaticAbilityFavorites: {},
     notes: [],
-    activeEffects: []
+    activeEffects: [],
+    criticalStates: createDefaultCriticalStates()
   };
   const corrections = [];
   if (Object.prototype.hasOwnProperty.call(normalized.fields, 'totalis')) {
@@ -7550,7 +7876,8 @@ function validateImportedSheet(imported) {
     'manifestations',
     'automaticAbilityFavorites',
     'notes',
-    'activeEffects'
+    'activeEffects',
+    'criticalStates'
   ];
   const unknownRootFields = Object.keys(imported).filter(key => !knownRootFields.includes(key));
   if (unknownRootFields.length) corrections.push('Informações desconhecidas fora da ficha foram removidas.');
@@ -7691,6 +8018,28 @@ function validateImportedSheet(imported) {
       });
       if (imported.activeEffects.length > 200) {
         corrections.push('A lista de Efeitos ativos foi limitada a 200 itens.');
+      }
+    }
+  }
+
+  if (imported.criticalStates !== undefined) {
+    if (!isPlainObject(imported.criticalStates)) {
+      corrections.push('Os estados críticos foram ajustados para os valores iniciais.');
+    } else {
+      normalized.criticalStates = normalizeCriticalStates(imported.criticalStates);
+      const knownCriticalStateFields = ['dyingRounds', 'losingMindRounds', 'resonantRecoveryDefensePenalty'];
+      if (Object.keys(imported.criticalStates).some(field => !knownCriticalStateFields.includes(field))) {
+        corrections.push('Campos desconhecidos dos estados críticos foram removidos.');
+      }
+      for (const key of ['dyingRounds', 'losingMindRounds']) {
+        if (imported.criticalStates[key] !== undefined
+          && imported.criticalStates[key] !== normalized.criticalStates[key]) {
+          corrections.push('Um contador de estado crítico foi ajustado ao intervalo de 0 a 3 rodadas.');
+        }
+      }
+      if (imported.criticalStates.resonantRecoveryDefensePenalty !== undefined
+        && typeof imported.criticalStates.resonantRecoveryDefensePenalty !== 'boolean') {
+        corrections.push('A penalidade de recuperação ressonante foi ajustada.');
       }
     }
   }
@@ -8425,6 +8774,7 @@ function init() {
   bindDynamicButtons();
   bindFavoriteFilters();
   bindActiveEffects();
+  bindCriticalStates();
   bindNotes();
   bindMobileNavigation();
   bindMobileResourceBar();

@@ -364,7 +364,12 @@
       abilities: clone(source.abilities || []),
       manifestations: clone(source.manifestations || []),
       automaticAbilityFavorites: clone(source.automaticAbilityFavorites || {}),
-      activeEffects: clone(source.activeEffects || [])
+      activeEffects: clone(source.activeEffects || []),
+      criticalStates: clone(source.criticalStates || {
+        dyingRounds: 0,
+        losingMindRounds: 0,
+        resonantRecoveryDefensePenalty: false
+      })
     };
   }
 

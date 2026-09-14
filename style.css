@@ -6313,6 +6313,198 @@ body.notes-view-open {
   }
 }
 
+/* Alpha — estados críticos derivados de PV e PS */
+.critical-states {
+  margin: 0 0 0.85rem;
+  padding: 0.78rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 28%, var(--color-border-subtle));
+  border-radius: 3px 12px 3px 12px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--color-danger) 7%, var(--color-surface-primary)), var(--color-bg-secondary));
+}
+
+.critical-states[hidden],
+.critical-state-card[hidden],
+.critical-state-outcome[hidden],
+.system-active-effects-list[hidden],
+#defensePenaltySummary[hidden] {
+  display: none;
+}
+
+.critical-states-heading,
+.critical-state-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.critical-states-heading {
+  margin-bottom: 0.68rem;
+}
+
+.critical-states-heading h3,
+.critical-state-card-heading h4 {
+  margin: 0.1rem 0 0;
+}
+
+.critical-states-heading h3 { font-size: 0.9rem; }
+.critical-state-card-heading h4 { font-size: 0.86rem; }
+
+.critical-states-heading > span,
+.critical-state-card-heading output,
+.critical-state-card-heading > strong {
+  flex: 0 0 auto;
+  color: var(--color-warning);
+  font-size: 0.65rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.critical-state-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 0.62rem;
+}
+
+.critical-state-card {
+  min-width: 0;
+  padding: 0.72rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 32%, transparent);
+  border-left: 3px solid var(--color-danger);
+  border-radius: 2px 10px 2px 10px;
+  background: color-mix(in srgb, var(--color-danger) 5%, var(--color-surface-primary));
+}
+
+.critical-state-card.is-terminal {
+  border-color: color-mix(in srgb, var(--color-danger) 58%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface-primary));
+}
+
+.critical-state-card.resonant-recovery-state {
+  border-color: color-mix(in srgb, var(--color-warning) 38%, transparent);
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 6%, var(--color-surface-primary));
+}
+
+.critical-state-kind {
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.critical-state-card > p {
+  margin: 0.48rem 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.critical-state-reference {
+  padding-top: 0.46rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-danger) 16%, transparent);
+}
+
+.critical-state-reference strong { color: var(--text); }
+
+.critical-state-outcome {
+  padding: 0.48rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 34%, transparent);
+  color: var(--color-warning) !important;
+  font-weight: 760;
+}
+
+.critical-round-track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+  margin-top: 0.58rem;
+}
+
+.critical-round-track span {
+  display: grid;
+  min-height: 26px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, transparent);
+  border-radius: 2px 7px 2px 7px;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 850;
+}
+
+.critical-round-track span.current {
+  border-color: color-mix(in srgb, var(--color-warning) 58%, transparent);
+  color: var(--color-warning);
+}
+
+.critical-round-track span.completed {
+  border-color: color-mix(in srgb, var(--color-danger) 62%, transparent);
+  color: var(--text);
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+}
+
+.critical-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  margin-top: 0.62rem;
+}
+
+.critical-state-actions .btn {
+  min-height: 36px;
+  padding-inline: 0.65rem;
+  white-space: normal;
+}
+
+.critical-state-actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.critical-recovery-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.critical-recovery-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.critical-recovery-form .critical-recovery-choice {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.critical-recovery-choice input {
+  width: 18px;
+  height: 18px;
+}
+
+.system-active-effects-list {
+  margin-bottom: 0.5rem;
+}
+
+.system-active-effect-card {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 5%, var(--color-surface-primary));
+}
+
+.system-active-effect-badge {
+  color: var(--color-warning);
+  font-size: 0.56rem;
+  font-weight: 820;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 620px) {
+  .critical-states { padding: 0.62rem; }
+  .critical-state-list { grid-template-columns: 1fr; }
+  .critical-state-actions .btn { flex: 1 1 132px; }
+}
+
 /* Alpha — Perícias como registro técnico de domínio */
 .skill-progress-summary {
   display: grid;

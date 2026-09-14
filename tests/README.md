@@ -29,3 +29,7 @@ Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase c
 ## Progressão de Perícias
 
 `node tests/skills-progression.test.cjs` valida as 26 Perícias oficiais, as seis escolhas iniciais, os avanços dos níveis 3, 6 e 9, os limites de Experiente e Mestre, mudanças repetidas de nível e a preservação de distribuições antigas e de Enganação como conteúdo legado. Também cobre importação, armazenamento Local, snapshot Online, acessibilidade básica e as oito resoluções de referência.
+
+## Estados críticos
+
+`node tests/critical-states.test.cjs` valida Morrendo e Enlouquecendo ao chegar a 0 PV/PS, as três rodadas e seus encerramentos, estabilização manual, cura comum e ressonante, a penalidade de −3 DEF até descanso e a separação de Efeitos Ativos personalizados. Também cobre restauração antiga, importação, Local, snapshot Online, mudanças de Classe e nível e as oito resoluções de referência.

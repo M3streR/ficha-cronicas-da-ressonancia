@@ -33,3 +33,4 @@ jobs:
           node tests/free-rolls.test.cjs
           node tests/ux-stabilization.cjs
           node tests/skills-progression.test.cjs
+          node tests/critical-states.test.cjs
