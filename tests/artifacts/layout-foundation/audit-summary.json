@@ -1,0 +1,362 @@
+{
+  "baseCommit": "7ff1572d19cb9b3ce3746582b58df18b61e9849f",
+  "viewports": [
+    [
+      1920,
+      1080
+    ],
+    [
+      1366,
+      768
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1279,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      430,
+      932
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      360,
+      800
+    ],
+    [
+      320,
+      720
+    ]
+  ],
+  "screens": {
+    "before": 110,
+    "after": 110,
+    "authSkippedWithoutOnlineClient": true
+  },
+  "validation": {
+    "beforeErrors": [],
+    "afterErrors": [],
+    "beforeDocumentOverflows": 0,
+    "afterDocumentOrContentOverflows": 0,
+    "pixelComparison": {
+      "pairs": 110,
+      "identical": 101,
+      "maximumChangedRatio": 0.0006038526799081745,
+      "changedScreens": [
+        {
+          "screen": "detail-1024",
+          "changedPixels": 281,
+          "ratio": 0.0003573099772135417
+        },
+        {
+          "screen": "detail-1279",
+          "changedPixels": 309,
+          "ratio": 0.00030199374511336984
+        },
+        {
+          "screen": "detail-1280",
+          "changedPixels": 311,
+          "ratio": 0.0003037109375
+        },
+        {
+          "screen": "detail-1366",
+          "changedPixels": 316,
+          "ratio": 0.0003012140068326013
+        },
+        {
+          "screen": "detail-1920",
+          "changedPixels": 307,
+          "ratio": 0.0001480516975308642
+        },
+        {
+          "screen": "detail-390",
+          "changedPixels": 121,
+          "ratio": 0.0003676023818203913
+        },
+        {
+          "screen": "detail-430",
+          "changedPixels": 242,
+          "ratio": 0.0006038526799081745
+        },
+        {
+          "screen": "detail-768",
+          "changedPixels": 234,
+          "ratio": 0.00029754638671875
+        },
+        {
+          "screen": "participants-360",
+          "changedPixels": 44,
+          "ratio": 0.00015277777777777777
+        }
+      ]
+    }
+  },
+  "boundary1280To1279": {
+    "before": {
+      "1280": {
+        "sheetLayout": {
+          "selector": ".sheet-layout",
+          "present": true,
+          "left": 0,
+          "right": 1280,
+          "width": 1280,
+          "scrollWidth": 1280,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "395.359px 270px 561.844px"
+        },
+        "managerWorkspace": {
+          "selector": ".manager-workspace",
+          "present": true,
+          "left": 0,
+          "right": 1280,
+          "width": 1280,
+          "scrollWidth": 1411,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "184px 1096px"
+        },
+        "managerSidebar": {
+          "selector": ".manager-sidebar",
+          "present": true,
+          "left": 0,
+          "right": 184,
+          "width": 184,
+          "scrollWidth": 184,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        },
+        "managerContent": {
+          "selector": ".manager-content",
+          "present": true,
+          "left": 184,
+          "right": 1280,
+          "width": 1096,
+          "scrollWidth": 1227,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "1279": {
+        "sheetLayout": {
+          "selector": ".sheet-layout",
+          "present": true,
+          "left": 0,
+          "right": 1279,
+          "width": 1279,
+          "scrollWidth": 1279,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "minmax(360px, 0.95fr) minmax(270px, 0.56fr) minmax(520px, 1.35fr)"
+        },
+        "managerWorkspace": {
+          "selector": ".manager-workspace",
+          "present": true,
+          "left": 0,
+          "right": 1279,
+          "width": 1279,
+          "scrollWidth": 1409,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "184px 1095px"
+        },
+        "managerSidebar": {
+          "selector": ".manager-sidebar",
+          "present": true,
+          "left": 0,
+          "right": 184,
+          "width": 184,
+          "scrollWidth": 184,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        },
+        "managerContent": {
+          "selector": ".manager-content",
+          "present": true,
+          "left": 184,
+          "right": 1279,
+          "width": 1095,
+          "scrollWidth": 1225,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        }
+      }
+    },
+    "after": {
+      "1280": {
+        "sheetLayout": {
+          "selector": ".sheet-layout",
+          "present": true,
+          "left": 0,
+          "right": 1280,
+          "width": 1280,
+          "scrollWidth": 1280,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "395.359px 270px 561.844px"
+        },
+        "managerWorkspace": {
+          "selector": ".manager-workspace",
+          "present": true,
+          "left": 0,
+          "right": 1280,
+          "width": 1280,
+          "scrollWidth": 1411,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "184px 1096px"
+        },
+        "managerSidebar": {
+          "selector": ".manager-sidebar",
+          "present": true,
+          "left": 0,
+          "right": 184,
+          "width": 184,
+          "scrollWidth": 184,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        },
+        "managerContent": {
+          "selector": ".manager-content",
+          "present": true,
+          "left": 184,
+          "right": 1280,
+          "width": 1096,
+          "scrollWidth": 1227,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "1279": {
+        "sheetLayout": {
+          "selector": ".sheet-layout",
+          "present": true,
+          "left": 0,
+          "right": 1279,
+          "width": 1279,
+          "scrollWidth": 1279,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "minmax(360px, 0.95fr) minmax(270px, 0.56fr) minmax(520px, 1.35fr)"
+        },
+        "managerWorkspace": {
+          "selector": ".manager-workspace",
+          "present": true,
+          "left": 0,
+          "right": 1279,
+          "width": 1279,
+          "scrollWidth": 1409,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "grid",
+          "gridTemplateColumns": "184px 1095px"
+        },
+        "managerSidebar": {
+          "selector": ".manager-sidebar",
+          "present": true,
+          "left": 0,
+          "right": 184,
+          "width": 184,
+          "scrollWidth": 184,
+          "minWidth": "0px",
+          "maxWidth": "none",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        },
+        "managerContent": {
+          "selector": ".manager-content",
+          "present": true,
+          "left": 184,
+          "right": 1279,
+          "width": 1095,
+          "scrollWidth": 1225,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "overflowX": "visible",
+          "display": "block",
+          "gridTemplateColumns": "none"
+        }
+      }
+    }
+  },
+  "baselineImages": [
+    "tests/artifacts/layout-foundation/before-manager-1920.webp",
+    "tests/artifacts/layout-foundation/before-manager-1366.webp",
+    "tests/artifacts/layout-foundation/before-manager-1280.webp",
+    "tests/artifacts/layout-foundation/before-manager-1279.webp",
+    "tests/artifacts/layout-foundation/before-manager-1024.webp",
+    "tests/artifacts/layout-foundation/before-manager-768.webp",
+    "tests/artifacts/layout-foundation/before-manager-430.webp",
+    "tests/artifacts/layout-foundation/before-manager-390.webp",
+    "tests/artifacts/layout-foundation/before-manager-360.webp",
+    "tests/artifacts/layout-foundation/before-manager-320.webp",
+    "tests/artifacts/layout-foundation/before-index-1920.webp",
+    "tests/artifacts/layout-foundation/before-index-1366.webp",
+    "tests/artifacts/layout-foundation/before-index-1280.webp",
+    "tests/artifacts/layout-foundation/before-index-1279.webp",
+    "tests/artifacts/layout-foundation/before-index-1024.webp",
+    "tests/artifacts/layout-foundation/before-index-768.webp",
+    "tests/artifacts/layout-foundation/before-index-430.webp",
+    "tests/artifacts/layout-foundation/before-index-390.webp",
+    "tests/artifacts/layout-foundation/before-index-360.webp",
+    "tests/artifacts/layout-foundation/before-index-320.webp",
+    "tests/artifacts/layout-foundation/before-sheet-1920.webp",
+    "tests/artifacts/layout-foundation/before-sheet-1366.webp",
+    "tests/artifacts/layout-foundation/before-sheet-1280.webp",
+    "tests/artifacts/layout-foundation/before-sheet-1279.webp",
+    "tests/artifacts/layout-foundation/before-sheet-1024.webp",
+    "tests/artifacts/layout-foundation/before-sheet-768.webp",
+    "tests/artifacts/layout-foundation/before-sheet-430.webp",
+    "tests/artifacts/layout-foundation/before-sheet-390.webp",
+    "tests/artifacts/layout-foundation/before-sheet-360.webp",
+    "tests/artifacts/layout-foundation/before-sheet-320.webp"
+  ]
+}

@@ -1,0 +1,1530 @@
+{
+  "phase": "before",
+  "results": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -480,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 248,
+          "right": 744.796875,
+          "bottom": 381.28125,
+          "left": 534.796875,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "auto",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "resonance-threshold",
+          "panel-title-row manifestation-title-row",
+          "contentPanelManifestacoes",
+          "content-column mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 634.265625,
+          "right": 1902.40625,
+          "bottom": 998.40625,
+          "left": 1562.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "skill-bonus",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "left": 0,
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "skill-bonus",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 1220,
+          "bottom": 59.9375,
+          "left": 700,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -480,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 235.703125,
+          "right": 691.375,
+          "bottom": 368.984375,
+          "left": 481.375,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "auto",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "contentPanelHabilidades",
+          "content-column mobile-section",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 322.265625,
+          "right": 1348.40625,
+          "bottom": 686.40625,
+          "left": 1008.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1366,
+          "bottom": 768,
+          "left": 0,
+          "width": 1366,
+          "height": 768
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 943,
+          "bottom": 59.9375,
+          "left": 423,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -480,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 232.953125,
+          "right": 688.796875,
+          "bottom": 366.234375,
+          "left": 478.796875,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "auto",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "",
+          "favorite-filter",
+          "panel-title-row",
+          "contentPanelHabilidades",
+          "content-column mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 354.265625,
+          "right": 1262.40625,
+          "bottom": 718.40625,
+          "left": 922.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1280,
+          "bottom": 800,
+          "left": 0,
+          "width": 1280,
+          "height": 800
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 900,
+          "bottom": 59.9375,
+          "left": 380,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1279,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -480,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1279,
+          "bottom": 800,
+          "left": 0,
+          "width": 1279,
+          "height": 800
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "character-utilities-summary",
+          "characterUtilitySection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 382.515625,
+          "right": 1271,
+          "bottom": 728,
+          "left": 8,
+          "width": 1263,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "nome",
+          "identity-name-field",
+          "form-grid character-info-grid"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1279,
+          "bottom": 800,
+          "left": 0,
+          "width": 1279,
+          "height": 800
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "nome",
+          "identity-name-field",
+          "form-grid character-info-grid"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 899.5,
+          "bottom": 59.9375,
+          "left": 379.5,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -480,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1024,
+          "bottom": 768,
+          "left": 0,
+          "width": 1024,
+          "height": 768
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "character-utilities-summary",
+          "characterUtilitySection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 350.515625,
+          "right": 1016,
+          "bottom": 696,
+          "left": 8,
+          "width": 1008,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1024,
+          "bottom": 768,
+          "left": 0,
+          "width": 1024,
+          "height": 768
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 772,
+          "bottom": 59.9375,
+          "left": 252,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicle-overview-heading",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace",
+            "chronicleDetailView"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 483.640625,
+            "right": 822,
+            "bottom": 768,
+            "left": 202,
+            "width": 620,
+            "height": 284.359375
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 1024,
+            "bottom": 768,
+            "left": 0,
+            "width": 1024,
+            "height": 768
+          }
+        }
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "left": 0,
+          "width": 768,
+          "height": 1024
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "attributes-layout",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 606.515625,
+          "right": 760,
+          "bottom": 952,
+          "left": 8,
+          "width": 752,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "left": 0,
+          "width": 768,
+          "height": 1024
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 644,
+          "bottom": 59.9375,
+          "left": 124,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "",
+            "chronicle-overview-metadata",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 736.03125,
+            "right": 694,
+            "bottom": 1024,
+            "left": 74,
+            "width": 620,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "manager-sidebar manager-environment-switcher",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open",
+            ""
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 768,
+            "bottom": 1024,
+            "left": 0,
+            "width": 768,
+            "height": 1024
+          }
+        }
+      }
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 430,
+          "bottom": 932,
+          "left": 0,
+          "width": 430,
+          "height": 932
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "",
+          "identity-age-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 479.671875,
+          "right": 422,
+          "bottom": 860,
+          "left": 8,
+          "width": 414,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 430,
+          "bottom": 932,
+          "left": 0,
+          "width": 430,
+          "height": 932
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 414,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 398,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "",
+            "chronicle-overview-metadata",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 644.03125,
+            "right": 430,
+            "bottom": 932,
+            "left": 0,
+            "width": 430,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 430,
+            "bottom": 932,
+            "left": 0,
+            "width": 430,
+            "height": 932
+          }
+        }
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "left": 0,
+          "width": 390,
+          "height": 844
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "tipoNexo",
+          "identity-nexus-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 391.671875,
+          "right": 382,
+          "bottom": 772,
+          "left": 8,
+          "width": 374,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "left": 0,
+          "width": 390,
+          "height": 844
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 374,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 358,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "openChronicleActions",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace",
+            "chronicleDetailView"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 556.03125,
+            "right": 390,
+            "bottom": 844,
+            "left": 0,
+            "width": 390,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 390,
+            "bottom": 844,
+            "left": 0,
+            "width": 390,
+            "height": 844
+          }
+        }
+      }
+    },
+    {
+      "width": 360,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 360,
+          "bottom": 800,
+          "left": 0,
+          "width": 360,
+          "height": 800
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "assinatura",
+          "identity-signature-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 347.671875,
+          "right": 352,
+          "bottom": 728,
+          "left": 8,
+          "width": 344,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 360,
+          "bottom": 800,
+          "left": 0,
+          "width": 360,
+          "height": 800
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobilePsAtual",
+          "mobile-resource-numbers",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 344,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 328,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicleTabFreeRolls",
+            "chronicle-detail-tabs",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 512.03125,
+            "right": 360,
+            "bottom": 800,
+            "left": 0,
+            "width": 360,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 360,
+            "bottom": 800,
+            "left": 0,
+            "width": 360,
+            "height": 800
+          }
+        }
+      }
+    },
+    {
+      "width": 320,
+      "height": 720,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "hidden",
+        "managerOverflowY": "hidden",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-sidebar manager-environment-switcher",
+          "manager-workspace",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 320,
+          "bottom": 720,
+          "left": 0,
+          "width": 320,
+          "height": 720
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "60",
+        "resourceZIndex": "45",
+        "tabsZIndex": "30",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "defesaTotal",
+          "defense-value",
+          "resource-card defense-card",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "79",
+        "position": "fixed",
+        "rect": {
+          "top": 267.671875,
+          "right": 312,
+          "bottom": 648,
+          "left": 8,
+          "width": 304,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#modalOverlay",
+        "topMatches": false,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "pnAtual",
+          "resource-values",
+          "resource-readout"
+        ],
+        "zIndex": "250",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 320,
+          "bottom": 720,
+          "left": 0,
+          "width": 320,
+          "height": 720
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobilePsAtual",
+          "mobile-resource-numbers",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "pnAtual"
+        ],
+        "zIndex": "300",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 304,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 288,
+          "height": 43.9375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicleTabCast",
+            "chronicle-detail-tabs",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "1200",
+          "position": "fixed",
+          "rect": {
+            "top": 432.03125,
+            "right": 320,
+            "bottom": 720,
+            "left": 0,
+            "width": 320,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "1190",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 320,
+            "bottom": 720,
+            "left": 0,
+            "width": 320,
+            "height": 720
+          }
+        }
+      }
+    }
+  ],
+  "zoomChecks": [
+    {
+      "zoom": 1,
+      "baseWidth": 1920,
+      "effectiveWidth": 1920,
+      "width": 1920,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1,
+      "baseWidth": 1366,
+      "effectiveWidth": 1366,
+      "width": 1366,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1,
+      "baseWidth": 1024,
+      "effectiveWidth": 1024,
+      "width": 1024,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1920,
+      "effectiveWidth": 1745,
+      "width": 1745,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1366,
+      "effectiveWidth": 1241,
+      "width": 1241,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1024,
+      "effectiveWidth": 930,
+      "width": 930,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1920,
+      "effectiveWidth": 1536,
+      "width": 1536,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1366,
+      "effectiveWidth": 1092,
+      "width": 1092,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1024,
+      "effectiveWidth": 819,
+      "width": 819,
+      "pageFits": true,
+      "navFits": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,88 @@
+/*
+ * Global stacking authority.
+ *
+ * Component-internal decoration and controls may keep local z-index values in
+ * their own stylesheets. Elements listed here participate in the application
+ * hierarchy and must not define independent global numbers elsewhere.
+ * Native modal <dialog> elements use the browser top layer and intentionally
+ * sit outside this numeric scale.
+ */
+
+:root {
+  --layer-content: 0;
+  --layer-elevated: 10;
+  --layer-sticky: 100;
+  --layer-sticky-raised: 110;
+  --layer-mobile-navigation: 200;
+  --layer-popover: 300;
+  --layer-quick-dice: 400;
+  --layer-backdrop: 800;
+  --layer-overlay-panel: 810;
+  --layer-modal: 900;
+  --layer-critical-notification: 1000;
+  --layer-entry-gate: 1100;
+
+  --layer-local-base: 0;
+  --layer-local-content: 1;
+  --layer-local-elevated: 10;
+}
+
+/* Independent visual environments and their normal content. */
+.manager-app-shell,
+.character-sheet-view > .sheet-layout,
+.character-sheet-view > .notes-view {
+  z-index: var(--layer-local-content);
+}
+
+/* Non-interactive display credit; kept in its original root-level context. */
+.site-watermark {
+  z-index: var(--layer-elevated);
+}
+
+/* Sticky navigation inside the manager and character sheet. */
+.manager-navigation,
+.content-mobile-tabs {
+  z-index: var(--layer-sticky);
+}
+
+.character-sheet-view > .app-header,
+.character-sheet-view > .mobile-resource-bar {
+  z-index: var(--layer-sticky-raised);
+}
+
+.character-sheet-view > .mobile-nav {
+  z-index: var(--layer-mobile-navigation);
+}
+
+/* Fixed application tools. */
+.quick-dice-panel {
+  z-index: var(--layer-quick-dice);
+}
+
+.quick-dice-toggle {
+  z-index: calc(var(--layer-quick-dice) + 1);
+}
+
+/* Responsive action drawer. Its parent environment remains below root modals. */
+@media (max-width: 1100px) {
+  .chronicle-actions-backdrop {
+    z-index: var(--layer-backdrop);
+  }
+
+  .chronicle-actions-panel {
+    z-index: var(--layer-overlay-panel);
+  }
+}
+
+/* Root overlays. */
+.modal-overlay {
+  z-index: var(--layer-modal);
+}
+
+.global-notification {
+  z-index: var(--layer-critical-notification);
+}
+
+.site-entry-gate {
+  z-index: var(--layer-entry-gate);
+}

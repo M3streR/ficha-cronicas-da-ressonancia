@@ -1,0 +1,286 @@
+{
+  "generatedAt": "2026-09-14T14:24:49.807Z",
+  "expectedDifference": "manager-scroll mantém a navegação lateral sticky; a mesma navegação permanece perceptível sob o backdrop em 1024px",
+  "comparisons": [
+    {
+      "state": "actions-drawer-1024",
+      "changedPixelRatio": 0.005913,
+      "meanChannelDifference": 0.2888
+    },
+    {
+      "state": "actions-drawer-320",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "actions-drawer-360",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "actions-drawer-390",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "actions-drawer-430",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "actions-drawer-768",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0.0001
+    },
+    {
+      "state": "character-menu-1024",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-1279",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-1280",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-1366",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-1920",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-320",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-360",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-390",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-430",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "character-menu-768",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "manager-scroll-1024",
+      "changedPixelRatio": 0.004962,
+      "meanChannelDifference": 0.2973
+    },
+    {
+      "state": "manager-scroll-1279",
+      "changedPixelRatio": 0.004123,
+      "meanChannelDifference": 0.2545
+    },
+    {
+      "state": "manager-scroll-1280",
+      "changedPixelRatio": 0.004105,
+      "meanChannelDifference": 0.255
+    },
+    {
+      "state": "manager-scroll-1366",
+      "changedPixelRatio": 0.004162,
+      "meanChannelDifference": 0.2503
+    },
+    {
+      "state": "manager-scroll-1920",
+      "changedPixelRatio": 0.002712,
+      "meanChannelDifference": 0.148
+    },
+    {
+      "state": "manager-scroll-320",
+      "changedPixelRatio": 0.001029,
+      "meanChannelDifference": 0.1402
+    },
+    {
+      "state": "manager-scroll-360",
+      "changedPixelRatio": 0.001056,
+      "meanChannelDifference": 0.1458
+    },
+    {
+      "state": "manager-scroll-390",
+      "changedPixelRatio": 0.000924,
+      "meanChannelDifference": 0.1271
+    },
+    {
+      "state": "manager-scroll-430",
+      "changedPixelRatio": 0.000759,
+      "meanChannelDifference": 0.104
+    },
+    {
+      "state": "manager-scroll-768",
+      "changedPixelRatio": 0.000511,
+      "meanChannelDifference": 0.0748
+    },
+    {
+      "state": "modal-notification-1024",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-1279",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-1280",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-1366",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-1920",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-320",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-360",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-390",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-430",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "modal-notification-768",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-1024",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-1279",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-1280",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-1366",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-1920",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-320",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0.0001
+    },
+    {
+      "state": "quick-dice-360",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-390",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-430",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "quick-dice-768",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-1024",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-1279",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-1280",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-1366",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-1920",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-320",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-360",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-390",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-430",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    },
+    {
+      "state": "sheet-scroll-768",
+      "changedPixelRatio": 0,
+      "meanChannelDifference": 0
+    }
+  ]
+}

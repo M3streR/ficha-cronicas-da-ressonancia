@@ -28,7 +28,8 @@ const server = http.createServer(async (req, res) => {
       await ChroniclesStorage.createChronicleParticipant(c.id,{name:'Participante de teste'});
       await ChroniclesStorage.createConfrontation(c.id,{name:'Confronto preparado',description:'Auditoria Local'});
     });
-    for (const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[430,932],[390,844],[360,800],[320,720]]) {
+    const viewports = [[1920,1080],[1366,768],[1280,800],[1279,800],[1024,768],[768,1024],[430,932],[390,844],[360,800],[320,720]];
+    for (const [width,height] of viewports) {
       await page.setViewportSize({width,height});
       for (const view of ['manager','index','create','detail','cast','participants','encounters','free-rolls','modal','auth','sheet','dice']) {
         await page.evaluate(async view => {
@@ -41,20 +42,49 @@ const server = http.createServer(async (req, res) => {
           if (['cast','participants','encounters','free-rolls'].includes(view)) setChronicleDetailSection(view);
           if (view === 'modal') openModal({title:'Excluir registro?',content:createModalContent('Confirmação de exemplo para conferir o tamanho do modal.'),actions:[{label:'Cancelar',className:'secondary'}]});
         },view);
-        if (view === 'auth') await page.locator('.manager-account-button').click();
+        if (view === 'auth') {
+          const accountButton = page.locator('.manager-account-button');
+          if (!await accountButton.count()) continue;
+          await accountButton.click();
+        }
         if (view === 'sheet') { await page.evaluate(() => showCharacterManagerView()); await page.locator('#managerCreateCharacter').click(); }
         if (view === 'dice') { const button=page.locator('#quickDiceToggle'); if(await button.count()) await button.click(); else continue; }
         if (['cast','participants','encounters','free-rolls'].includes(view)) {
           await page.locator(`[data-chronicle-detail-panel="${view}"]`).scrollIntoViewIfNeeded();
         }
         await page.waitForTimeout(80);
-        const metrics = await page.evaluate(() => ({width:innerWidth, scroll:document.documentElement.scrollWidth, overflow:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width && r.height && s.position!=='fixed' && s.visibility!=='hidden' && r.right>innerWidth+1 && r.left>=0;}).slice(0,8).map(e=>e.id||e.className)}));
+        const metrics = await page.evaluate(() => ({
+          width: innerWidth,
+          scroll: document.documentElement.scrollWidth,
+          overflow: document.documentElement.scrollWidth > innerWidth + 1
+            ? [...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width && r.height && s.position!=='fixed' && s.visibility!=='hidden' && r.right>innerWidth+1 && r.left>=0;}).slice(0,8).map(e=>e.id||e.className)
+            : [],
+          contentOverflow: [...document.querySelectorAll('.manager-navigation,.manager-content-actions,.character-gallery,.sheet-layout > .panel')].filter(element => {
+            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && element.scrollWidth > element.clientWidth + 1;
+          }).map(element => element.id || element.className),
+          structure: ['.manager-app-shell','.manager-workspace','.manager-sidebar','.manager-content','.manager-environment-stage','.character-sheet-view','.sheet-layout'].map(selector => {
+            const element = document.querySelector(selector);
+            if (!element) return { selector, present: false };
+            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return { selector, present: true, left: Math.round(rect.left * 100) / 100, right: Math.round(rect.right * 100) / 100, width: Math.round(rect.width * 100) / 100, scrollWidth: element.scrollWidth, minWidth: style.minWidth, maxWidth: style.maxWidth, overflowX: style.overflowX, display: style.display, gridTemplateColumns: style.gridTemplateColumns };
+          })
+        }));
         results.push({view,width,height,...metrics});
         await page.screenshot({path:path.join(dir,`${process.env.AUDIT_PHASE || 'after'}-${view}-${width}.png`)});
       }
     }
+    const sheetAt1280 = results.find(result => result.view === 'sheet' && result.width === 1280);
+    const sheetAt1279 = results.find(result => result.view === 'sheet' && result.width === 1279);
+    const sheetStructure = result => result?.structure.find(item => item.selector === '.sheet-layout');
+    if (sheetStructure(sheetAt1280)?.display !== 'grid' || sheetStructure(sheetAt1279)?.display !== 'block') {
+      throw Error('Sheet layout boundary failed at 1280/1279px');
+    }
     await fs.writeFile(path.join(dir,`${process.env.AUDIT_PHASE || 'after'}-report.json`),JSON.stringify({results,errors},null,2));
-    console.log(JSON.stringify({screens:results.length,overflows:results.filter(r=>r.scroll>r.width||r.overflow.length),errors}));
-    if(errors.length || results.some(r=>r.scroll>r.width)) throw Error('Responsive audit failed');
+    const overflows = results.filter(result => result.scroll > result.width || result.overflow.length || result.contentOverflow.length);
+    console.log(JSON.stringify({screens:results.length,overflows,errors}));
+    if(errors.length || overflows.length) throw Error('Responsive audit failed');
   } finally { await browser.close(); server.close(); }
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});
