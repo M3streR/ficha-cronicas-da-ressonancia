@@ -4,7 +4,6 @@
 .site-entry-gate {
   position: fixed;
   inset: 0;
-  z-index: 10000;
   display: grid;
   place-items: center;
   padding: 1.25rem;

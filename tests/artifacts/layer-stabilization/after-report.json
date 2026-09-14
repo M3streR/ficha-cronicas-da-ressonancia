@@ -1,0 +1,1899 @@
+{
+  "phase": "after",
+  "layerScale": {
+    "--layer-content": 0,
+    "--layer-elevated": 10,
+    "--layer-sticky": 100,
+    "--layer-sticky-raised": 110,
+    "--layer-mobile-navigation": 200,
+    "--layer-popover": 300,
+    "--layer-quick-dice": 400,
+    "--layer-backdrop": 800,
+    "--layer-overlay-panel": 810,
+    "--layer-modal": 900,
+    "--layer-critical-notification": 1000,
+    "--layer-entry-gate": 1100
+  },
+  "results": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": 20,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 248,
+          "right": 744.796875,
+          "bottom": 381.28125,
+          "left": 534.796875,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": null,
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "resonance-threshold",
+          "panel-title-row manifestation-title-row",
+          "contentPanelManifestacoes",
+          "content-column mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 634.265625,
+          "right": 1902.40625,
+          "bottom": 998.40625,
+          "left": 1562.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "skill-bonus",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 461.109375,
+          "right": 1210,
+          "bottom": 618.875,
+          "left": 710,
+          "width": 500,
+          "height": 157.765625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "skill-bonus",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 1220,
+          "bottom": 59.9375,
+          "left": 700,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 501,
+          "right": 1320,
+          "bottom": 579,
+          "left": 600,
+          "width": 720,
+          "height": 78
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": 20,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 235.703125,
+          "right": 691.375,
+          "bottom": 368.984375,
+          "left": 481.375,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": null,
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "contentPanelHabilidades",
+          "content-column mobile-section",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 322.265625,
+          "right": 1348.40625,
+          "bottom": 686.40625,
+          "left": 1008.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout",
+          "characterSheetView",
+          "modal-open"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 305.109375,
+          "right": 933,
+          "bottom": 462.875,
+          "left": 433,
+          "width": 500,
+          "height": 157.765625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 943,
+          "bottom": 59.9375,
+          "left": 423,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 345,
+          "right": 1043,
+          "bottom": 423,
+          "left": 323,
+          "width": 720,
+          "height": 78
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": 20,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": ".character-options-popover:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "",
+          "character-options-popover",
+          "character-card-placeholder",
+          "character-card-portrait",
+          "character-card",
+          "character-card-shell",
+          "characterCardList",
+          "managerCharactersPanel"
+        ],
+        "zIndex": "12",
+        "position": "absolute",
+        "rect": {
+          "top": 232.953125,
+          "right": 688.796875,
+          "bottom": 366.234375,
+          "left": 478.796875,
+          "width": 210,
+          "height": 133.28125
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "sticky",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": null,
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "",
+          "favorite-filter",
+          "panel-title-row",
+          "contentPanelHabilidades",
+          "content-column mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 354.265625,
+          "right": 1262.40625,
+          "bottom": 718.40625,
+          "left": 922.40625,
+          "width": 340,
+          "height": 364.140625
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "skill-bonus",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 322.234375,
+          "right": 890,
+          "bottom": 477.75,
+          "left": 390,
+          "width": 500,
+          "height": 155.515625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "app-header",
+          "",
+          "skill-row",
+          "listaPericias",
+          "panel skills-panel mobile-section",
+          "sheet-layout"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 900,
+          "bottom": 59.9375,
+          "left": 380,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 361,
+          "right": 1000,
+          "bottom": 439,
+          "left": 280,
+          "width": 720,
+          "height": 78
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1279,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": 20,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1279,
+          "bottom": 800,
+          "left": 0,
+          "width": 1279,
+          "height": 800
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "attribute-card agilidade",
+          "attributes-layout",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 736.03125,
+          "right": 1279,
+          "bottom": 800,
+          "left": 0,
+          "width": 1279,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "character-utilities-summary",
+          "characterUtilitySection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 382.515625,
+          "right": 1271,
+          "bottom": 728,
+          "left": 8,
+          "width": 1263,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "active-effects-summary",
+          "activeEffectsSection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "modal-open"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 322.234375,
+          "right": 889.5,
+          "bottom": 477.75,
+          "left": 389.5,
+          "width": 500,
+          "height": 155.515625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "nome",
+          "identity-name-field",
+          "form-grid character-info-grid"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 899.5,
+          "bottom": 59.9375,
+          "left": 379.5,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 361,
+          "right": 999.5,
+          "bottom": 439,
+          "left": 279.5,
+          "width": 720,
+          "height": 78
+        }
+      },
+      "drawer": null
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": 20,
+        "navigationPosition": "sticky",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 1024,
+          "bottom": 768,
+          "left": 0,
+          "width": 1024,
+          "height": 768
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "attribute-card agilidade",
+          "attributes-layout",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 704.03125,
+          "right": 1024,
+          "bottom": 768,
+          "left": 0,
+          "width": 1024,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "character-utilities-summary",
+          "characterUtilitySection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 350.515625,
+          "right": 1016,
+          "bottom": 696,
+          "left": 8,
+          "width": 1008,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "modal-open",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 309.6875,
+          "right": 762,
+          "bottom": 458.296875,
+          "left": 262,
+          "width": 500,
+          "height": 148.609375
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 772,
+          "bottom": 59.9375,
+          "left": 252,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 345,
+          "right": 872,
+          "bottom": 423,
+          "left": 152,
+          "width": 720,
+          "height": 78
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicle-overview-heading",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace",
+            "chronicleDetailView"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 483.640625,
+            "right": 822,
+            "bottom": 768,
+            "left": 202,
+            "width": 620,
+            "height": 284.359375
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 1024,
+            "bottom": 768,
+            "left": 0,
+            "width": 1024,
+            "height": 768
+          }
+        }
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "left": 0,
+          "width": 768,
+          "height": 1024
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 960.03125,
+          "right": 768,
+          "bottom": 1024,
+          "left": 0,
+          "width": 768,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "attributes-layout",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 606.515625,
+          "right": 760,
+          "bottom": 952,
+          "left": 8,
+          "width": 752,
+          "height": 345.484375
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "panel-title-row compact attributes-title-row",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "modal-open",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 439.5,
+          "right": 634,
+          "bottom": 584.484375,
+          "left": 134,
+          "width": 500,
+          "height": 144.984375
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 644,
+          "bottom": 59.9375,
+          "left": 124,
+          "width": 520,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 480.28125,
+          "right": 744,
+          "bottom": 543.71875,
+          "left": 24,
+          "width": 720,
+          "height": 63.4375
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "",
+            "chronicle-overview-metadata",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 736.03125,
+            "right": 694,
+            "bottom": 1024,
+            "left": 74,
+            "width": 620,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "manager-sidebar manager-environment-switcher",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open",
+            ""
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 768,
+            "bottom": 1024,
+            "left": 0,
+            "width": 768,
+            "height": 1024
+          }
+        }
+      }
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 430,
+          "bottom": 932,
+          "left": 0,
+          "width": 430,
+          "height": 932
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "panel-title-row compact attributes-title-row",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 868.03125,
+          "right": 430,
+          "bottom": 932,
+          "left": 0,
+          "width": 430,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "",
+          "identity-age-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 479.671875,
+          "right": 422,
+          "bottom": 860,
+          "left": 8,
+          "width": 414,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "tipoNexo",
+          "identity-nexus-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 393.5,
+          "right": 418,
+          "bottom": 538.484375,
+          "left": 12,
+          "width": 406,
+          "height": 144.984375
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 414,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 398,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 443,
+          "right": 411,
+          "bottom": 489,
+          "left": 19,
+          "width": 392,
+          "height": 46
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "",
+            "chronicle-overview-metadata",
+            "chroniclePanelOverview",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 644.03125,
+            "right": 430,
+            "bottom": 932,
+            "left": 0,
+            "width": 430,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 430,
+            "bottom": 932,
+            "left": 0,
+            "width": 430,
+            "height": 932
+          }
+        }
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "left": 0,
+          "width": 390,
+          "height": 844
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          "",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 780.03125,
+          "right": 390,
+          "bottom": 844,
+          "left": 0,
+          "width": 390,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "tipoNexo",
+          "identity-nexus-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 391.671875,
+          "right": 382,
+          "bottom": 772,
+          "left": 8,
+          "width": 374,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "identity-signature-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 339.1875,
+          "right": 378,
+          "bottom": 504.8125,
+          "left": 12,
+          "width": 366,
+          "height": 165.625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 374,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 358,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 399,
+          "right": 371,
+          "bottom": 445,
+          "left": 19,
+          "width": 352,
+          "height": 46
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "openChronicleActions",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace",
+            "chronicleDetailView"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 556.03125,
+            "right": 390,
+            "bottom": 844,
+            "left": 0,
+            "width": 390,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 390,
+            "bottom": 844,
+            "left": 0,
+            "width": 390,
+            "height": 844
+          }
+        }
+      }
+    },
+    {
+      "width": 360,
+      "height": 800,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-topbar manager-environment-brand",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 360,
+          "bottom": 800,
+          "left": 0,
+          "width": 360,
+          "height": 800
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "character-utilities-summary",
+          "characterUtilitySection",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView",
+          ""
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 736.03125,
+          "right": 360,
+          "bottom": 800,
+          "left": 0,
+          "width": 360,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "assinatura",
+          "identity-signature-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 347.671875,
+          "right": 352,
+          "bottom": 728,
+          "left": 8,
+          "width": 344,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "",
+          "identity-signature-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 317.1875,
+          "right": 348,
+          "bottom": 482.8125,
+          "left": 12,
+          "width": 336,
+          "height": 165.625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobilePsAtual",
+          "mobile-resource-numbers",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "resources-grid"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 344,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 328,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 377,
+          "right": 341,
+          "bottom": 423,
+          "left": 19,
+          "width": 322,
+          "height": 46
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicleTabFreeRolls",
+            "chronicle-detail-tabs",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 512.03125,
+            "right": 360,
+            "bottom": 800,
+            "left": 0,
+            "width": 360,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 360,
+            "bottom": 800,
+            "left": 0,
+            "width": 360,
+            "height": 800
+          }
+        }
+      }
+    },
+    {
+      "width": 320,
+      "height": 720,
+      "manager": {
+        "scrollY": 560,
+        "navigationTop": -486.40625,
+        "navigationPosition": "static",
+        "managerOverflowX": "clip",
+        "managerOverflowY": "clip",
+        "noHorizontalOverflow": true
+      },
+      "characterMenu": {
+        "selector": "#modalOverlay:not([hidden])",
+        "topMatches": true,
+        "stack": [
+          "modalOverlay",
+          "manager-sidebar manager-environment-switcher",
+          "manager-workspace",
+          "manager-app-shell",
+          "characterManagerView",
+          "manager-view-open modal-open",
+          ""
+        ],
+        "zIndex": "900",
+        "position": "fixed",
+        "rect": {
+          "top": 0,
+          "right": 320,
+          "bottom": 720,
+          "left": 0,
+          "width": 320,
+          "height": 720
+        }
+      },
+      "sheetTop": {
+        "headerPosition": "static",
+        "headerZIndex": "110",
+        "resourceZIndex": "110",
+        "tabsZIndex": "100",
+        "activeTop": 0,
+        "activeOwnsPoint": true
+      },
+      "mobileNav": {
+        "selector": ".mobile-nav",
+        "topMatches": true,
+        "stack": [
+          "",
+          "mobile-nav",
+          "identity-nexus-field",
+          "form-grid character-info-grid",
+          "identity-section",
+          "panel character-panel mobile-section active",
+          "sheet-layout",
+          "characterSheetView"
+        ],
+        "zIndex": "200",
+        "position": "fixed",
+        "rect": {
+          "top": 656.03125,
+          "right": 320,
+          "bottom": 720,
+          "left": 0,
+          "width": 320,
+          "height": 63.96875
+        }
+      },
+      "quickDice": {
+        "selector": "#quickDicePanel",
+        "topMatches": true,
+        "stack": [
+          "quick-dice-header",
+          "quickDicePanel",
+          "defesaTotal",
+          "defense-value",
+          "resource-card defense-card",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "400",
+        "position": "fixed",
+        "rect": {
+          "top": 267.671875,
+          "right": 312,
+          "bottom": 648,
+          "left": 8,
+          "width": 304,
+          "height": 380.328125
+        }
+      },
+      "modal": {
+        "selector": "#appModal",
+        "topMatches": true,
+        "stack": [
+          "appModal",
+          "modalOverlay",
+          "defesaTotal",
+          "defense-value",
+          "resource-card defense-card",
+          "resources-grid",
+          "identity-top status-panel",
+          "panel character-panel mobile-section active"
+        ],
+        "zIndex": "auto",
+        "position": "relative",
+        "rect": {
+          "top": 277.1875,
+          "right": 308,
+          "bottom": 442.8125,
+          "left": 12,
+          "width": 296,
+          "height": 165.625
+        }
+      },
+      "notification": {
+        "selector": "#globalNotification",
+        "topMatches": true,
+        "stack": [
+          "globalNotification",
+          "modalOverlay",
+          "mobilePsAtual",
+          "mobile-resource-numbers",
+          "mobile-resource-item ps",
+          "mobileResourceValues",
+          "mobileResourceBar",
+          "pnAtual"
+        ],
+        "zIndex": "1000",
+        "position": "fixed",
+        "rect": {
+          "top": 16,
+          "right": 304,
+          "bottom": 59.9375,
+          "left": 16,
+          "width": 288,
+          "height": 43.9375
+        }
+      },
+      "nativeDialog": {
+        "selector": "dialog[open]",
+        "topMatches": true,
+        "stack": [
+          "chronicle-sharing-shell",
+          "chronicleConversionDialog",
+          ""
+        ],
+        "zIndex": "auto",
+        "position": "fixed",
+        "rect": {
+          "top": 337,
+          "right": 301,
+          "bottom": 383,
+          "left": 19,
+          "width": 282,
+          "height": 46
+        }
+      },
+      "drawer": {
+        "panel": {
+          "selector": "#chronicleActionsPanel.is-open",
+          "topMatches": true,
+          "stack": [
+            "chronicle-actions-heading",
+            "chronicleActionsPanel",
+            "chronicleActionsBackdrop",
+            "chronicleTabCast",
+            "chronicle-detail-tabs",
+            "chronicle-detail-navigation-row",
+            "chronicle-detail-main",
+            "chronicle-detail-workspace"
+          ],
+          "zIndex": "810",
+          "position": "fixed",
+          "rect": {
+            "top": 432.03125,
+            "right": 320,
+            "bottom": 720,
+            "left": 0,
+            "width": 320,
+            "height": 287.96875
+          }
+        },
+        "backdrop": {
+          "selector": "#chronicleActionsBackdrop:not([hidden])",
+          "topMatches": true,
+          "stack": [
+            "chronicleActionsBackdrop",
+            "chronicleDetailView",
+            "managerChroniclesPanel",
+            "manager-content manager-environment-stage",
+            "manager-workspace",
+            "manager-app-shell",
+            "characterManagerView",
+            "manager-view-open chronicle-actions-open"
+          ],
+          "zIndex": "800",
+          "position": "fixed",
+          "rect": {
+            "top": 0,
+            "right": 320,
+            "bottom": 720,
+            "left": 0,
+            "width": 320,
+            "height": 720
+          }
+        }
+      }
+    }
+  ],
+  "zoomChecks": [
+    {
+      "zoom": 1,
+      "baseWidth": 1920,
+      "effectiveWidth": 1920,
+      "width": 1920,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1,
+      "baseWidth": 1366,
+      "effectiveWidth": 1366,
+      "width": 1366,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1,
+      "baseWidth": 1024,
+      "effectiveWidth": 1024,
+      "width": 1024,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1920,
+      "effectiveWidth": 1745,
+      "width": 1745,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1366,
+      "effectiveWidth": 1241,
+      "width": 1241,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.1,
+      "baseWidth": 1024,
+      "effectiveWidth": 930,
+      "width": 930,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1920,
+      "effectiveWidth": 1536,
+      "width": 1536,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1366,
+      "effectiveWidth": 1092,
+      "width": 1092,
+      "pageFits": true,
+      "navFits": true
+    },
+    {
+      "zoom": 1.25,
+      "baseWidth": 1024,
+      "effectiveWidth": 819,
+      "width": 819,
+      "pageFits": true,
+      "navFits": true
+    }
+  ],
+  "errors": []
+}

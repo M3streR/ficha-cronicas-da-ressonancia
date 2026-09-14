@@ -43,6 +43,12 @@ body {
   width: 100%;
 }
 
+.character-manager {
+  /* `hidden` made this root a scroll container and trapped the sticky sidebar.
+     `clip` preserves decorative paint containment without capturing scrolling. */
+  overflow: clip;
+}
+
 .manager-app-shell {
   margin-inline: auto;
 }

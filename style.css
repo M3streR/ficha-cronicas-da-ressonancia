@@ -3,7 +3,6 @@
   position: fixed;
   right: max(0.75rem, env(safe-area-inset-right));
   bottom: calc(2px + env(safe-area-inset-bottom));
-  z-index: 40;
   color: #d4cee8;
   opacity: 0.42;
   font: 400 10px/1.2 system-ui, sans-serif;
@@ -553,7 +552,6 @@ button { cursor: pointer; }
   backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
-  z-index: 20;
 }
 
 .app-header h1 {
@@ -1914,7 +1912,6 @@ button { cursor: pointer; }
 
   .chronicle-actions-panel {
     position: fixed;
-    z-index: 1200;
     right: 0;
     bottom: 0;
     left: 0;
@@ -1963,7 +1960,6 @@ button { cursor: pointer; }
 
   .chronicle-actions-backdrop {
     position: fixed;
-    z-index: 1190;
     inset: 0;
     display: block;
     background: rgba(2, 3, 14, 0.68);
@@ -2852,7 +2848,6 @@ button { cursor: pointer; }
   position: fixed;
   top: max(1rem, env(safe-area-inset-top));
   left: 50%;
-  z-index: 300;
   width: min(calc(100% - 2rem), 520px);
   padding: 0.78rem 1rem;
   border: 1px solid rgba(113, 217, 165, 0.35);
@@ -2881,7 +2876,6 @@ button { cursor: pointer; }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 250;
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -3050,7 +3044,6 @@ button { cursor: pointer; }
   position: fixed;
   right: max(1.1rem, env(safe-area-inset-right));
   bottom: max(1.1rem, env(safe-area-inset-bottom));
-  z-index: 80;
   display: grid;
   place-items: center;
   width: 54px;
@@ -3093,7 +3086,6 @@ button { cursor: pointer; }
   position: fixed;
   right: max(1.1rem, env(safe-area-inset-right));
   bottom: calc(max(1.1rem, env(safe-area-inset-bottom)) + 64px);
-  z-index: 79;
   width: min(340px, calc(100vw - 2rem));
   max-height: min(72vh, 520px);
   overflow-y: auto;
@@ -4196,7 +4188,6 @@ body.notes-view-open {
   .mobile-resource-bar {
     position: sticky;
     top: 0;
-    z-index: 45;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 34px;
     gap: 0.35rem;
@@ -4302,7 +4293,6 @@ body.notes-view-open {
   .content-mobile-tabs {
     position: sticky;
     top: var(--mobile-resource-bar-height);
-    z-index: 30;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.38rem;
@@ -4481,7 +4471,6 @@ body.notes-view-open {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 50;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.4rem;
@@ -8033,7 +8022,6 @@ button:disabled {
 
 .manager-app-shell {
   position: relative;
-  z-index: 1;
   width: 100%;
   min-height: 100vh;
   margin: 0;
@@ -8486,28 +8474,6 @@ button:disabled {
     linear-gradient(112deg, transparent 0 18%, color-mix(in srgb, var(--color-resonance-magenta) 7%, transparent) 18.2% 18.35%, transparent 18.55%),
     linear-gradient(74deg, transparent 0 80%, color-mix(in srgb, var(--color-info) 8%, transparent) 80.2% 80.35%, transparent 80.55%),
     radial-gradient(ellipse at center, transparent 42%, rgba(1, 2, 10, 0.55) 100%);
-}
-
-.character-sheet-view > .app-header,
-.character-sheet-view > .mobile-resource-bar,
-.character-sheet-view > .sheet-layout,
-.character-sheet-view > .notes-view,
-.character-sheet-view > .mobile-nav,
-.character-sheet-view > .quick-dice-trigger,
-.character-sheet-view > .quick-dice-panel {
-  z-index: 1;
-}
-
-.character-sheet-view > .app-header {
-  z-index: 60;
-}
-
-.character-sheet-view > .mobile-resource-bar {
-  z-index: 45;
-}
-
-.character-sheet-view > .mobile-nav {
-  z-index: 40;
 }
 
 .character-sheet-view .app-header {

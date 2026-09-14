@@ -14,6 +14,8 @@ Os demais arquivos desta pasta registram checkpoints históricos dos sistemas pr
 
 A linha de base da fundação estrutural está em `tests/artifacts/layout-foundation`: Gerenciador, índice de Crônicas e Ficha nas dez larguras, acompanhados por `audit-summary.json` com a comparação antes/depois e as medidas da transição 1280/1279 px.
 
+`node tests/layering-audit.cjs` valida a ordem de camadas nas mesmas dez larguras: sidebar e ficha durante rolagem, menu de personagem, barras móveis, Quick Dice, gaveta de ações, backdrop, modal, notificação e `<dialog>` na top layer nativa. O teste usa `elementsFromPoint()` e também cobre zoom efetivo de 100%, 110% e 125%. A comparação visual antes/depois fica em `tests/artifacts/layer-stabilization`.
+
 Os testes `storage-live.cjs` e `cover-ui.cjs` são **opt-in**, usam o Supabase configurado e criam/excluem fixtures. Exigem `.test-secrets.json` ignorado pelo Git com três contas descartáveis no formato `[{"email":"...","password":"...","id":"uuid"}, ...]`. Não use contas reais. `AUDIT_ONLINE=1 node tests/storage-live.cjs` também valida publicação/sincronização, Combate, Realtime e captura nove telas Online nas oito resoluções. `node tests/cover-ui.cjs` verifica o formulário mobile, preview, formato inválido, falha de rede, retry, substituição e remoção. As contas temporárias da execução registrada foram removidas após a auditoria.
 
 ## Estabilização de navegação e convites
