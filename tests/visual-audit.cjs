@@ -56,7 +56,9 @@ const server = http.createServer(async (req, res) => {
         const metrics = await page.evaluate(() => ({
           width: innerWidth,
           scroll: document.documentElement.scrollWidth,
-          overflow: [...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width && r.height && s.position!=='fixed' && s.visibility!=='hidden' && r.right>innerWidth+1 && r.left>=0;}).slice(0,8).map(e=>e.id||e.className),
+          overflow: document.documentElement.scrollWidth > innerWidth + 1
+            ? [...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width && r.height && s.position!=='fixed' && s.visibility!=='hidden' && r.right>innerWidth+1 && r.left>=0;}).slice(0,8).map(e=>e.id||e.className)
+            : [],
           contentOverflow: [...document.querySelectorAll('.manager-navigation,.manager-content-actions,.character-gallery,.sheet-layout > .panel')].filter(element => {
             const rect = element.getBoundingClientRect();
             const style = getComputedStyle(element);
