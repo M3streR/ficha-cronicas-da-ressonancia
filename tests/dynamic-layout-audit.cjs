@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const phase = process.env.AUDIT_PHASE || 'after';
+const auditUrl = process.env.AUDIT_URL || '';
 const artifactDir = path.join(os.tmpdir(), 'cronicas-dynamic-layout-audit', phase);
 const viewports = [[1920,1080],[1366,768],[1280,800],[1279,800],[1024,768],[768,1024],[430,932],[390,844],[360,800],[320,720]];
 const zooms = [1, 1.1, 1.25];
@@ -51,13 +52,13 @@ function inspect(page) {
 
 (async () => {
   await fs.mkdir(artifactDir, {recursive:true});
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  if (!auditUrl) await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const browser = await chromium.launch({headless:true});
   const page = await browser.newPage({reducedMotion:'reduce'});
   const errors = [], results = [];
   page.on('pageerror', error => errors.push(error.message));
   try {
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.goto(auditUrl || `http://127.0.0.1:${server.address().port}/`);
     await page.waitForFunction(() => Boolean(window.ChroniclesStorage));
     if (await page.locator('.site-entry-button').isVisible()) await page.locator('.site-entry-button').click();
     for (const [width,height] of viewports) {
@@ -179,5 +180,5 @@ function inspect(page) {
       assert.equal(inaccessibleFooter.length,0,'Ações do modal alcançáveis');
       assert.equal(missingFixtures.length,0,'Listas extremas visíveis durante a auditoria');
     }
-  } finally { await browser.close(); server.close(); }
-})().catch(error => { console.error(error); server.close(); process.exitCode=1; });
+  } finally { await browser.close(); if (!auditUrl) server.close(); }
+})().catch(error => { console.error(error); if (!auditUrl) server.close(); process.exitCode=1; });
