@@ -881,6 +881,8 @@ async function openCharacter(id, options = {}) {
     sheetStatus.dataset.state = syncStatus?.state || 'local';
     sheetStatus.textContent = syncStatus?.message || 'Apenas Local';
     sheetStatus.title = syncStatus?.chronicles?.length ? `Crônicas Online: ${syncStatus.chronicles.join(', ')}` : '';
+    sheetStatus.disabled = syncStatus?.state !== 'conflict';
+    if (syncStatus?.state === 'conflict') sheetStatus.title = 'Abrir resolução do conflito Online';
   }
   void window.RollHistory?.open(id);
   queueCharacterMetadataRefresh(id, cloneCharacterState(character));
@@ -917,19 +919,23 @@ function openCharacterCardOptions(id, button, popover) {
     closeDesktopCharacterOptions();
     const manager = readCharacterManager();
     const characterName = manager?.characters?.[id]?.name || 'Novo personagem';
+    const actions = [
+      ...(window.ChroniclesCollaboration?.getCharacterSyncState?.(id)?.state === 'conflict'
+        ? [{ label: 'Resolver conflito Online', onClick: () => void openOnlineCharacterConflict(id) }]
+        : []),
+      { label: 'Exportar personagem', onClick: () => exportStoredCharacterById(id) },
+      {
+        label: 'Duplicar personagem',
+        close: false,
+        onClick: () => duplicateCharacterById(id, document.activeElement, { closeMobileModal: true })
+      },
+      { label: 'Excluir personagem', className: 'danger', onClick: () => openCharacterDeletionOptions(id) },
+      { label: 'Cancelar', className: 'secondary', spanAll: true }
+    ];
     openModal({
       title: `Opções de ${characterName}`,
       content: createModalContent('Escolha uma ação para este personagem.'),
-      actions: [
-        { label: 'Exportar personagem', onClick: () => exportStoredCharacterById(id) },
-        {
-          label: 'Duplicar personagem',
-          close: false,
-          onClick: () => duplicateCharacterById(id, document.activeElement, { closeMobileModal: true })
-        },
-        { label: 'Excluir personagem', className: 'danger', onClick: () => openCharacterDeletionOptions(id) },
-        { label: 'Cancelar', className: 'secondary', spanAll: true }
-      ]
+      actions
     });
     return;
   }
@@ -1048,6 +1054,18 @@ function createCharacterCard(id, summary) {
   popover.className = 'character-options-popover';
   popover.setAttribute('role', 'menu');
   popover.hidden = true;
+  if (onlineState?.state === 'conflict') {
+    const resolveOption = document.createElement('button');
+    resolveOption.type = 'button';
+    resolveOption.setAttribute('role', 'menuitem');
+    resolveOption.textContent = 'Resolver conflito Online';
+    resolveOption.addEventListener('click', event => {
+      event.stopPropagation();
+      closeDesktopCharacterOptions();
+      void openOnlineCharacterConflict(id);
+    });
+    popover.appendChild(resolveOption);
+  }
   const exportOption = document.createElement('button');
   exportOption.type = 'button';
   exportOption.setAttribute('role', 'menuitem');
@@ -1999,6 +2017,63 @@ globalThis.ChroniclesLocalCharacters = Object.freeze({
       thumbnail: manager?.characters?.[entry.id]?.thumbnail || '',
       character: readStoredCharacter(entry.id)
     }));
+  },
+  async createConflictBackup({ sourceLocalId, kind, character, createdAt }) {
+    if (!['local', 'online'].includes(kind)) throw new Error('INVALID_CONFLICT_BACKUP_KIND');
+    const source = getValidatedStoredCharacter(sourceLocalId);
+    const validation = validateImportedSheet(character);
+    if (!validation.valid) throw new Error(`INVALID_CONFLICT_BACKUP: ${validation.message}`);
+    const backup = cloneCharacterState(validation.normalized);
+    const baseName = String(backup.fields?.nome || source.summary.name || 'Personagem').trim();
+    const date = new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }).format(new Date(createdAt));
+    const typeLabel = kind === 'local' ? 'Backup Local' : 'Backup Online';
+    backup.fields.nome = `${baseName} — ${typeLabel} · ${date}`;
+
+    const backupId = createUniqueCharacterId(source.manager);
+    let recordCreated = false;
+    try {
+      writeStoredCharacter(backupId, backup);
+      recordCreated = true;
+      const summary = await createCharacterSummary(backup);
+      writeCharacterManager(setCharacterSummary(source.manager, backupId, summary));
+      const verified = readCharacterManager();
+      if (!verified?.order.includes(backupId) || !readStoredCharacter(backupId)) {
+        throw new Error('CONFLICT_BACKUP_VERIFICATION_FAILED');
+      }
+      return { id: backupId, name: summary.name, createdAt };
+    } catch (error) {
+      try { writeCharacterManager(source.manager); } catch (_) { /* Mantém o erro original. */ }
+      if (recordCreated) {
+        try { removeStoredCharacter(backupId); } catch (_) { /* Mantém o erro original. */ }
+      }
+      throw error;
+    }
+  },
+  async replace(localId, character) {
+    const stored = getValidatedStoredCharacter(localId);
+    const validation = validateImportedSheet(character);
+    if (!validation.valid) throw new Error(`INVALID_CONFLICT_RESOLUTION: ${validation.message}`);
+    const normalized = cloneCharacterState(validation.normalized);
+    try {
+      writeStoredCharacter(localId, normalized);
+      const summary = await createCharacterSummary(normalized);
+      writeCharacterManager(setCharacterSummary(stored.manager, localId, summary));
+      if (readStoredCharacter(localId) === null) throw new Error('CONFLICT_REPLACE_VERIFICATION_FAILED');
+      if (activeCharacterId === localId && storageMode === 'v4') restoreState(normalized);
+      return normalized;
+    } catch (error) {
+      try {
+        writeStoredCharacter(localId, stored.character);
+        writeCharacterManager(stored.manager);
+        if (activeCharacterId === localId && storageMode === 'v4') restoreState(stored.character);
+      } catch (rollbackError) {
+        console.error('Não foi possível restaurar a ficha após falha na resolução:', rollbackError);
+      }
+      throw error;
+    }
   }
 });
 
@@ -3878,6 +3953,8 @@ window.addEventListener('cronicas:character-sync-state', event => {
       sheetStatus.dataset.state = detail.state || 'local';
       sheetStatus.textContent = detail.message || 'Apenas Local';
       sheetStatus.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : '';
+      sheetStatus.disabled = detail.state !== 'conflict';
+      if (detail.state === 'conflict') sheetStatus.title = 'Abrir resolução do conflito Online';
     }
   }
 });
@@ -4256,6 +4333,203 @@ function createModalContent(...paragraphs) {
     wrapper.appendChild(paragraph);
   });
   return wrapper;
+}
+
+const ONLINE_CONFLICT_COPY = Object.freeze({
+  'remote-changed': {
+    title: 'Versão Online alterada',
+    description: 'A ficha Online mudou depois da versão usada por este navegador.'
+  },
+  'legacy-no-base': {
+    title: 'Versão-base desconhecida',
+    description: 'Esta publicação antiga não possui uma versão-base confiável para decidir automaticamente.'
+  },
+  'remote-deleted': {
+    title: 'Publicação removida',
+    description: 'A publicação Online não existe mais. A ficha Local continua preservada.'
+  },
+  'owner-mismatch': {
+    title: 'Conta proprietária necessária',
+    description: 'Esta ficha foi publicada por outra conta. Entre na conta proprietária para resolver a publicação.'
+  },
+  'publication-replaced': {
+    title: 'Publicação substituída',
+    description: 'A identidade da publicação Online mudou. Ela não será sobrescrita por segurança.'
+  },
+  'publication-inconsistent': {
+    title: 'Publicação Online inconsistente',
+    description: 'A publicação não contém uma ficha Online válida e não pode ser aplicada ou sobrescrita com segurança.'
+  }
+});
+
+function conflictVersionSummary(title, version) {
+  const section = document.createElement('section');
+  section.className = 'online-conflict-version';
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  section.appendChild(heading);
+  if (!version) {
+    const missing = document.createElement('p');
+    missing.textContent = 'Versão indisponível para esta conta.';
+    section.appendChild(missing);
+    return section;
+  }
+  const summary = document.createElement('dl');
+  summary.className = 'modal-summary';
+  const entries = [
+    ['Nome', version.name || 'Novo personagem'],
+    ['Classe', version.className || 'Não definida'],
+    ['Nível', String(version.level || 1)]
+  ];
+  if (version.updatedAt && Number.isFinite(Date.parse(version.updatedAt))) {
+    entries.push(['Atualizada', new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'short', timeStyle: 'short'
+    }).format(new Date(version.updatedAt))]);
+  }
+  entries.forEach(([label, value]) => {
+    const term = document.createElement('dt');
+    term.textContent = label;
+    const description = document.createElement('dd');
+    description.textContent = value;
+    summary.append(term, description);
+  });
+  section.appendChild(summary);
+  return section;
+}
+
+function createOnlineConflictContent(details) {
+  const copy = ONLINE_CONFLICT_COPY[details.reason] || ONLINE_CONFLICT_COPY['remote-changed'];
+  const wrapper = document.createElement('div');
+  wrapper.className = 'online-conflict-resolution';
+  const explanation = document.createElement('p');
+  explanation.textContent = copy.description;
+  const versions = document.createElement('div');
+  versions.className = 'online-conflict-versions';
+  versions.append(
+    conflictVersionSummary('Versão Local', details.local),
+    conflictVersionSummary('Versão Online', details.online)
+  );
+  const backup = document.createElement('p');
+  backup.className = 'online-conflict-backup-note';
+  backup.textContent = ['remote-deleted', 'owner-mismatch', 'publication-inconsistent'].includes(details.reason)
+    ? 'Nenhuma publicação será recriada ou alterada sem uma escolha explícita.'
+    : 'Antes de descartar uma versão, uma cópia Local com tipo, data e hora será criada no Gerenciador.';
+  wrapper.append(explanation, versions, backup);
+  return wrapper;
+}
+
+function conflictResolutionActions(localId, details) {
+  const actions = [];
+  if (details.actions.includes('use-online')) {
+    actions.push({
+      label: 'Usar versão Online',
+      className: 'secondary',
+      onClick: () => void runOnlineConflictResolution(localId, 'use-online')
+    });
+  }
+  if (details.actions.includes('keep-local')) {
+    actions.push({
+      label: 'Manter minha versão',
+      onClick: () => void runOnlineConflictResolution(localId, 'keep-local')
+    });
+  }
+  if (details.actions.includes('keep-local-only')) {
+    actions.push({
+      label: 'Manter somente Local',
+      className: 'secondary',
+      onClick: () => void runOnlineConflictResolution(localId, 'keep-local-only')
+    });
+  }
+  if (details.actions.includes('republish')) {
+    actions.push({
+      label: 'Republicar explicitamente',
+      onClick: () => void runOnlineConflictResolution(localId, 'republish')
+    });
+  }
+  actions.push({ label: 'Decidir depois', className: 'secondary', spanAll: true });
+  return actions;
+}
+
+async function openOnlineCharacterConflict(localId) {
+  if (!localId) return false;
+  if (activeCharacterId === localId && storageMode === 'v4') await saveActiveCharacter();
+  openModal({
+    title: 'Verificando conflito Online',
+    content: createModalContent('Carregando as versões Local e Online…'),
+    actions: []
+  });
+  try {
+    const details = await window.ChroniclesCollaboration?.getCharacterConflict?.(localId);
+    if (!details) {
+      closeModal();
+      showNotification('Este conflito já foi resolvido.');
+      return true;
+    }
+    const copy = ONLINE_CONFLICT_COPY[details.reason] || ONLINE_CONFLICT_COPY['remote-changed'];
+    openModal({
+      title: copy.title,
+      content: createOnlineConflictContent(details),
+      actions: conflictResolutionActions(localId, details)
+    });
+    return true;
+  } catch (error) {
+    console.error('Não foi possível carregar o conflito Online:', error);
+    openModal({
+      title: 'Conflito não carregado',
+      content: createModalContent(
+        'Não foi possível consultar a versão Online agora.',
+        'A ficha Local foi preservada e nenhuma versão foi alterada.'
+      ),
+      actions: [{ label: 'Entendi', className: 'secondary', spanAll: true }]
+    });
+    return false;
+  }
+}
+
+async function runOnlineConflictResolution(localId, action) {
+  openModal({
+    title: 'Resolvendo conflito',
+    content: createModalContent('Criando o backup necessário e verificando novamente a versão Online…'),
+    actions: []
+  });
+  try {
+    const result = await window.ChroniclesCollaboration?.resolveCharacterConflict?.(localId, action);
+    if (!result?.ok) {
+      await openOnlineCharacterConflict(localId);
+      showNotification('A versão Online mudou novamente. O conflito continua preservado.', 'warning', 7500);
+      return false;
+    }
+    renderCharacterManager();
+    const backupName = result.backup?.characterId
+      ? readCharacterManager()?.characters?.[result.backup.characterId]?.name
+      : '';
+    const messages = {
+      'use-online': 'A versão Online foi aplicada. Suas anotações e foto original foram preservadas.',
+      'keep-local': 'Sua versão foi mantida e sincronizada com proteção de concorrência.',
+      'keep-local-only': 'O personagem foi mantido somente neste navegador.',
+      republish: 'O personagem foi republicado explicitamente.'
+    };
+    openModal({
+      title: 'Conflito resolvido',
+      content: createModalContent(messages[action], backupName ? `Backup criado: ${backupName}.` : ''),
+      actions: [{ label: 'Concluir', spanAll: true }]
+    });
+    return true;
+  } catch (error) {
+    console.error('Não foi possível resolver o conflito Online:', error);
+    openModal({
+      title: 'Conflito preservado',
+      content: createModalContent(
+        'A resolução não foi concluída.',
+        'Nenhuma versão foi escolhida automaticamente. Tente novamente depois de conferir sua conexão e conta.'
+      ),
+      actions: [
+        { label: 'Tentar novamente', onClick: () => void openOnlineCharacterConflict(localId) },
+        { label: 'Decidir depois', className: 'secondary' }
+      ]
+    });
+    return false;
+  }
 }
 
 function storePendingNotice(message) {
@@ -7643,6 +7917,10 @@ function setCharacterUtilitiesExpanded(expanded) {
 }
 
 function bindCharacterUtilities() {
+  const onlineStatus = document.getElementById('sheetOnlineSyncStatus');
+  onlineStatus?.addEventListener('click', () => {
+    if (!onlineStatus.disabled && activeCharacterId) void openOnlineCharacterConflict(activeCharacterId);
+  });
   const toggle = document.getElementById('alternarFerramentasPersonagem');
   if (!toggle) return;
   toggle.addEventListener('click', () => {

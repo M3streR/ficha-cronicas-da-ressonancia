@@ -34,6 +34,7 @@ jobs:
           node tests/ux-stabilization.cjs
           node tests/skills-progression.test.cjs
           node tests/critical-states.test.cjs
+          node tests/conflict-resolution-ui.test.cjs
           node tests/visual-audit.cjs
           node tests/dynamic-layout-audit.cjs
           node tests/layering-audit.cjs

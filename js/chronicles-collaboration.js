@@ -378,6 +378,22 @@
     };
   }
 
+  function isConsistentOnlineCharacter(row, localId, ownerId) {
+    const snapshot = row?.snapshot;
+    return Boolean(
+      text(row?.id)
+      && row?.owner_id === ownerId
+      && row?.source_local_id === localId
+      && Number.isFinite(Date.parse(row?.updated_at))
+      && snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+      && snapshot.fields && typeof snapshot.fields === 'object' && !Array.isArray(snapshot.fields)
+      && snapshot.skills && typeof snapshot.skills === 'object' && !Array.isArray(snapshot.skills)
+      && Array.isArray(snapshot.equipment)
+      && Array.isArray(snapshot.abilities)
+      && Array.isArray(snapshot.manifestations)
+    );
+  }
+
   function clone(value) {
     return JSON.parse(JSON.stringify(value ?? null));
   }
@@ -392,6 +408,38 @@
 
   function snapshotsEqual(left, right) {
     return stableSerialize(sanitizeSnapshot(left)) === stableSerialize(sanitizeSnapshot(right));
+  }
+
+  function valueFingerprint(value) {
+    const serialized = stableSerialize(value);
+    let hash = 2166136261;
+    for (let index = 0; index < serialized.length; index += 1) {
+      hash = Math.imul(hash ^ serialized.charCodeAt(index), 16777619);
+    }
+    return `${serialized.length.toString(36)}-${(hash >>> 0).toString(36)}`;
+  }
+
+  function normalizeConflictReason(reason) {
+    if (reason === 'remote-deleted') return 'remote-deleted';
+    if (reason === 'account-changed' || reason === 'owner-mismatch') return 'owner-mismatch';
+    if (reason === 'publication-changed' || reason === 'publication-replaced') return 'publication-replaced';
+    if (reason === 'publication-inconsistent') return 'publication-inconsistent';
+    if (reason === 'legacy-divergence' || reason === 'missing-base-version' || reason === 'legacy-no-base') return 'legacy-no-base';
+    if (reason === 'unresolved') return 'unresolved';
+    return 'remote-changed';
+  }
+
+  function normalizeBackupMetadata(value) {
+    if (!value || typeof value !== 'object') return {};
+    return Object.fromEntries(['local', 'online'].flatMap(kind => {
+      const backup = value[kind];
+      if (!backup || typeof backup !== 'object' || !backup.fingerprint || !backup.characterId) return [];
+      return [[kind, {
+        fingerprint: String(backup.fingerprint),
+        characterId: String(backup.characterId),
+        createdAt: String(backup.createdAt || '')
+      }]];
+    }));
   }
 
   function mergeRemoteSnapshot(remoteSnapshot, localCharacter) {
@@ -417,7 +465,11 @@
         ownerId: String(value.ownerId),
         baseUpdatedAt: String(value.baseUpdatedAt),
         dirty: value.dirty === true,
-        conflict: value.conflict === true
+        conflict: value.conflict === true,
+        conflictReason: value.conflictReason ? normalizeConflictReason(value.conflictReason) : '',
+        conflictDetectedAt: String(value.conflictDetectedAt || ''),
+        remoteUpdatedAt: String(value.remoteUpdatedAt || ''),
+        backups: normalizeBackupMetadata(value.backups)
       };
     } catch (error) {
       console.warn('[Personagem online] Metadados locais de sincronização inválidos:', error);
@@ -432,7 +484,11 @@
         ownerId: value.ownerId,
         baseUpdatedAt: value.baseUpdatedAt,
         dirty: value.dirty === true,
-        conflict: value.conflict === true
+        conflict: value.conflict === true,
+        conflictReason: value.conflictReason || '',
+        conflictDetectedAt: value.conflictDetectedAt || '',
+        remoteUpdatedAt: value.remoteUpdatedAt || '',
+        backups: normalizeBackupMetadata(value.backups)
       }));
       return true;
     } catch (error) {
@@ -447,7 +503,11 @@
       ownerId: row.owner_id,
       baseUpdatedAt: row.updated_at,
       dirty: options.dirty === true,
-      conflict: options.conflict === true
+      conflict: options.conflict === true,
+      conflictReason: '',
+      conflictDetectedAt: '',
+      remoteUpdatedAt: '',
+      backups: {}
     };
     characterSyncVersions.set(localId, version);
     writeSyncMetadata(localId, version);
@@ -469,12 +529,20 @@
 
   function markConflict(localId, row, reason = 'changed') {
     const current = currentVersion(localId);
+    const normalizedReason = normalizeConflictReason(reason);
+    const preservedReason = current?.conflict && normalizedReason === 'unresolved'
+      ? current.conflictReason
+      : normalizedReason;
     const metadata = {
-      remoteId: row?.id || current?.remoteId || '',
-      ownerId: row?.owner_id || current?.ownerId || '',
+      remoteId: current?.remoteId || row?.id || '',
+      ownerId: current?.ownerId || row?.owner_id || '',
       baseUpdatedAt: current?.baseUpdatedAt || row?.updated_at || '',
       dirty: true,
-      conflict: true
+      conflict: true,
+      conflictReason: preservedReason || 'remote-changed',
+      conflictDetectedAt: current?.conflictDetectedAt || new Date().toISOString(),
+      remoteUpdatedAt: row?.updated_at || current?.remoteUpdatedAt || '',
+      backups: normalizeBackupMetadata(current?.backups)
     };
     if (metadata.remoteId && metadata.ownerId && metadata.baseUpdatedAt) {
       characterSyncVersions.set(localId, metadata);
@@ -485,7 +553,16 @@
       conflictReason: reason,
       remoteUpdatedAt: row?.updated_at || ''
     });
-    return { ok: false, conflict: true, reason };
+    return { ok: false, conflict: true, reason: metadata.conflictReason };
+  }
+
+  function clearSyncMetadata(localId) {
+    characterSyncVersions.delete(localId);
+    try {
+      global.localStorage?.removeItem(syncMetadataKey(localId));
+    } catch (error) {
+      console.warn('[Personagem online] Não foi possível remover os metadados de sincronização:', error);
+    }
   }
 
   function characterPayload(localEntry, userId) {
@@ -571,8 +648,13 @@
       return { character: localCharacter, published: Boolean(metadata?.remoteId), verified: false };
     }
 
-    const row = await fetchOwnedOnlineCharacter(context.auth, context.user.id, localId);
     const metadata = currentVersion(localId);
+    if (metadata?.ownerId && metadata.ownerId !== context.user.id) {
+      markConflict(localId, null, 'owner-mismatch');
+      return { character: localCharacter, published: true, verified: true, conflict: true };
+    }
+
+    const row = await fetchOwnedOnlineCharacter(context.auth, context.user.id, localId);
     if (!row) {
       if (metadata?.remoteId && metadata.ownerId === context.user.id) {
         markConflict(localId, null, 'remote-deleted');
@@ -582,8 +664,13 @@
       return { character: localCharacter, published: false, verified: true };
     }
 
-    if (metadata?.ownerId && metadata.ownerId !== context.user.id) {
-      markConflict(localId, row, 'account-changed');
+    if (!isConsistentOnlineCharacter(row, localId, context.user.id)) {
+      markConflict(localId, row, 'publication-inconsistent');
+      return { character: localCharacter, published: true, verified: true, conflict: true };
+    }
+
+    if (metadata?.remoteId && metadata.remoteId !== row.id) {
+      markConflict(localId, row, 'publication-replaced');
       return { character: localCharacter, published: true, verified: true, conflict: true };
     }
     if (metadata?.conflict) {
@@ -633,6 +720,9 @@
       if (metadata?.remoteId) return markConflict(localId, null, 'remote-deleted');
       setCharacterSyncState(localId, 'local', 'Apenas Local');
       return { ok: false, localOnly: true };
+    }
+    if (!isConsistentOnlineCharacter(row, localId, user.id)) {
+      return markConflict(localId, row, 'publication-inconsistent');
     }
     if (metadata?.conflict) return markConflict(localId, row, 'unresolved');
     if (!metadata?.baseUpdatedAt) {
@@ -689,6 +779,193 @@
       return { ok: true, row: latest, acknowledged: true };
     }
     return markConflict(localId, latest, 'stale-write');
+  }
+
+  function versionSummary(character, row = null) {
+    const source = character && typeof character === 'object' ? character : {};
+    const fields = source.fields && typeof source.fields === 'object' ? source.fields : {};
+    return {
+      name: text(fields.nome) || text(row?.name) || 'Novo personagem',
+      level: Math.max(1, Math.min(11, Number.parseInt(fields.nivel, 10) || Number(row?.level) || 1)),
+      className: text(fields.classe) || text(row?.class_name),
+      signature: text(fields.assinatura) || text(row?.signature),
+      updatedAt: text(row?.updated_at)
+    };
+  }
+
+  function conflictActions(reason) {
+    if (reason === 'remote-deleted') return ['keep-local-only', 'republish'];
+    if (reason === 'owner-mismatch' || reason === 'publication-inconsistent') return [];
+    if (reason === 'publication-replaced') return ['use-online'];
+    return ['use-online', 'keep-local'];
+  }
+
+  async function getCharacterConflict(localId) {
+    const local = localCharacters().find(item => item.id === localId);
+    if (!local) throw new Error('LOCAL_CHARACTER_NOT_FOUND');
+    const metadata = currentVersion(localId);
+    if (!metadata?.conflict) return null;
+    const { auth, user } = await requireUser();
+
+    if (metadata.ownerId !== user.id) {
+      markConflict(localId, null, 'owner-mismatch');
+      return {
+        localId,
+        reason: 'owner-mismatch',
+        detectedAt: metadata.conflictDetectedAt,
+        local: versionSummary(local.character),
+        online: null,
+        actions: []
+      };
+    }
+
+    const row = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    let reason = metadata.conflictReason || 'remote-changed';
+    if (!row) reason = 'remote-deleted';
+    else if (!isConsistentOnlineCharacter(row, localId, user.id)) reason = 'publication-inconsistent';
+    else if (metadata.remoteId && metadata.remoteId !== row.id) reason = 'publication-replaced';
+    else if (reason === 'unresolved' || reason === 'owner-mismatch' || reason === 'remote-deleted') {
+      reason = metadata.baseUpdatedAt ? 'remote-changed' : 'legacy-no-base';
+    }
+    markConflict(localId, row, reason);
+    const current = currentVersion(localId);
+    return {
+      localId,
+      reason,
+      detectedAt: current?.conflictDetectedAt || '',
+      local: versionSummary(local.character),
+      online: row ? versionSummary(row.snapshot, row) : null,
+      actions: conflictActions(reason)
+    };
+  }
+
+  async function ensureConflictBackup(localId, kind, character, fingerprint) {
+    const metadata = currentVersion(localId);
+    const existing = metadata?.backups?.[kind];
+    if (existing?.fingerprint === fingerprint && localCharacters().some(entry => entry.id === existing.characterId)) {
+      return existing;
+    }
+    const creator = global.ChroniclesLocalCharacters?.createConflictBackup;
+    if (typeof creator !== 'function') throw new Error('LOCAL_BACKUP_UNAVAILABLE');
+    const createdAt = new Date().toISOString();
+    const backup = await creator({ sourceLocalId: localId, kind, character: clone(character), createdAt });
+    const latest = currentVersion(localId);
+    if (!latest?.conflict) throw new Error('ONLINE_CONFLICT_CHANGED');
+    const next = {
+      ...latest,
+      backups: {
+        ...normalizeBackupMetadata(latest.backups),
+        [kind]: { fingerprint, characterId: backup.id, createdAt }
+      }
+    };
+    characterSyncVersions.set(localId, next);
+    writeSyncMetadata(localId, next);
+    return next.backups[kind];
+  }
+
+  async function performConflictResolution(localId, action) {
+    const local = localCharacters().find(item => item.id === localId);
+    if (!local) throw new Error('LOCAL_CHARACTER_NOT_FOUND');
+    const metadata = currentVersion(localId);
+    if (!metadata?.conflict) return { ok: true, alreadyResolved: true };
+    const { auth, user } = await requireUser();
+
+    if (metadata.ownerId !== user.id) {
+      markConflict(localId, null, 'owner-mismatch');
+      return { ok: false, conflict: true, reason: 'owner-mismatch' };
+    }
+
+    const row = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    if (!row) {
+      markConflict(localId, null, 'remote-deleted');
+      if (action === 'keep-local-only') {
+        clearSyncMetadata(localId);
+        setCharacterSyncState(localId, 'local', 'Apenas Local');
+        return { ok: true, action, character: local.character };
+      }
+      if (action === 'republish') {
+        const published = await createOnlineCharacter(local, user.id);
+        setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: published.updated_at });
+        return { ok: true, action, character: local.character, row: published };
+      }
+      return { ok: false, conflict: true, reason: 'remote-deleted' };
+    }
+
+    if (!isConsistentOnlineCharacter(row, localId, user.id)) {
+      markConflict(localId, row, 'publication-inconsistent');
+      return { ok: false, conflict: true, reason: 'publication-inconsistent' };
+    }
+
+    if (metadata.remoteId !== row.id) {
+      markConflict(localId, row, 'publication-replaced');
+      if (action !== 'use-online') return { ok: false, conflict: true, reason: 'publication-replaced' };
+    }
+
+    if (action === 'use-online') {
+      const localFingerprint = valueFingerprint(local.character);
+      const backup = await ensureConflictBackup(localId, 'local', local.character, localFingerprint);
+      const resolvedCharacter = mergeRemoteSnapshot(row.snapshot, local.character);
+      const replacer = global.ChroniclesLocalCharacters?.replace;
+      if (typeof replacer !== 'function') throw new Error('LOCAL_REPLACE_UNAVAILABLE');
+      await replacer(localId, resolvedCharacter);
+      rememberVersion(localId, row);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', {
+        syncedAt: row.updated_at,
+        backupCharacterId: backup.characterId
+      });
+      return { ok: true, action, character: resolvedCharacter, row, backup };
+    }
+
+    if (action !== 'keep-local') return { ok: false, conflict: true, reason: metadata.conflictReason };
+    const payload = characterPayload(local, user.id);
+    if (rowMatchesPayload(row, payload)) {
+      rememberVersion(localId, row);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+      return { ok: true, action, character: local.character, row, acknowledged: true };
+    }
+
+    const onlineCharacter = { ...sanitizeSnapshot(row.snapshot), photo: '', notes: [] };
+    const onlineFingerprint = `${row.id}:${row.updated_at}`;
+    const backup = await ensureConflictBackup(localId, 'online', onlineCharacter, onlineFingerprint);
+    const { data, error } = await auth.client
+      .from('online_characters')
+      .update(payload)
+      .eq('id', row.id)
+      .eq('owner_id', user.id)
+      .eq('updated_at', row.updated_at)
+      .select(ONLINE_CHARACTER_COLUMNS)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      rememberVersion(localId, data);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', {
+        syncedAt: data.updated_at,
+        backupCharacterId: backup.characterId
+      });
+      return { ok: true, action, character: local.character, row: data, backup };
+    }
+
+    const latest = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    if (latest && rowMatchesPayload(latest, payload)) {
+      rememberVersion(localId, latest);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', {
+        syncedAt: latest.updated_at,
+        backupCharacterId: backup.characterId
+      });
+      return { ok: true, action, character: local.character, row: latest, backup, acknowledged: true };
+    }
+    return markConflict(localId, latest, latest ? 'remote-changed' : 'remote-deleted');
+  }
+
+  function resolveCharacterConflict(localId, action) {
+    global.clearTimeout(characterSyncTimers.get(localId));
+    characterSyncTimers.delete(localId);
+    const previous = characterSyncQueues.get(localId) || Promise.resolve();
+    const next = previous.catch(() => undefined).then(() => performConflictResolution(localId, action));
+    characterSyncQueues.set(localId, next);
+    return next.finally(() => {
+      if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId);
+    });
   }
 
   async function synchronizePublishedCharacter(localId, character = null) {
@@ -804,6 +1081,10 @@
       const online = published.get(localId);
       const chronicles = [...new Set(chroniclesByCharacter.get(online.id) || [])];
       const local = locals.get(localId);
+      if (!isConsistentOnlineCharacter(online, localId, context.user.id)) {
+        markConflict(localId, online, 'publication-inconsistent');
+        return;
+      }
       if (metadata?.conflict) {
         setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária', { chronicles, syncedAt: metadata.baseUpdatedAt });
         return;
@@ -1170,6 +1451,8 @@
     renderManagerList,
     handleCastSearch,
     resolveCharacterForOpen,
+    getCharacterConflict,
+    resolveCharacterConflict,
     queueCharacterSync,
     synchronizePublishedCharacter,
     getCharacterSyncState,
