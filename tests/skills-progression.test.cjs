@@ -190,14 +190,15 @@ async function forceDegree(select, degree) {
       };
       await ChroniclesCollaboration.resolveCharacterForOpen(localId, validation.normalized);
       await ChroniclesCollaboration.synchronizePublishedCharacter(localId, validation.normalized);
+      const persistedSnapshot = payload?.snapshot || online.snapshot;
       return {
         importedLegacy: validation.normalized.skills.Enganação,
         importedOfficial: validation.normalized.skills.Acrobacia,
         localLegacy: local.skills.Enganação,
         localOfficial: local.skills.Acrobacia,
-        onlineLegacy: payload.snapshot.skills.Enganação,
-        onlineOfficial: payload.snapshot.skills.Acrobacia,
-        schemaVersion: payload.snapshot.schemaVersion
+        onlineLegacy: persistedSnapshot.skills.Enganação,
+        onlineOfficial: persistedSnapshot.skills.Acrobacia,
+        schemaVersion: persistedSnapshot.schemaVersion
       };
     }, legacyFixture);
     assert.deepEqual(persistence, {

@@ -172,14 +172,15 @@ async function setResource(page, selector, value) {
       };
       await ChroniclesCollaboration.resolveCharacterForOpen(localId, validation.normalized);
       await ChroniclesCollaboration.synchronizePublishedCharacter(localId, validation.normalized);
+      const persistedSnapshot = payload?.snapshot || online.snapshot;
       return {
         captured: captured.criticalStates,
         imported: validation.normalized.criticalStates,
         local: local.criticalStates,
-        online: payload.snapshot.criticalStates,
-        schemaVersion: payload.snapshot.schemaVersion,
-        customEffects: payload.snapshot.activeEffects.map(effect => effect.name),
-        rootKeys: Object.keys(payload.snapshot)
+        online: persistedSnapshot.criticalStates,
+        schemaVersion: persistedSnapshot.schemaVersion,
+        customEffects: persistedSnapshot.activeEffects.map(effect => effect.name),
+        rootKeys: Object.keys(persistedSnapshot)
       };
     });
     for (const source of ['captured', 'imported', 'local', 'online']) {
