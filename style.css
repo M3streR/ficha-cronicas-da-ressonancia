@@ -7862,8 +7862,12 @@ button:disabled {
 }
 .sheet-online-sync-status[data-state="synced"] { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, transparent); }
 .sheet-online-sync-status[data-state="pending"],
-.sheet-online-sync-status[data-state="syncing"] { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 35%, transparent); }
-.sheet-online-sync-status[data-state="error"] { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
+.sheet-online-sync-status[data-state="syncing"],
+.sheet-online-sync-status[data-state="reconnecting"],
+.sheet-online-sync-status[data-state="offline"],
+.sheet-online-sync-status[data-state="auth-required"] { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 35%, transparent); }
+.sheet-online-sync-status[data-state="error"],
+.sheet-online-sync-status[data-state="permanent-error"] { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
 .sheet-online-sync-status[data-state="conflict"] { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 46%, transparent); cursor: pointer; }
 .sheet-online-sync-status:disabled { opacity: 1; cursor: default; }
 
@@ -10196,8 +10200,12 @@ button.new-chronicle-entry:focus-visible {
   font-weight: 700;
 }
 .character-online-state[data-state="synced"] { color: var(--color-success, #74c69d); }
-.character-online-state[data-state="pending"],.character-online-state[data-state="syncing"] { color: var(--color-warning, #e6cf99); }
-.character-online-state[data-state="error"] { color: var(--color-danger, #df7189); }
+.character-online-state[data-state="pending"],
+.character-online-state[data-state="syncing"],
+.character-online-state[data-state="reconnecting"],
+.character-online-state[data-state="offline"],
+.character-online-state[data-state="auth-required"] { color: var(--color-warning, #e6cf99); }
+.character-online-state[data-state="error"],.character-online-state[data-state="permanent-error"] { color: var(--color-danger, #df7189); }
 .character-online-state[data-state="conflict"] { color: var(--color-danger, #df7189); }
 .account-profile-form { display:grid; gap:.65rem; margin:1rem 0; }
 .account-profile-form label { display:grid; gap:.4rem; color:var(--color-text-secondary,var(--muted)); }

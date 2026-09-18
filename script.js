@@ -4587,7 +4587,10 @@ function captureDynamicList(containerId, options = {}) {
     });
 }
 
-function saveNow(targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activeCharacterId : null)) {
+function saveNow(
+  targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activeCharacterId : null),
+  options = {}
+) {
   clearTimeout(saveTimer);
 
   if (storageMode === 'closed') {
@@ -4607,7 +4610,9 @@ function saveNow(targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activ
       const capturedCharacter = cloneCharacterState();
       writeStoredCharacter(activeCharacterId, capturedCharacter);
       queueCharacterMetadataRefresh(activeCharacterId, capturedCharacter);
-      window.ChroniclesCollaboration?.queueCharacterSync?.(activeCharacterId, capturedCharacter);
+      window.ChroniclesCollaboration?.queueCharacterSync?.(activeCharacterId, capturedCharacter, {
+        defer: options.deferOnline === true
+      });
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
@@ -4628,6 +4633,11 @@ function saveNow(targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activ
     );
     return false;
   }
+}
+
+function persistPendingCharacterBeforeSuspension() {
+  if (!hasPendingSave) return false;
+  return saveNow(pendingSaveTargetId, { deferOnline: true });
 }
 
 function scheduleSave() {
@@ -9093,6 +9103,7 @@ function init() {
   restoreState(loadSavedState());
   if (storageAvailable) setStatus('Salvo neste navegador');
   startV3CharacterMigration();
+  void window.ChroniclesCollaboration?.resumePendingCharacterSync?.('startup');
 
   try {
     const pendingNotice = sessionStorage.getItem(NOTICE_SESSION_KEY);
@@ -9105,7 +9116,12 @@ function init() {
   }
 
   window.addEventListener('beforeunload', () => {
-    if (hasPendingSave) saveNow();
+    persistPendingCharacterBeforeSuspension();
+  });
+  window.addEventListener('pagehide', persistPendingCharacterBeforeSuspension);
+  window.addEventListener('offline', persistPendingCharacterBeforeSuspension);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) persistPendingCharacterBeforeSuspension();
   });
 }
 

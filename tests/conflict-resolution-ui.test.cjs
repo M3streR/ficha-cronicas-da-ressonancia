@@ -51,6 +51,7 @@ const server = http.createServer(async (request, response) => {
         createdAt: '2026-09-18T15:42:00.000Z'
       });
       const saved = readStoredCharacter(result.id);
+      renderCharacterManager();
       return { result, saved, summary: readCharacterManager().characters[result.id] };
     });
 
@@ -115,6 +116,45 @@ const server = http.createServer(async (request, response) => {
     });
     assert.deepEqual(await page.locator('#modalActions button').allInnerTexts(), ['Decidir depois']);
     assert.match(await page.locator('#modalDescription').innerText(), /conta proprietária/i);
+
+    await page.evaluate(() => {
+      closeModal();
+      window.dispatchEvent(new CustomEvent('cronicas:character-sync-state', {
+        detail: {
+          localId: 'character-conflict-source',
+          state: 'conflict',
+          message: 'Conflito Online · revisão necessária'
+        }
+      }));
+    });
+    assert.equal(await page.locator('#modalOverlay').isVisible(), false, 'conflito em background não abre modal');
+    const managerBadge = page.locator('[data-character-entry="character-conflict-source"] .character-online-state');
+    assert.equal(await managerBadge.getAttribute('data-state'), 'conflict');
+    assert.equal(await managerBadge.innerText(), 'Conflito Online · revisão necessária');
+
+    const feedbackStates = [
+      ['offline', 'Salvo Localmente · Offline'],
+      ['reconnecting', 'Reconectando'],
+      ['auth-required', 'Salvo Localmente · entre na conta'],
+      ['permanent-error', 'Falha Online · ação necessária']
+    ];
+    for (const [state, message] of feedbackStates) {
+      await page.evaluate(({ state, message }) => {
+        window.dispatchEvent(new CustomEvent('cronicas:character-sync-state', {
+          detail: { localId: 'character-conflict-source', state, message }
+        }));
+      }, { state, message });
+      assert.equal(await managerBadge.getAttribute('data-state'), state);
+      assert.equal(await managerBadge.innerText(), message);
+    }
+    const badgeOverflow = await managerBadge.evaluate(element => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      cardRight: element.closest('.character-card').getBoundingClientRect().right,
+      viewport: window.innerWidth
+    }));
+    assert.ok(badgeOverflow.scrollWidth <= badgeOverflow.clientWidth, 'status longo quebra sem overflow');
+    assert.ok(badgeOverflow.cardRight <= badgeOverflow.viewport, 'status permanece dentro do card mobile');
     assert.deepEqual(errors, []);
     console.log('OK conflict resolution UI and timestamped local backup');
   } finally {

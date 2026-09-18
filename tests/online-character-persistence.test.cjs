@@ -43,11 +43,14 @@ function createServer(initialRow = null) {
   let sequence = 1;
   const server = {
     row: copy(initialRow),
+    selectCount: 0,
     updateCount: 0,
     insertCount: 0,
     lostUpdateResult: false,
     throwAfterUpdateCommit: false,
     throwBeforeUpdate: false,
+    nextSelectError: null,
+    nextUpdateError: null,
     lastUpdateFilters: null,
     timestamp() {
       const micros = String(sequence++).padStart(6, '0');
@@ -95,6 +98,12 @@ function createClient(server) {
     async execute() {
       assert.equal(this.table, 'online_characters');
       if (this.operation === 'select') {
+        server.selectCount += 1;
+        if (server.nextSelectError) {
+          const error = server.nextSelectError;
+          server.nextSelectError = null;
+          return { data: null, error };
+        }
         return { data: this.matches(server.row) ? copy(server.row) : null, error: null };
       }
       if (this.operation === 'insert') {
@@ -111,6 +120,11 @@ function createClient(server) {
       if (this.operation === 'update') {
         server.updateCount += 1;
         server.lastUpdateFilters = copy(this.filters);
+        if (server.nextUpdateError) {
+          const error = server.nextUpdateError;
+          server.nextUpdateError = null;
+          return { data: null, error };
+        }
         if (server.throwBeforeUpdate) {
           server.throwBeforeUpdate = false;
           throw new Error('network unavailable before update');
@@ -149,14 +163,35 @@ function createStorage() {
 
 function createEnvironment(server, getLocal, storage = createStorage(), options = {}) {
   const listeners = new Map();
+  const documentListeners = new Map();
   const backups = [];
-  const serviceState = { backups, replaced: null };
+  const serviceState = {
+    backups,
+    replaced: null,
+    authenticated: options.authenticated !== false,
+    userId: options.userId || 'owner-1'
+  };
+  function addListener(registry, type, listener) {
+    const current = registry.get(type) || new Set();
+    current.add(listener);
+    registry.set(type, current);
+  }
+  function emit(registry, type, detail = {}) {
+    (registry.get(type) || []).forEach(listener => listener({ type, detail }));
+  }
+  const document = {
+    hidden: false,
+    getElementById: () => null,
+    createElement: () => ({}),
+    addEventListener(type, listener) { addListener(documentListeners, type, listener); }
+  };
   const window = {
     localStorage: storage,
+    navigator: { onLine: options.online !== false },
     CronicasSupabase: {
-      authenticated: true,
+      get authenticated() { return serviceState.authenticated; },
       ready: Promise.resolve(),
-      getUser: async () => ({ id: options.userId || 'owner-1' }),
+      getUser: async () => serviceState.authenticated ? { id: serviceState.userId } : null,
       client: createClient(server)
     },
     ChroniclesLocalCharacters: {
@@ -182,15 +217,15 @@ function createEnvironment(server, getLocal, storage = createStorage(), options 
         return copy(character);
       }
     },
-    addEventListener(type, listener) { listeners.set(type, listener); },
-    dispatchEvent() {},
+    addEventListener(type, listener) { addListener(listeners, type, listener); },
+    dispatchEvent(event) { emit(listeners, event.type, event.detail); },
     setTimeout,
     clearTimeout,
     console
   };
   const context = vm.createContext({
     window,
-    document: { getElementById: () => null, createElement: () => ({}) },
+    document,
     CustomEvent: class CustomEvent {
       constructor(type, init = {}) { this.type = type; this.detail = init.detail; }
     },
@@ -205,6 +240,20 @@ function createEnvironment(server, getLocal, storage = createStorage(), options 
     Promise
   });
   vm.runInContext(collaborationSource, context, { filename: 'chronicles-collaboration.js' });
+  serviceState.emit = (type, detail = {}) => emit(listeners, type, detail);
+  serviceState.setOnline = online => {
+    window.navigator.onLine = online;
+    emit(listeners, online ? 'online' : 'offline');
+  };
+  serviceState.setAuthenticated = (authenticated, userId = serviceState.userId) => {
+    serviceState.authenticated = authenticated;
+    serviceState.userId = userId;
+    emit(listeners, 'cronicas:auth-change', { user: authenticated ? { id: userId } : null });
+  };
+  serviceState.setVisible = visible => {
+    document.hidden = !visible;
+    emit(documentListeners, 'visibilitychange');
+  };
   return { api: window.ChroniclesCollaboration, storage, serviceState };
 }
 
@@ -617,5 +666,172 @@ test('publicação inconsistente é preservada sem oferecer sobrescrita', async 
   assert.equal(details.reason, 'publication-inconsistent');
   assert.deepEqual([...details.actions], []);
   assert.equal((await reopened.api.resolveCharacterConflict('local-1', 'keep-local')).ok, false);
+  assert.equal(server.updateCount, 0);
+});
+
+test('edição offline permanece Local e sincroniza com comparação de versão ao reconectar', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+
+  environment.serviceState.setOnline(false);
+  local = localCharacter('Editada offline');
+  const deferred = await environment.api.queueCharacterSync('local-1', local, { immediate: true });
+  assert.equal(deferred.offline, true);
+  assert.equal(server.updateCount, 0);
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'offline');
+
+  environment.serviceState.setOnline(true);
+  await new Promise(resolve => setTimeout(resolve, 180));
+  assert.equal(server.row.snapshot.fields.nome, 'Editada offline');
+  assert.equal(server.updateCount, 1);
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'synced');
+});
+
+test('refresh e reabertura retomam dirty persistido sem outbox adicional', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const first = createEnvironment(server, entry, storage);
+  await first.api.resolveCharacterForOpen('local-1', local);
+  first.serviceState.setOnline(false);
+  local = localCharacter('Persistida antes de fechar');
+  await first.api.queueCharacterSync('local-1', local, { defer: true });
+
+  const metadataBefore = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadataBefore.dirty, true);
+  const reopened = createEnvironment(server, entry, storage);
+  await reopened.api.resumePendingCharacterSync('startup');
+  assert.equal(server.row.snapshot.fields.nome, 'Persistida antes de fechar');
+  assert.equal(server.updateCount, 1);
+  const metadataAfter = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadataAfter.dirty, false);
+});
+
+test('mudança remota descoberta em background persiste conflito sem sobrescrever', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }), storage);
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  environment.serviceState.setOnline(false);
+  local = localCharacter('Minha edição offline');
+  await environment.api.queueCharacterSync('local-1', local, { defer: true });
+  server.row.snapshot.fields.nome = 'Servidor mais novo';
+  server.row.name = 'Servidor mais novo';
+  server.row.updated_at = server.timestamp();
+
+  environment.serviceState.setOnline(true);
+  await new Promise(resolve => setTimeout(resolve, 180));
+  assert.equal(server.updateCount, 0);
+  assert.equal(server.row.snapshot.fields.nome, 'Servidor mais novo');
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'conflict');
+  const metadata = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadata.conflict, true);
+  assert.equal(metadata.conflictReason, 'remote-changed');
+});
+
+test('gatilhos simultâneos de retomada são consolidados pela fila do personagem', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  environment.serviceState.setOnline(false);
+  local = localCharacter('Uma única gravação');
+  await environment.api.queueCharacterSync('local-1', local, { defer: true });
+
+  environment.serviceState.setOnline(true);
+  environment.serviceState.emit('pageshow');
+  environment.serviceState.setVisible(true);
+  environment.serviceState.setAuthenticated(true, 'owner-1');
+  await new Promise(resolve => setTimeout(resolve, 220));
+  assert.equal(server.updateCount, 1);
+  assert.equal(server.row.snapshot.fields.nome, 'Uma única gravação');
+});
+
+test('erro transitório recebe retry e navigator online não presume servidor acessível', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  local = localCharacter('Após indisponibilidade temporária');
+  server.nextSelectError = { status: 503, message: 'temporarily unavailable' };
+  const first = await environment.api.synchronizePublishedCharacter('local-1', local);
+  assert.equal(first.failureKind, 'transient');
+  assert.equal(first.retryScheduled, true);
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'reconnecting');
+  await new Promise(resolve => setTimeout(resolve, 1700));
+  assert.equal(server.row.snapshot.fields.nome, 'Após indisponibilidade temporária');
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'synced');
+});
+
+test('permissão negada persiste falha permanente e não entra em retry infinito', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }), storage);
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  local = localCharacter('Não autorizada');
+  server.nextSelectError = { status: 403, code: '42501', message: 'permission denied' };
+  const result = await environment.api.synchronizePublishedCharacter('local-1', local);
+  assert.equal(result.failureKind, 'permission');
+  assert.equal(result.retryScheduled, false);
+  const countAfterFailure = server.selectCount;
+  await environment.api.resumePendingCharacterSync('pageshow');
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(server.selectCount, countAfterFailure);
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'permanent-error');
+  const metadata = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadata.lastFailureKind, 'permission');
+});
+
+test('logout mantém pendência e login do proprietário retoma com segurança', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  environment.serviceState.setAuthenticated(false);
+  local = localCharacter('Editada durante logout');
+  const pending = await environment.api.queueCharacterSync('local-1', local, { immediate: true });
+  assert.equal(pending.authRequired, true);
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'auth-required');
+
+  environment.serviceState.setAuthenticated(true, 'owner-1');
+  await new Promise(resolve => setTimeout(resolve, 180));
+  assert.equal(server.row.snapshot.fields.nome, 'Editada durante logout');
+  assert.equal(environment.api.getCharacterSyncState('local-1').state, 'synced');
+});
+
+test('retomada ignora personagem somente Local', async () => {
+  const local = localCharacter('Somente Local');
+  const server = createServer();
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resumePendingCharacterSync('startup');
+  assert.equal(server.selectCount, 0);
   assert.equal(server.updateCount, 0);
 });
