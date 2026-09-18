@@ -13,6 +13,10 @@
   let managerEpoch = 0;
   let syncEpoch = 0;
   let syncUserId = null;
+  let recoveryTimer = null;
+  let recoveryPromise = null;
+  let recoveryRequested = false;
+  const recoveryTriggers = new Set();
   let currentCastIds = new Set();
   const characterSyncStates = new Map();
   const characterSyncTimers = new Map();
@@ -23,6 +27,7 @@
   const characterSyncVersions = new Map();
   const CHARACTER_SYNC_META_PREFIX = 'cronicasRessonanciaOnlineCharacterSyncV1:';
   const ONLINE_CHARACTER_COLUMNS = 'id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, snapshot, created_at, updated_at';
+  const PERMANENT_SYNC_FAILURES = new Set(['auth', 'permission', 'permanent']);
 
   function isOnlineChronicle(chronicle = currentChronicle) {
     return Boolean(chronicle && chronicle.storage === 'online' && chronicle.remoteId);
@@ -47,11 +52,78 @@
     return { auth, user };
   }
 
+  function hasConnectivitySignal() {
+    return global.navigator?.onLine !== false;
+  }
+
+  function errorStatus(error) {
+    const status = Number(error?.status ?? error?.statusCode ?? error?.context?.status);
+    return Number.isFinite(status) ? status : 0;
+  }
+
+  function classifySyncError(error) {
+    const message = String(error?.message || '').toLowerCase();
+    const code = String(error?.code || '').toUpperCase();
+    const status = errorStatus(error);
+    if (!hasConnectivitySignal()) return { kind: 'offline', transient: true };
+    if (
+      error?.message === 'ONLINE_AUTH_REQUIRED'
+      || error?.message === 'ONLINE_AUTH_UNAVAILABLE'
+      || status === 401
+      || code === 'PGRST301'
+      || message.includes('jwt')
+      || message.includes('auth session')
+      || message.includes('not authenticated')
+    ) return { kind: 'auth', transient: false };
+    if (
+      status === 403
+      || code === '42501'
+      || message.includes('row-level security')
+      || message.includes('permission denied')
+    ) return { kind: 'permission', transient: false };
+    if (
+      [408, 425, 429, 500, 502, 503, 504].includes(status)
+      || ['40001', '40P01', '53300', '57P03'].includes(code)
+      || error?.name === 'AbortError'
+      || error?.name === 'TimeoutError'
+      || message.includes('failed to fetch')
+      || message.includes('network')
+      || message.includes('timeout')
+      || message.includes('temporarily unavailable')
+      || message.includes('connection')
+    ) return { kind: 'transient', transient: true };
+    return { kind: 'permanent', transient: false };
+  }
+
   function setCharacterSyncState(localId, state, message = '', extra = {}) {
     const previous = characterSyncStates.get(localId) || {};
     const detail = { ...previous, ...extra, localId, state, message };
     characterSyncStates.set(localId, detail);
     global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail }));
+  }
+
+  function failureFeedback(kind, retryScheduled = false) {
+    if (kind === 'offline') return { state: 'offline', message: 'Salvo Localmente · Offline' };
+    if (kind === 'auth') return { state: 'auth-required', message: 'Salvo Localmente · entre na conta' };
+    if (kind === 'permission' || kind === 'permanent') {
+      return { state: 'permanent-error', message: 'Falha Online · ação necessária' };
+    }
+    return retryScheduled
+      ? { state: 'reconnecting', message: 'Conexão instável · nova tentativa' }
+      : { state: 'pending', message: 'Alterações Online pendentes' };
+  }
+
+  function showPersistedPendingState(localId, metadata = currentVersion(localId)) {
+    if (!metadata?.remoteId || !metadata.dirty) return false;
+    if (metadata.conflict) {
+      setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária');
+      return true;
+    }
+    const feedback = !hasConnectivitySignal()
+      ? failureFeedback('offline')
+      : failureFeedback(metadata.lastFailureKind || 'transient');
+    setCharacterSyncState(localId, feedback.state, feedback.message, { syncedAt: metadata.baseUpdatedAt });
+    return true;
   }
 
   function text(value) {
@@ -455,6 +527,10 @@
     return CHARACTER_SYNC_META_PREFIX + localId;
   }
 
+  function normalizeFailureKind(value) {
+    return ['offline', 'transient', 'auth', 'permission', 'permanent'].includes(value) ? value : '';
+  }
+
   function readSyncMetadata(localId) {
     try {
       const value = JSON.parse(global.localStorage?.getItem(syncMetadataKey(localId)) || 'null');
@@ -469,7 +545,9 @@
         conflictReason: value.conflictReason ? normalizeConflictReason(value.conflictReason) : '',
         conflictDetectedAt: String(value.conflictDetectedAt || ''),
         remoteUpdatedAt: String(value.remoteUpdatedAt || ''),
-        backups: normalizeBackupMetadata(value.backups)
+        backups: normalizeBackupMetadata(value.backups),
+        lastFailureKind: normalizeFailureKind(value.lastFailureKind),
+        lastFailureAt: String(value.lastFailureAt || '')
       };
     } catch (error) {
       console.warn('[Personagem online] Metadados locais de sincronização inválidos:', error);
@@ -488,7 +566,9 @@
         conflictReason: value.conflictReason || '',
         conflictDetectedAt: value.conflictDetectedAt || '',
         remoteUpdatedAt: value.remoteUpdatedAt || '',
-        backups: normalizeBackupMetadata(value.backups)
+        backups: normalizeBackupMetadata(value.backups),
+        lastFailureKind: normalizeFailureKind(value.lastFailureKind),
+        lastFailureAt: value.lastFailureAt || ''
       }));
       return true;
     } catch (error) {
@@ -507,7 +587,9 @@
       conflictReason: '',
       conflictDetectedAt: '',
       remoteUpdatedAt: '',
-      backups: {}
+      backups: {},
+      lastFailureKind: '',
+      lastFailureAt: ''
     };
     characterSyncVersions.set(localId, version);
     writeSyncMetadata(localId, version);
@@ -527,6 +609,29 @@
     return dirty;
   }
 
+  function markSyncFailure(localId, kind) {
+    const current = currentVersion(localId);
+    if (!current) return null;
+    const failed = {
+      ...current,
+      dirty: true,
+      lastFailureKind: normalizeFailureKind(kind),
+      lastFailureAt: new Date().toISOString()
+    };
+    characterSyncVersions.set(localId, failed);
+    writeSyncMetadata(localId, failed);
+    return failed;
+  }
+
+  function clearSyncFailure(localId) {
+    const current = currentVersion(localId);
+    if (!current || (!current.lastFailureKind && !current.lastFailureAt)) return current;
+    const cleared = { ...current, lastFailureKind: '', lastFailureAt: '' };
+    characterSyncVersions.set(localId, cleared);
+    writeSyncMetadata(localId, cleared);
+    return cleared;
+  }
+
   function markConflict(localId, row, reason = 'changed') {
     const current = currentVersion(localId);
     const normalizedReason = normalizeConflictReason(reason);
@@ -542,7 +647,9 @@
       conflictReason: preservedReason || 'remote-changed',
       conflictDetectedAt: current?.conflictDetectedAt || new Date().toISOString(),
       remoteUpdatedAt: row?.updated_at || current?.remoteUpdatedAt || '',
-      backups: normalizeBackupMetadata(current?.backups)
+      backups: normalizeBackupMetadata(current?.backups),
+      lastFailureKind: '',
+      lastFailureAt: ''
     };
     if (metadata.remoteId && metadata.ownerId && metadata.baseUpdatedAt) {
       characterSyncVersions.set(localId, metadata);
@@ -642,8 +749,14 @@
     } catch (_) {
       const metadata = currentVersion(localId);
       if (metadata?.remoteId) {
-        setCharacterSyncState(localId, metadata.conflict ? 'conflict' : 'pending',
-          metadata.conflict ? 'Conflito Online · revisão necessária' : 'Cópia local · Online não verificado');
+        if (metadata.conflict) {
+          setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária');
+        } else {
+          const kind = hasConnectivitySignal() ? 'auth' : 'offline';
+          markSyncFailure(localId, kind);
+          const feedback = failureFeedback(kind);
+          setCharacterSyncState(localId, feedback.state, feedback.message);
+        }
       }
       return { character: localCharacter, published: Boolean(metadata?.remoteId), verified: false };
     }
@@ -688,7 +801,8 @@
     } else if (metadata.dirty) {
       if (metadata.baseUpdatedAt === row.updated_at) {
         characterSyncVersions.set(localId, metadata);
-        setCharacterSyncState(localId, 'pending', 'Alterações pendentes', { syncedAt: metadata.baseUpdatedAt });
+        setCharacterSyncState(localId, 'pending', 'Alterações Online pendentes', { syncedAt: metadata.baseUpdatedAt });
+        schedulePendingRecovery('open');
         return { character: localCharacter, published: true, verified: true, pending: true };
       }
       if (!sameContent) {
@@ -707,7 +821,12 @@
 
   async function performCharacterSync(localId, character = null) {
     const epoch = syncEpoch;
+    if (!hasConnectivitySignal()) throw new Error('ONLINE_CONNECTIVITY_OFFLINE');
     const { auth, user } = await requireUser();
+    const knownMetadata = currentVersion(localId);
+    if (knownMetadata?.ownerId && knownMetadata.ownerId !== user.id) {
+      return markConflict(localId, null, 'owner-mismatch');
+    }
     const local = localCharacters().find(item => item.id === localId);
     if (!local) return { ok: false, missing: true };
     const entry = character ? { ...local, character } : local;
@@ -972,10 +1091,11 @@
     return queueCharacterSync(localId, character, { immediate: true, manual: true });
   }
 
-  function scheduleSyncRetry(localId) {
+  function scheduleSyncRetry(localId, classification) {
+    if (!classification?.transient || !hasConnectivitySignal() || !global.CronicasSupabase?.authenticated) return false;
     const attempts = (characterSyncRetries.get(localId) || 0) + 1;
     characterSyncRetries.set(localId, attempts);
-    if (attempts > 4 || !global.CronicasSupabase?.authenticated) return false;
+    if (attempts > 4) return false;
     const delay = Math.min(30000, 1500 * (2 ** (attempts - 1)));
     global.clearTimeout(characterSyncTimers.get(localId));
     characterSyncTimers.set(localId, global.setTimeout(() => {
@@ -999,11 +1119,12 @@
       } catch (error) {
         if (epoch !== syncEpoch) return { ok: false, cancelled: true };
         console.error('[Personagem online] Falha de sincronização:', error);
-        const retryScheduled = scheduleSyncRetry(localId);
-        setCharacterSyncState(localId, 'error', retryScheduled
-          ? 'Erro de sincronização · nova tentativa agendada'
-          : 'Erro de sincronização · tente novamente');
-        return { ok: false, error };
+        const classification = classifySyncError(error);
+        markSyncFailure(localId, classification.kind);
+        const retryScheduled = scheduleSyncRetry(localId, classification);
+        const feedback = failureFeedback(classification.kind, retryScheduled);
+        setCharacterSyncState(localId, feedback.state, feedback.message);
+        return { ok: false, error, failureKind: classification.kind, retryScheduled };
       }
     });
     characterSyncQueues.set(localId, next);
@@ -1020,14 +1141,40 @@
       setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária');
       return Promise.resolve({ ok: false, conflict: true });
     }
-    if (!global.CronicasSupabase?.authenticated) {
-      setCharacterSyncState(localId, metadata?.remoteId ? 'pending' : 'local',
-        metadata?.remoteId ? 'Cópia local · Online não verificado' : 'Apenas Local');
-      return Promise.resolve({ ok: false, offline: true });
+    if (options.defer === true) {
+      const feedback = hasConnectivitySignal()
+        ? { state: 'pending', message: 'Alterações Online pendentes' }
+        : failureFeedback('offline');
+      setCharacterSyncState(localId, feedback.state, feedback.message);
+      return Promise.resolve({ ok: false, deferred: true });
     }
+    if (!hasConnectivitySignal()) {
+      markSyncFailure(localId, 'offline');
+      const feedback = failureFeedback('offline');
+      setCharacterSyncState(localId, feedback.state, feedback.message);
+      return Promise.resolve({ ok: false, offline: true, failureKind: 'offline' });
+    }
+    if (!global.CronicasSupabase?.authenticated) {
+      if (metadata?.remoteId) markSyncFailure(localId, 'auth');
+      setCharacterSyncState(localId, metadata?.remoteId ? 'auth-required' : 'local',
+        metadata?.remoteId ? 'Salvo Localmente · entre na conta' : 'Apenas Local');
+      return Promise.resolve({ ok: false, authRequired: true });
+    }
+    const latestMetadata = currentVersion(localId);
+    if (
+      PERMANENT_SYNC_FAILURES.has(latestMetadata?.lastFailureKind)
+      && options.manual !== true
+      && !(options.recovery === true && latestMetadata.lastFailureKind === 'auth')
+    ) {
+      const feedback = failureFeedback(latestMetadata.lastFailureKind);
+      setCharacterSyncState(localId, feedback.state, feedback.message);
+      return Promise.resolve({ ok: false, permanent: true, failureKind: latestMetadata.lastFailureKind });
+    }
+    if (latestMetadata?.lastFailureKind) clearSyncFailure(localId);
     global.clearTimeout(characterSyncTimers.get(localId));
     const epoch = syncEpoch;
-    setCharacterSyncState(localId, 'pending', 'Alterações pendentes');
+    setCharacterSyncState(localId, options.recovery ? 'reconnecting' : 'pending',
+      options.recovery ? 'Reconectando' : 'Alterações Online pendentes');
     const completion = new Promise(resolve => {
       const waiters = characterSyncWaiters.get(localId) || [];
       waiters.push(resolve);
@@ -1044,7 +1191,137 @@
     return characterSyncStates.get(localId) || null;
   }
 
+  function pendingPublishedCharacters() {
+    return localCharacters().filter(entry => {
+      const metadata = currentVersion(entry.id);
+      return Boolean(metadata?.remoteId && metadata.dirty);
+    });
+  }
+
+  function cancelScheduledCharacterSyncs(result = { ok: false, cancelled: true }) {
+    characterSyncTimers.forEach(timer => global.clearTimeout(timer));
+    characterSyncTimers.clear();
+    characterSyncWaiters.forEach(waiters => waiters.forEach(resolve => resolve(result)));
+    characterSyncWaiters.clear();
+    characterSyncQueues.clear();
+    characterSyncRetries.clear();
+  }
+
+  function pauseCharacterSyncForOffline() {
+    ++syncEpoch;
+    if (recoveryTimer) global.clearTimeout(recoveryTimer);
+    recoveryTimer = null;
+    recoveryRequested = false;
+    recoveryTriggers.clear();
+    cancelScheduledCharacterSyncs({ ok: false, offline: true, failureKind: 'offline' });
+    pendingPublishedCharacters().forEach(entry => {
+      const metadata = currentVersion(entry.id);
+      if (metadata?.conflict) {
+        setCharacterSyncState(entry.id, 'conflict', 'Conflito Online · revisão necessária');
+        return;
+      }
+      markSyncFailure(entry.id, 'offline');
+      const feedback = failureFeedback('offline');
+      setCharacterSyncState(entry.id, feedback.state, feedback.message);
+    });
+  }
+
+  async function recoverPendingCharacterSync() {
+    if (!hasConnectivitySignal()) {
+      pauseCharacterSyncForOffline();
+      return false;
+    }
+
+    let context;
+    try {
+      context = await requireUser();
+    } catch (_) {
+      pendingPublishedCharacters().forEach(entry => {
+        const metadata = currentVersion(entry.id);
+        if (metadata?.conflict) {
+          setCharacterSyncState(entry.id, 'conflict', 'Conflito Online · revisão necessária');
+          return;
+        }
+        markSyncFailure(entry.id, 'auth');
+        const feedback = failureFeedback('auth');
+        setCharacterSyncState(entry.id, feedback.state, feedback.message);
+      });
+      return false;
+    }
+
+    const recoveries = [];
+    pendingPublishedCharacters().forEach(entry => {
+      const metadata = currentVersion(entry.id);
+      if (!metadata) return;
+      if (metadata.conflict) {
+        setCharacterSyncState(entry.id, 'conflict', 'Conflito Online · revisão necessária');
+        return;
+      }
+      if (metadata.ownerId && metadata.ownerId !== context.user.id) {
+        markConflict(entry.id, null, 'owner-mismatch');
+        return;
+      }
+      if (metadata.lastFailureKind === 'permission' || metadata.lastFailureKind === 'permanent') {
+        showPersistedPendingState(entry.id, metadata);
+        return;
+      }
+      characterSyncRetries.delete(entry.id);
+      recoveries.push(queueCharacterSync(entry.id, entry.character, {
+        immediate: true,
+        recovery: true
+      }));
+    });
+    if (!recoveries.length) return true;
+    await Promise.allSettled(recoveries);
+    return true;
+  }
+
+  function startPendingRecovery() {
+    const previous = recoveryPromise || Promise.resolve();
+    const current = previous.catch(() => undefined).then(recoverPendingCharacterSync);
+    const tracked = current.finally(() => {
+      if (recoveryPromise === tracked) recoveryPromise = null;
+      if (recoveryRequested) schedulePendingRecovery('coalesced');
+    });
+    recoveryPromise = tracked;
+    return tracked;
+  }
+
+  function schedulePendingRecovery(trigger = 'manual', options = {}) {
+    recoveryTriggers.add(trigger);
+    recoveryRequested = true;
+    if (!hasConnectivitySignal()) {
+      pauseCharacterSyncForOffline();
+      return Promise.resolve(false);
+    }
+    if (recoveryTimer) global.clearTimeout(recoveryTimer);
+    recoveryTimer = global.setTimeout(() => {
+      recoveryTimer = null;
+      recoveryRequested = false;
+      recoveryTriggers.clear();
+      void startPendingRecovery();
+    }, Number.isFinite(options.delay) ? Math.max(0, options.delay) : 80);
+    return Promise.resolve(true);
+  }
+
+  async function resumePendingCharacterSync(trigger = 'manual') {
+    recoveryTriggers.add(trigger);
+    if (recoveryTimer) global.clearTimeout(recoveryTimer);
+    recoveryTimer = null;
+    recoveryRequested = false;
+    recoveryTriggers.clear();
+    return startPendingRecovery();
+  }
+
   async function refreshCharacterSyncStates(localSummaries = {}) {
+    if (!hasConnectivitySignal()) {
+      Object.keys(localSummaries || {}).forEach(localId => {
+        const metadata = currentVersion(localId);
+        if (metadata?.remoteId && metadata.dirty) showPersistedPendingState(localId, metadata);
+        else if (!metadata?.remoteId) setCharacterSyncState(localId, 'local', 'Apenas Local');
+      });
+      return false;
+    }
     let context;
     try { context = await requireUser(); } catch (_) { return false; }
     const { data, error } = await context.auth.client.from('online_characters')
@@ -1100,8 +1377,8 @@
       }
       if (metadata.dirty) {
         if (metadata.baseUpdatedAt === online.updated_at) {
-          setCharacterSyncState(localId, 'pending', 'Alterações pendentes', { chronicles, syncedAt: metadata.baseUpdatedAt });
-          void queueCharacterSync(localId, local?.character);
+          setCharacterSyncState(localId, 'reconnecting', 'Reconectando', { chronicles, syncedAt: metadata.baseUpdatedAt });
+          void queueCharacterSync(localId, local?.character, { recovery: true });
         } else if (local && snapshotsEqual(online.snapshot, local.character)) {
           rememberVersion(localId, online);
           setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
@@ -1424,21 +1701,30 @@
 
   global.addEventListener('cronicas:auth-change', event => {
     const userId = event.detail?.user?.id || null;
-    if (userId === syncUserId) return;
+    if (userId === syncUserId) {
+      if (userId) schedulePendingRecovery('auth-refresh');
+      return;
+    }
     syncUserId = userId;
     ++syncEpoch;
     reset();
-    characterSyncTimers.forEach(timer => global.clearTimeout(timer));
-    characterSyncTimers.clear();
-    characterSyncWaiters.forEach(waiters => {
-      waiters.forEach(resolve => resolve({ ok: false, cancelled: true }));
-    });
-    characterSyncWaiters.clear();
-    characterSyncQueues.clear();
-    characterSyncRetries.clear();
+    cancelScheduledCharacterSyncs();
     latestCharacterSnapshots.clear();
     characterSyncVersions.clear();
     characterSyncStates.clear();
+    if (userId) schedulePendingRecovery('auth-change');
+    else pendingPublishedCharacters().forEach(entry => {
+      markSyncFailure(entry.id, 'auth');
+      const feedback = failureFeedback('auth');
+      setCharacterSyncState(entry.id, feedback.state, feedback.message);
+    });
+  });
+
+  global.addEventListener('offline', pauseCharacterSyncForOffline);
+  global.addEventListener('online', () => schedulePendingRecovery('online'));
+  global.addEventListener('pageshow', () => schedulePendingRecovery('pageshow'));
+  global.document?.addEventListener?.('visibilitychange', () => {
+    if (!global.document.hidden) schedulePendingRecovery('visibility');
   });
 
   global.ChroniclesCollaboration = Object.freeze({
@@ -1455,6 +1741,7 @@
     resolveCharacterConflict,
     queueCharacterSync,
     synchronizePublishedCharacter,
+    resumePendingCharacterSync,
     getCharacterSyncState,
     refreshCharacterSyncStates
   });
