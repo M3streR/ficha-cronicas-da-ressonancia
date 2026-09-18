@@ -146,26 +146,41 @@ async function setResource(page, selector, value) {
       manager = setCharacterSummary(manager, localId, await createCharacterSummary(validation.normalized));
       writeCharacterManager(manager);
       let payload = null;
+      let operation = 'select';
+      const online = {
+        id: 'online-critical', owner_id: 'critical-owner', source_local_id: localId,
+        name: validation.normalized.fields.nome || 'Personagem', level: 1,
+        class_name: validation.normalized.fields.classe || '', signature: '', thumbnail: '',
+        snapshot: validation.normalized,
+        created_at: '2026-09-18T12:00:00.000001+00:00',
+        updated_at: '2026-09-18T12:00:00.000001+00:00'
+      };
       const query = {
         select() { return this; }, eq() { return this; },
-        maybeSingle: async () => ({ data: { id: 'online-critical' }, error: null }),
-        upsert(value) { payload = value; return this; },
-        single: async () => ({ data: { id: 'online-critical', ...payload }, error: null })
+        update(value) { operation = 'update'; payload = value; return this; },
+        maybeSingle: async () => ({
+          data: operation === 'update'
+            ? { ...online, ...payload, updated_at: '2026-09-18T12:00:00.000002+00:00' }
+            : online,
+          error: null
+        })
       };
       window.CronicasSupabase = {
         ready: Promise.resolve(), authenticated: true,
         getUser: async () => ({ id: 'critical-owner' }),
         client: { from: () => query }
       };
+      await ChroniclesCollaboration.resolveCharacterForOpen(localId, validation.normalized);
       await ChroniclesCollaboration.synchronizePublishedCharacter(localId, validation.normalized);
+      const persistedSnapshot = payload?.snapshot || online.snapshot;
       return {
         captured: captured.criticalStates,
         imported: validation.normalized.criticalStates,
         local: local.criticalStates,
-        online: payload.snapshot.criticalStates,
-        schemaVersion: payload.snapshot.schemaVersion,
-        customEffects: payload.snapshot.activeEffects.map(effect => effect.name),
-        rootKeys: Object.keys(payload.snapshot)
+        online: persistedSnapshot.criticalStates,
+        schemaVersion: persistedSnapshot.schemaVersion,
+        customEffects: persistedSnapshot.activeEffects.map(effect => effect.name),
+        rootKeys: Object.keys(persistedSnapshot)
       };
     });
     for (const source of ['captured', 'imported', 'local', 'online']) {
