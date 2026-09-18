@@ -47,6 +47,7 @@ function createServer(initialRow = null) {
     insertCount: 0,
     lostUpdateResult: false,
     throwAfterUpdateCommit: false,
+    throwBeforeUpdate: false,
     lastUpdateFilters: null,
     timestamp() {
       const micros = String(sequence++).padStart(6, '0');
@@ -110,6 +111,10 @@ function createClient(server) {
       if (this.operation === 'update') {
         server.updateCount += 1;
         server.lastUpdateFilters = copy(this.filters);
+        if (server.throwBeforeUpdate) {
+          server.throwBeforeUpdate = false;
+          throw new Error('network unavailable before update');
+        }
         if (!this.matches(server.row)) return { data: null, error: null };
         server.row = { ...server.row, ...copy(this.payload), updated_at: server.timestamp() };
         if (server.throwAfterUpdateCommit) {
@@ -142,17 +147,41 @@ function createStorage() {
   };
 }
 
-function createEnvironment(server, getLocal, storage = createStorage()) {
+function createEnvironment(server, getLocal, storage = createStorage(), options = {}) {
   const listeners = new Map();
+  const backups = [];
+  const serviceState = { backups, replaced: null };
   const window = {
     localStorage: storage,
     CronicasSupabase: {
       authenticated: true,
       ready: Promise.resolve(),
-      getUser: async () => ({ id: 'owner-1' }),
+      getUser: async () => ({ id: options.userId || 'owner-1' }),
       client: createClient(server)
     },
-    ChroniclesLocalCharacters: { list: () => [getLocal()] },
+    ChroniclesLocalCharacters: {
+      list: () => [getLocal(), ...backups.map(item => item.entry)],
+      async createConflictBackup(request) {
+        const id = `backup-${backups.length + 1}-identifier`;
+        backups.push({
+          request: copy(request),
+          entry: {
+            id,
+            name: request.character.fields?.nome || 'Backup',
+            level: 1,
+            className: request.character.fields?.classe || '',
+            thumbnail: '',
+            character: copy(request.character)
+          }
+        });
+        return { id, name: backups.at(-1).entry.name, createdAt: request.createdAt };
+      },
+      async replace(localId, character) {
+        serviceState.replaced = { localId, character: copy(character) };
+        options.onReplace?.(copy(character));
+        return copy(character);
+      }
+    },
     addEventListener(type, listener) { listeners.set(type, listener); },
     dispatchEvent() {},
     setTimeout,
@@ -176,7 +205,7 @@ function createEnvironment(server, getLocal, storage = createStorage()) {
     Promise
   });
   vm.runInContext(collaborationSource, context, { filename: 'chronicles-collaboration.js' });
-  return { api: window.ChroniclesCollaboration, storage };
+  return { api: window.ChroniclesCollaboration, storage, serviceState };
 }
 
 function publishedRow(character, server) {
@@ -359,5 +388,234 @@ test('personagem somente Local não é publicado pelo autosave', async () => {
   assert.equal(opened.published, false);
   assert.equal(result.localOnly, true);
   assert.equal(server.insertCount, 0);
+  assert.equal(server.updateCount, 0);
+});
+
+test('motivo do conflito comum e legado sobrevive a refresh', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const first = createEnvironment(server, entry, storage);
+  await first.api.resolveCharacterForOpen('local-1', local);
+  server.row.snapshot.fields.nome = 'Servidor alterado';
+  server.row.name = 'Servidor alterado';
+  server.row.updated_at = server.timestamp();
+  local = localCharacter('Local alterado');
+  assert.equal((await first.api.synchronizePublishedCharacter('local-1', local)).conflict, true);
+
+  const persisted = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(persisted.conflictReason, 'remote-changed');
+  assert.ok(Number.isFinite(Date.parse(persisted.conflictDetectedAt)));
+  const reopened = createEnvironment(server, entry, storage);
+  assert.equal((await reopened.api.getCharacterConflict('local-1')).reason, 'remote-changed');
+
+  const legacyStorage = createStorage();
+  const legacy = createEnvironment(server, entry, legacyStorage);
+  assert.equal((await legacy.api.resolveCharacterForOpen('local-1', local)).conflict, true);
+  assert.equal((await legacy.api.getCharacterConflict('local-1')).reason, 'legacy-no-base');
+});
+
+test('Usar Online cria backup Local e preserva notes e foto original', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }), createStorage(), { onReplace: character => { local = character; } });
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  server.row.snapshot.fields.nome = 'Versão Online escolhida';
+  server.row.name = 'Versão Online escolhida';
+  server.row.updated_at = server.timestamp();
+  local = localCharacter('Versão Local descartada');
+  await environment.api.synchronizePublishedCharacter('local-1', local);
+
+  const result = await environment.api.resolveCharacterConflict('local-1', 'use-online');
+  assert.equal(result.ok, true);
+  assert.equal(environment.serviceState.backups.length, 1);
+  assert.equal(environment.serviceState.backups[0].request.kind, 'local');
+  assert.equal(environment.serviceState.backups[0].request.character.fields.nome, 'Versão Local descartada');
+  assert.ok(Number.isFinite(Date.parse(environment.serviceState.backups[0].request.createdAt)));
+  assert.equal(environment.serviceState.replaced.character.fields.nome, 'Versão Online escolhida');
+  assert.deepEqual(environment.serviceState.replaced.character.notes, localCharacter().notes);
+  assert.equal(environment.serviceState.replaced.character.photo, localCharacter().photo);
+  const metadata = JSON.parse(environment.storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadata.conflict, false);
+  assert.equal(metadata.baseUpdatedAt, server.row.updated_at);
+});
+
+test('Manter Local cria backup Online e usa CAS com o updated_at relido', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  server.row.snapshot.fields.nome = 'Versão Online anterior';
+  server.row.name = 'Versão Online anterior';
+  server.row.updated_at = server.timestamp();
+  local = localCharacter('Minha versão escolhida');
+  await environment.api.synchronizePublishedCharacter('local-1', local);
+  const expectedVersion = server.row.updated_at;
+
+  const result = await environment.api.resolveCharacterConflict('local-1', 'keep-local');
+  assert.equal(result.ok, true);
+  assert.equal(environment.serviceState.backups.length, 1);
+  assert.equal(environment.serviceState.backups[0].request.kind, 'online');
+  assert.equal(environment.serviceState.backups[0].request.character.fields.nome, 'Versão Online anterior');
+  assert.deepEqual(server.lastUpdateFilters.find(([column]) => column === 'updated_at'), ['updated_at', expectedVersion]);
+  assert.equal(server.row.snapshot.fields.nome, 'Minha versão escolhida');
+  assert.equal('notes' in server.row.snapshot, false);
+  assert.equal('photo' in server.row.snapshot, false);
+});
+
+test('retry da resolução não duplica backup idêntico', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  }));
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  server.row.snapshot.fields.nome = 'Online';
+  server.row.name = 'Online';
+  server.row.updated_at = server.timestamp();
+  local = localCharacter('Local');
+  await environment.api.synchronizePublishedCharacter('local-1', local);
+
+  server.throwBeforeUpdate = true;
+  await assert.rejects(environment.api.resolveCharacterConflict('local-1', 'keep-local'), /network unavailable/);
+  assert.equal(environment.serviceState.backups.length, 1);
+  assert.equal((await environment.api.resolveCharacterConflict('local-1', 'keep-local')).ok, true);
+  assert.equal(environment.serviceState.backups.length, 1);
+});
+
+test('publicação removida exige manter Local ou republicar explicitamente', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const environment = createEnvironment(server, entry, storage);
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  server.row = null;
+  local = localCharacter('Preservado Local');
+  await environment.api.synchronizePublishedCharacter('local-1', local);
+  const details = await environment.api.getCharacterConflict('local-1');
+  assert.equal(details.reason, 'remote-deleted');
+  assert.deepEqual([...details.actions], ['keep-local-only', 'republish']);
+  assert.equal((await environment.api.resolveCharacterConflict('local-1', 'keep-local-only')).ok, true);
+  assert.equal(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'), null);
+  assert.equal(server.insertCount, 0);
+
+  const republishStorage = createStorage();
+  server.row = publishedRow(local, server);
+  const republish = createEnvironment(server, entry, republishStorage);
+  await republish.api.resolveCharacterForOpen('local-1', local);
+  server.row = null;
+  await republish.api.synchronizePublishedCharacter('local-1', local);
+  assert.equal((await republish.api.resolveCharacterConflict('local-1', 'republish')).ok, true);
+  assert.equal(server.insertCount, 1);
+});
+
+test('conta incorreta e publicação substituída nunca recebem sobrescrita', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const owner = createEnvironment(server, entry, storage);
+  await owner.api.resolveCharacterForOpen('local-1', local);
+  const wrongAccount = createEnvironment(server, entry, storage, { userId: 'owner-2' });
+  assert.equal((await wrongAccount.api.resolveCharacterForOpen('local-1', local)).conflict, true);
+  const accountConflict = await wrongAccount.api.getCharacterConflict('local-1');
+  assert.equal(accountConflict.reason, 'owner-mismatch');
+  assert.deepEqual([...accountConflict.actions], []);
+  assert.equal((await wrongAccount.api.resolveCharacterConflict('local-1', 'keep-local')).ok, false);
+  assert.equal(server.updateCount, 0);
+
+  const replacementStorage = createStorage();
+  const replacement = createEnvironment(server, entry, replacementStorage);
+  await replacement.api.resolveCharacterForOpen('local-1', local);
+  server.row = { ...server.row, id: 'remote-2', updated_at: server.timestamp() };
+  assert.equal((await replacement.api.resolveCharacterForOpen('local-1', local)).conflict, true);
+  const replacementConflict = await replacement.api.getCharacterConflict('local-1');
+  assert.equal(replacementConflict.reason, 'publication-replaced');
+  assert.deepEqual([...replacementConflict.actions], ['use-online']);
+  assert.equal((await replacement.api.resolveCharacterConflict('local-1', 'keep-local')).ok, false);
+  assert.equal(server.updateCount, 0);
+});
+
+test('voltar à conta proprietária reclassifica o conflito e libera resolução segura', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const owner = createEnvironment(server, entry, storage);
+  await owner.api.resolveCharacterForOpen('local-1', local);
+  const wrongAccount = createEnvironment(server, entry, storage, { userId: 'owner-2' });
+  await wrongAccount.api.resolveCharacterForOpen('local-1', local);
+
+  server.row.snapshot.fields.nome = 'Versão da conta proprietária';
+  server.row.name = 'Versão da conta proprietária';
+  server.row.updated_at = server.timestamp();
+  local = localCharacter('Versão Local preservada');
+  const signedBackIn = createEnvironment(server, entry, storage);
+  const details = await signedBackIn.api.getCharacterConflict('local-1');
+  assert.equal(details.reason, 'remote-changed');
+  assert.deepEqual([...details.actions], ['use-online', 'keep-local']);
+});
+
+test('publicação que reaparece é reclassificada antes de oferecer ações', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const environment = createEnvironment(server, entry, storage);
+  await environment.api.resolveCharacterForOpen('local-1', local);
+  const original = copy(server.row);
+  server.row = null;
+  await environment.api.synchronizePublishedCharacter('local-1', local);
+  server.row = { ...original, updated_at: server.timestamp() };
+
+  const reopened = createEnvironment(server, entry, storage);
+  const details = await reopened.api.getCharacterConflict('local-1');
+  assert.equal(details.reason, 'remote-changed');
+  assert.deepEqual([...details.actions], ['use-online', 'keep-local']);
+});
+
+test('publicação inconsistente é preservada sem oferecer sobrescrita', async () => {
+  const local = localCharacter('Local preservado');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const original = createEnvironment(server, entry, storage);
+  await original.api.resolveCharacterForOpen('local-1', local);
+  server.row.snapshot = { fields: { nome: 'Dados incompletos' } };
+  server.row.updated_at = server.timestamp();
+
+  const reopened = createEnvironment(server, entry, storage);
+  assert.equal((await reopened.api.resolveCharacterForOpen('local-1', local)).conflict, true);
+  const details = await reopened.api.getCharacterConflict('local-1');
+  assert.equal(details.reason, 'publication-inconsistent');
+  assert.deepEqual([...details.actions], []);
+  assert.equal((await reopened.api.resolveCharacterConflict('local-1', 'keep-local')).ok, false);
   assert.equal(server.updateCount, 0);
 });
