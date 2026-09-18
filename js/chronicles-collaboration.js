@@ -19,6 +19,10 @@
   const characterSyncQueues = new Map();
   const characterSyncRetries = new Map();
   const latestCharacterSnapshots = new Map();
+  const characterSyncWaiters = new Map();
+  const characterSyncVersions = new Map();
+  const CHARACTER_SYNC_META_PREFIX = 'cronicasRessonanciaOnlineCharacterSyncV1:';
+  const ONLINE_CHARACTER_COLUMNS = 'id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, snapshot, created_at, updated_at';
 
   function isOnlineChronicle(chronicle = currentChronicle) {
     return Boolean(chronicle && chronicle.storage === 'online' && chronicle.remoteId);
@@ -68,6 +72,7 @@
   }
 
   function humanizeError(error) {
+    if (error?.message === 'ONLINE_CHARACTER_CONFLICT') return 'A ficha Online mudou em outro local. Nenhuma versão foi sobrescrita.';
     const message = String(error?.message || '').toLowerCase();
     if (message.includes('row-level security')) return 'Sua conta não tem permissão para concluir esta ação.';
     if (message.includes('duplicate') || error?.code === '23505') return 'Este personagem já está vinculado ao Elenco.';
@@ -373,13 +378,121 @@
     };
   }
 
-  async function upsertOnlineCharacter(localEntry, expectedUserId = null) {
-    const { auth, user } = await requireUser();
-    if (expectedUserId && user.id !== expectedUserId) throw new Error('ONLINE_AUTH_CHANGED');
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value ?? null));
+  }
+
+  function stableSerialize(value) {
+    if (Array.isArray(value)) return '[' + value.map(stableSerialize).join(',') + ']';
+    if (value && typeof value === 'object') {
+      return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + stableSerialize(value[key])).join(',') + '}';
+    }
+    return JSON.stringify(value);
+  }
+
+  function snapshotsEqual(left, right) {
+    return stableSerialize(sanitizeSnapshot(left)) === stableSerialize(sanitizeSnapshot(right));
+  }
+
+  function mergeRemoteSnapshot(remoteSnapshot, localCharacter) {
+    const local = localCharacter && typeof localCharacter === 'object' ? localCharacter : {};
+    return {
+      ...sanitizeSnapshot(remoteSnapshot),
+      photo: typeof local.photo === 'string' ? local.photo : '',
+      notes: Array.isArray(local.notes) ? clone(local.notes) : []
+    };
+  }
+
+  function syncMetadataKey(localId) {
+    return CHARACTER_SYNC_META_PREFIX + localId;
+  }
+
+  function readSyncMetadata(localId) {
+    try {
+      const value = JSON.parse(global.localStorage?.getItem(syncMetadataKey(localId)) || 'null');
+      if (!value || typeof value !== 'object') return null;
+      if (!value.remoteId || !value.ownerId || !value.baseUpdatedAt) return null;
+      return {
+        remoteId: String(value.remoteId),
+        ownerId: String(value.ownerId),
+        baseUpdatedAt: String(value.baseUpdatedAt),
+        dirty: value.dirty === true,
+        conflict: value.conflict === true
+      };
+    } catch (error) {
+      console.warn('[Personagem online] Metadados locais de sincronização inválidos:', error);
+      return null;
+    }
+  }
+
+  function writeSyncMetadata(localId, value) {
+    try {
+      global.localStorage?.setItem(syncMetadataKey(localId), JSON.stringify({
+        remoteId: value.remoteId,
+        ownerId: value.ownerId,
+        baseUpdatedAt: value.baseUpdatedAt,
+        dirty: value.dirty === true,
+        conflict: value.conflict === true
+      }));
+      return true;
+    } catch (error) {
+      console.warn('[Personagem online] Não foi possível salvar os metadados de sincronização:', error);
+      return false;
+    }
+  }
+
+  function rememberVersion(localId, row, options = {}) {
+    const version = {
+      remoteId: row.id,
+      ownerId: row.owner_id,
+      baseUpdatedAt: row.updated_at,
+      dirty: options.dirty === true,
+      conflict: options.conflict === true
+    };
+    characterSyncVersions.set(localId, version);
+    writeSyncMetadata(localId, version);
+    return version;
+  }
+
+  function currentVersion(localId) {
+    return characterSyncVersions.get(localId) || readSyncMetadata(localId);
+  }
+
+  function markDirty(localId) {
+    const current = currentVersion(localId);
+    if (!current) return null;
+    const dirty = { ...current, dirty: true };
+    characterSyncVersions.set(localId, dirty);
+    writeSyncMetadata(localId, dirty);
+    return dirty;
+  }
+
+  function markConflict(localId, row, reason = 'changed') {
+    const current = currentVersion(localId);
+    const metadata = {
+      remoteId: row?.id || current?.remoteId || '',
+      ownerId: row?.owner_id || current?.ownerId || '',
+      baseUpdatedAt: current?.baseUpdatedAt || row?.updated_at || '',
+      dirty: true,
+      conflict: true
+    };
+    if (metadata.remoteId && metadata.ownerId && metadata.baseUpdatedAt) {
+      characterSyncVersions.set(localId, metadata);
+      writeSyncMetadata(localId, metadata);
+    }
+    characterSyncRetries.delete(localId);
+    setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária', {
+      conflictReason: reason,
+      remoteUpdatedAt: row?.updated_at || ''
+    });
+    return { ok: false, conflict: true, reason };
+  }
+
+  function characterPayload(localEntry, userId) {
     const character = localEntry.character || {};
     const fields = character.fields || {};
-    const payload = {
-      owner_id: user.id,
+    return {
+      owner_id: userId,
       source_local_id: localEntry.id,
       name: text(fields.nome) || localEntry.name || 'Novo personagem',
       level: Math.max(1, Math.min(11, Number.parseInt(fields.nivel, 10) || localEntry.level || 1)),
@@ -388,71 +501,266 @@
       thumbnail: text(localEntry.thumbnail).slice(0, 500000),
       snapshot: sanitizeSnapshot(character)
     };
+  }
+
+  function rowMatchesPayload(row, payload) {
+    return Boolean(row)
+      && row.owner_id === payload.owner_id
+      && row.source_local_id === payload.source_local_id
+      && row.name === payload.name
+      && Number(row.level) === Number(payload.level)
+      && text(row.class_name) === text(payload.class_name)
+      && text(row.signature) === text(payload.signature)
+      && text(row.thumbnail) === text(payload.thumbnail)
+      && snapshotsEqual(row.snapshot, payload.snapshot);
+  }
+
+  async function fetchOwnedOnlineCharacter(auth, userId, localId) {
     const { data, error } = await auth.client
       .from('online_characters')
-      .upsert(payload, { onConflict: 'owner_id,source_local_id' })
-      .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, updated_at')
-      .single();
+      .select(ONLINE_CHARACTER_COLUMNS)
+      .eq('owner_id', userId)
+      .eq('source_local_id', localId)
+      .maybeSingle();
     if (error) throw error;
     return data;
   }
 
-  async function synchronizePublishedCharacter(localId, character = null) {
+  async function createOnlineCharacter(localEntry, expectedUserId = null) {
+    const { auth, user } = await requireUser();
+    if (expectedUserId && user.id !== expectedUserId) throw new Error('ONLINE_AUTH_CHANGED');
+    const payload = characterPayload(localEntry, user.id);
+    const existing = await fetchOwnedOnlineCharacter(auth, user.id, localEntry.id);
+    if (existing) {
+      if (!snapshotsEqual(existing.snapshot, localEntry.character)) {
+        markConflict(localEntry.id, existing, 'existing-publication');
+        throw new Error('ONLINE_CHARACTER_CONFLICT');
+      }
+      rememberVersion(localEntry.id, existing);
+      return existing;
+    }
+    const { data, error } = await auth.client
+      .from('online_characters')
+      .insert(payload)
+      .select(ONLINE_CHARACTER_COLUMNS)
+      .single();
+    if (error?.code === '23505') {
+      const concurrent = await fetchOwnedOnlineCharacter(auth, user.id, localEntry.id);
+      if (concurrent && snapshotsEqual(concurrent.snapshot, localEntry.character)) {
+        rememberVersion(localEntry.id, concurrent);
+        return concurrent;
+      }
+      markConflict(localEntry.id, concurrent, 'concurrent-publication');
+      throw new Error('ONLINE_CHARACTER_CONFLICT');
+    }
+    if (error) throw error;
+    rememberVersion(localEntry.id, data);
+    return data;
+  }
+
+  async function resolveCharacterForOpen(localId, localCharacter) {
+    let context;
+    try {
+      context = await requireUser();
+    } catch (_) {
+      const metadata = currentVersion(localId);
+      if (metadata?.remoteId) {
+        setCharacterSyncState(localId, metadata.conflict ? 'conflict' : 'pending',
+          metadata.conflict ? 'Conflito Online · revisão necessária' : 'Cópia local · Online não verificado');
+      }
+      return { character: localCharacter, published: Boolean(metadata?.remoteId), verified: false };
+    }
+
+    const row = await fetchOwnedOnlineCharacter(context.auth, context.user.id, localId);
+    const metadata = currentVersion(localId);
+    if (!row) {
+      if (metadata?.remoteId && metadata.ownerId === context.user.id) {
+        markConflict(localId, null, 'remote-deleted');
+        return { character: localCharacter, published: true, verified: true, conflict: true };
+      }
+      setCharacterSyncState(localId, 'local', 'Apenas Local');
+      return { character: localCharacter, published: false, verified: true };
+    }
+
+    if (metadata?.ownerId && metadata.ownerId !== context.user.id) {
+      markConflict(localId, row, 'account-changed');
+      return { character: localCharacter, published: true, verified: true, conflict: true };
+    }
+    if (metadata?.conflict) {
+      markConflict(localId, row, 'unresolved');
+      return { character: localCharacter, published: true, verified: true, conflict: true };
+    }
+
+    const sameContent = snapshotsEqual(row.snapshot, localCharacter);
+    if (!metadata) {
+      if (!sameContent) {
+        markConflict(localId, row, 'legacy-divergence');
+        return { character: localCharacter, published: true, verified: true, conflict: true };
+      }
+      rememberVersion(localId, row);
+    } else if (metadata.dirty) {
+      if (metadata.baseUpdatedAt === row.updated_at) {
+        characterSyncVersions.set(localId, metadata);
+        setCharacterSyncState(localId, 'pending', 'Alterações pendentes', { syncedAt: metadata.baseUpdatedAt });
+        return { character: localCharacter, published: true, verified: true, pending: true };
+      }
+      if (!sameContent) {
+        markConflict(localId, row, 'stale-local-copy');
+        return { character: localCharacter, published: true, verified: true, conflict: true };
+      }
+      rememberVersion(localId, row);
+    } else {
+      rememberVersion(localId, row);
+    }
+
+    const character = mergeRemoteSnapshot(row.snapshot, localCharacter);
+    setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+    return { character, published: true, verified: true, fromServer: true };
+  }
+
+  async function performCharacterSync(localId, character = null) {
     const epoch = syncEpoch;
     const { auth, user } = await requireUser();
-    const { data: published, error: lookupError } = await auth.client
-      .from('online_characters').select('id').eq('owner_id', user.id).eq('source_local_id', localId).maybeSingle();
-    if (lookupError) throw lookupError;
-    if (!published) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return false; }
-    if (epoch !== syncEpoch) return false;
     const local = localCharacters().find(item => item.id === localId);
-    if (!local) return false;
+    if (!local) return { ok: false, missing: true };
     const entry = character ? { ...local, character } : local;
+    const attemptedPayload = characterPayload(entry, user.id);
+    const row = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    if (epoch !== syncEpoch) return { ok: false, cancelled: true };
+    const metadata = currentVersion(localId);
+
+    if (!row) {
+      if (metadata?.remoteId) return markConflict(localId, null, 'remote-deleted');
+      setCharacterSyncState(localId, 'local', 'Apenas Local');
+      return { ok: false, localOnly: true };
+    }
+    if (metadata?.conflict) return markConflict(localId, row, 'unresolved');
+    if (!metadata?.baseUpdatedAt) {
+      if (rowMatchesPayload(row, attemptedPayload)) {
+        rememberVersion(localId, row);
+        setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+        return { ok: true, row, acknowledged: true };
+      }
+      return markConflict(localId, row, 'missing-base-version');
+    }
+    if (metadata.remoteId !== row.id || metadata.ownerId !== user.id) {
+      return markConflict(localId, row, 'publication-changed');
+    }
+    if (row.updated_at !== metadata.baseUpdatedAt) {
+      if (rowMatchesPayload(row, attemptedPayload)) {
+        rememberVersion(localId, row);
+        setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+        return { ok: true, row, acknowledged: true };
+      }
+      return markConflict(localId, row, 'stale-write');
+    }
+
+    if (rowMatchesPayload(row, attemptedPayload)) {
+      rememberVersion(localId, row);
+      characterSyncRetries.delete(localId);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+      return { ok: true, row, acknowledged: true, unchanged: true };
+    }
+
     setCharacterSyncState(localId, 'syncing', 'Sincronizando');
-    await upsertOnlineCharacter(entry, user.id);
-    if (epoch !== syncEpoch) return false;
-    characterSyncRetries.delete(localId);
-    setCharacterSyncState(localId, 'synced', 'Atualizado', { syncedAt: new Date().toISOString() });
-    return true;
+    const { data, error } = await auth.client
+      .from('online_characters')
+      .update(attemptedPayload)
+      .eq('id', row.id)
+      .eq('owner_id', user.id)
+      .eq('updated_at', metadata.baseUpdatedAt)
+      .select(ONLINE_CHARACTER_COLUMNS)
+      .maybeSingle();
+    if (error) throw error;
+    if (epoch !== syncEpoch) return { ok: false, cancelled: true };
+    if (data) {
+      rememberVersion(localId, data);
+      characterSyncRetries.delete(localId);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: data.updated_at });
+      return { ok: true, row: data };
+    }
+
+    const latest = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    if (!latest) return markConflict(localId, null, 'remote-deleted');
+    if (rowMatchesPayload(latest, attemptedPayload)) {
+      rememberVersion(localId, latest);
+      characterSyncRetries.delete(localId);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: latest.updated_at });
+      return { ok: true, row: latest, acknowledged: true };
+    }
+    return markConflict(localId, latest, 'stale-write');
+  }
+
+  async function synchronizePublishedCharacter(localId, character = null) {
+    return queueCharacterSync(localId, character, { immediate: true, manual: true });
   }
 
   function scheduleSyncRetry(localId) {
     const attempts = (characterSyncRetries.get(localId) || 0) + 1;
     characterSyncRetries.set(localId, attempts);
-    if (attempts > 4 || !global.CronicasSupabase?.authenticated) return;
+    if (attempts > 4 || !global.CronicasSupabase?.authenticated) return false;
     const delay = Math.min(30000, 1500 * (2 ** (attempts - 1)));
     global.clearTimeout(characterSyncTimers.get(localId));
     characterSyncTimers.set(localId, global.setTimeout(() => {
       characterSyncTimers.delete(localId);
-      queueCharacterSync(localId, latestCharacterSnapshots.get(localId), { immediate: true, retry: true });
+      void queueCharacterSync(localId, latestCharacterSnapshots.get(localId), { immediate: true, retry: true });
     }, delay));
+    return true;
+  }
+
+  function flushCharacterSync(localId, epoch) {
+    global.clearTimeout(characterSyncTimers.get(localId));
+    characterSyncTimers.delete(localId);
+    const waiters = characterSyncWaiters.get(localId) || [];
+    characterSyncWaiters.set(localId, []);
+    const character = latestCharacterSnapshots.get(localId) || null;
+    const previous = characterSyncQueues.get(localId) || Promise.resolve();
+    const next = previous.catch(() => undefined).then(async () => {
+      if (epoch !== syncEpoch) return { ok: false, cancelled: true };
+      try {
+        return await performCharacterSync(localId, character);
+      } catch (error) {
+        if (epoch !== syncEpoch) return { ok: false, cancelled: true };
+        console.error('[Personagem online] Falha de sincronização:', error);
+        const retryScheduled = scheduleSyncRetry(localId);
+        setCharacterSyncState(localId, 'error', retryScheduled
+          ? 'Erro de sincronização · nova tentativa agendada'
+          : 'Erro de sincronização · tente novamente');
+        return { ok: false, error };
+      }
+    });
+    characterSyncQueues.set(localId, next);
+    void next.then(result => waiters.forEach(resolve => resolve(result))).finally(() => {
+      if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId);
+    });
   }
 
   function queueCharacterSync(localId, character = null, options = {}) {
-    if (!localId) return;
+    if (!localId) return Promise.resolve({ ok: false, missing: true });
     if (character) latestCharacterSnapshots.set(localId, character);
+    const metadata = markDirty(localId);
+    if (metadata?.conflict) {
+      setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária');
+      return Promise.resolve({ ok: false, conflict: true });
+    }
     if (!global.CronicasSupabase?.authenticated) {
-      setCharacterSyncState(localId, 'local', 'Apenas Local');
-      return;
+      setCharacterSyncState(localId, metadata?.remoteId ? 'pending' : 'local',
+        metadata?.remoteId ? 'Cópia local · Online não verificado' : 'Apenas Local');
+      return Promise.resolve({ ok: false, offline: true });
     }
     global.clearTimeout(characterSyncTimers.get(localId));
     const epoch = syncEpoch;
     setCharacterSyncState(localId, 'pending', 'Alterações pendentes');
-    characterSyncTimers.set(localId, global.setTimeout(() => {
-      characterSyncTimers.delete(localId);
-      const previous = characterSyncQueues.get(localId) || Promise.resolve();
-      const next = previous.catch(() => undefined).then(() => {
-        if (epoch !== syncEpoch) return;
-        return synchronizePublishedCharacter(localId, character);
-      });
-      characterSyncQueues.set(localId, next);
-      void next.catch(error => {
-        if (epoch !== syncEpoch) return;
-        console.error('[Personagem online] Falha de sincronização:', error);
-        setCharacterSyncState(localId, 'error', 'Erro de sincronização · nova tentativa agendada');
-        scheduleSyncRetry(localId);
-      }).finally(() => { if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId); });
-    }, options.immediate ? 0 : 650));
+    const completion = new Promise(resolve => {
+      const waiters = characterSyncWaiters.get(localId) || [];
+      waiters.push(resolve);
+      characterSyncWaiters.set(localId, waiters);
+    });
+    characterSyncTimers.set(localId, global.setTimeout(
+      () => flushCharacterSync(localId, epoch),
+      options.immediate ? 0 : 650
+    ));
+    return completion;
   }
 
   function getCharacterSyncState(localId) {
@@ -463,9 +771,10 @@
     let context;
     try { context = await requireUser(); } catch (_) { return false; }
     const { data, error } = await context.auth.client.from('online_characters')
-      .select('id, source_local_id, updated_at').eq('owner_id', context.user.id);
+      .select(ONLINE_CHARACTER_COLUMNS).eq('owner_id', context.user.id);
     if (error) throw error;
     const published = new Map((data || []).map(row => [row.source_local_id, row]));
+    const locals = new Map(localCharacters().map(entry => [entry.id, entry]));
     const onlineIds = (data || []).map(row => row.id);
     const chroniclesByCharacter = new Map();
     if (onlineIds.length) {
@@ -486,14 +795,47 @@
       });
     }
     Object.keys(localSummaries || {}).forEach(localId => {
-      if (!published.has(localId)) { setCharacterSyncState(localId, 'local', 'Apenas Local'); return; }
-      const localAt = Date.parse(localSummaries[localId]?.updatedAt || 0);
+      const metadata = currentVersion(localId);
+      if (!published.has(localId)) {
+        if (metadata?.remoteId && metadata.ownerId === context.user.id) markConflict(localId, null, 'remote-deleted');
+        else setCharacterSyncState(localId, 'local', 'Apenas Local');
+        return;
+      }
       const online = published.get(localId);
-      const onlineAt = Date.parse(online.updated_at || 0);
-      const state = localAt > onlineAt ? 'pending' : 'synced';
       const chronicles = [...new Set(chroniclesByCharacter.get(online.id) || [])];
-      setCharacterSyncState(localId, state, state === 'pending' ? 'Alterações pendentes' : 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
-      if (state === 'pending') queueCharacterSync(localId);
+      const local = locals.get(localId);
+      if (metadata?.conflict) {
+        setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária', { chronicles, syncedAt: metadata.baseUpdatedAt });
+        return;
+      }
+      if (!metadata) {
+        if (local && snapshotsEqual(online.snapshot, local.character)) {
+          rememberVersion(localId, online);
+          setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
+        } else {
+          markConflict(localId, online, 'legacy-divergence');
+        }
+        return;
+      }
+      if (metadata.dirty) {
+        if (metadata.baseUpdatedAt === online.updated_at) {
+          setCharacterSyncState(localId, 'pending', 'Alterações pendentes', { chronicles, syncedAt: metadata.baseUpdatedAt });
+          void queueCharacterSync(localId, local?.character);
+        } else if (local && snapshotsEqual(online.snapshot, local.character)) {
+          rememberVersion(localId, online);
+          setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
+        } else {
+          markConflict(localId, online, 'stale-local-copy');
+        }
+        return;
+      }
+      if (metadata.baseUpdatedAt !== online.updated_at) {
+        characterSyncVersions.set(localId, metadata);
+        setCharacterSyncState(localId, 'remote', 'Atualização Online disponível', { chronicles, syncedAt: online.updated_at });
+        return;
+      }
+      characterSyncVersions.set(localId, metadata);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { chronicles, syncedAt: online.updated_at });
     });
     return true;
   }
@@ -509,8 +851,8 @@
     setCastFeedback('Publicando personagem…', '', true);
     try {
       const { auth, user, chronicle } = await requireContext();
-      const online = await upsertOnlineCharacter(entry, user.id);
-      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado');
+      const online = await createOnlineCharacter(entry, user.id);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: online.updated_at });
       const { error } = await auth.client
         .from('chronicle_cast_members')
         .upsert({
@@ -536,8 +878,12 @@
     pending = true;
     setCastFeedback('Sincronizando ficha…', '', true);
     try {
-      await upsertOnlineCharacter(entry);
-      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado');
+      const result = await queueCharacterSync(localId, entry.character, { immediate: true, manual: true });
+      if (!result?.ok) {
+        if (result?.conflict) setCastFeedback('A ficha Online mudou em outro local. Nenhuma versão foi sobrescrita.', 'error', true);
+        else setCastFeedback('A sincronização não foi concluída. A cópia local foi preservada.', 'error', true);
+        return;
+      }
       global.showNotification?.(`${entry.name} foi sincronizado.`);
       await renderManagerList();
       await renderCast(currentChronicle);
@@ -803,9 +1149,14 @@
     reset();
     characterSyncTimers.forEach(timer => global.clearTimeout(timer));
     characterSyncTimers.clear();
+    characterSyncWaiters.forEach(waiters => {
+      waiters.forEach(resolve => resolve({ ok: false, cancelled: true }));
+    });
+    characterSyncWaiters.clear();
     characterSyncQueues.clear();
     characterSyncRetries.clear();
     latestCharacterSnapshots.clear();
+    characterSyncVersions.clear();
     characterSyncStates.clear();
   });
 
@@ -818,6 +1169,7 @@
     closeCastManager,
     renderManagerList,
     handleCastSearch,
+    resolveCharacterForOpen,
     queueCharacterSync,
     synchronizePublishedCharacter,
     getCharacterSyncState,

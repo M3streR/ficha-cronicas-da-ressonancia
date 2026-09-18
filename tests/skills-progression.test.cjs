@@ -164,17 +164,31 @@ async function forceDegree(select, degree) {
       writeCharacterManager(manager);
 
       let payload = null;
+      let operation = 'select';
+      const online = {
+        id: 'online-skills', owner_id: 'skills-owner', source_local_id: localId,
+        name: validation.normalized.fields.nome || 'Legado de Perícias', level: 1,
+        class_name: validation.normalized.fields.classe || '', signature: '', thumbnail: '',
+        snapshot: validation.normalized,
+        created_at: '2026-09-18T12:00:00.000001+00:00',
+        updated_at: '2026-09-18T12:00:00.000001+00:00'
+      };
       const query = {
         select() { return this; }, eq() { return this; },
-        maybeSingle: async () => ({ data: { id: 'online-skills' }, error: null }),
-        upsert(value) { payload = value; return this; },
-        single: async () => ({ data: { id: 'online-skills', ...payload }, error: null })
+        update(value) { operation = 'update'; payload = value; return this; },
+        maybeSingle: async () => ({
+          data: operation === 'update'
+            ? { ...online, ...payload, updated_at: '2026-09-18T12:00:00.000002+00:00' }
+            : online,
+          error: null
+        })
       };
       window.CronicasSupabase = {
         ready: Promise.resolve(), authenticated: true,
         getUser: async () => ({ id: 'skills-owner' }),
         client: { from: () => query }
       };
+      await ChroniclesCollaboration.resolveCharacterForOpen(localId, validation.normalized);
       await ChroniclesCollaboration.synchronizePublishedCharacter(localId, validation.normalized);
       return {
         importedLegacy: validation.normalized.skills.Enganação,

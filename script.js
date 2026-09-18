@@ -834,10 +834,37 @@ async function openCharacter(id, options = {}) {
   if (options.discardLegacyPending && storageMode === 'legacy') discardPendingSave();
   else await saveActiveCharacter();
 
-  const character = readStoredCharacter(id);
-  if (!character) throw new Error('CHARACTER_NOT_FOUND');
-  const validation = validateImportedSheet(character);
+  const localCharacter = readStoredCharacter(id);
+  if (!localCharacter) throw new Error('CHARACTER_NOT_FOUND');
+  const validation = validateImportedSheet(localCharacter);
   if (!validation.valid) throw new Error(`INVALID_STORED_CHARACTER: ${validation.message}`);
+
+  let character = localCharacter;
+  try {
+    const resolution = await window.ChroniclesCollaboration?.resolveCharacterForOpen?.(id, localCharacter);
+    if (resolution?.character) character = resolution.character;
+    if (resolution?.fromServer) writeStoredCharacter(id, character);
+    if (resolution?.conflict) {
+      showNotification(
+        'A ficha Online mudou em outro local. A cópia deste navegador foi preservada e nenhuma versão foi sobrescrita.',
+        'warning',
+        8500
+      );
+    } else if (resolution?.published && resolution?.verified === false) {
+      showNotification(
+        'A versão Online não pôde ser confirmada agora. A cópia deste navegador foi aberta sem enviar alterações.',
+        'warning',
+        7000
+      );
+    }
+  } catch (error) {
+    console.error('Não foi possível reconciliar a ficha Online antes da abertura:', error);
+    showNotification(
+      'A versão Online não pôde ser confirmada agora. A cópia deste navegador foi aberta sem enviar alterações.',
+      'warning',
+      7000
+    );
+  }
 
   const latestManager = readCharacterManager();
   if (latestManager.activeCharacterId !== id) {
@@ -3831,18 +3858,20 @@ function formatDiceResult(result) {
 window.addEventListener('cronicas:character-sync-state', event => {
   const detail = event.detail || {};
   const info = document.querySelector(`[data-character-entry="${CSS.escape(String(detail.localId || ''))}"] .character-card-info`);
-  if (!info) return;
-  let badge = info.querySelector('.character-online-state');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'character-online-state';
-    info.appendChild(badge);
+  if (info) {
+    let badge = info.querySelector('.character-online-state');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'character-online-state';
+      info.appendChild(badge);
+    }
+    badge.dataset.state = detail.state || '';
+    badge.textContent = detail.message || '';
+    const chronicles = Array.isArray(detail.chronicles) ? detail.chronicles : [];
+    badge.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : (detail.message || '');
+    badge.setAttribute('aria-label', chronicles.length ? `${detail.message}. Crônicas Online: ${chronicles.join(', ')}` : (detail.message || ''));
   }
-  badge.dataset.state = detail.state || '';
-  badge.textContent = detail.message || '';
   const chronicles = Array.isArray(detail.chronicles) ? detail.chronicles : [];
-  badge.title = chronicles.length ? `Crônicas Online: ${chronicles.join(', ')}` : (detail.message || '');
-  badge.setAttribute('aria-label', chronicles.length ? `${detail.message}. Crônicas Online: ${chronicles.join(', ')}` : (detail.message || ''));
   if (detail.localId === activeCharacterId) {
     const sheetStatus = document.getElementById('sheetOnlineSyncStatus');
     if (sheetStatus) {
