@@ -825,6 +825,29 @@ test('logout mantém pendência e login do proprietário retoma com segurança',
   assert.equal(environment.api.getCharacterSyncState('local-1').state, 'synced');
 });
 
+test('retomada em outra conta preserva o trabalho Local e abre conflito de propriedade', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer();
+  server.row = publishedRow(local, server);
+  const storage = createStorage();
+  const entry = () => ({
+    id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local
+  });
+  const owner = createEnvironment(server, entry, storage);
+  await owner.api.resolveCharacterForOpen('local-1', local);
+  owner.serviceState.setOnline(false);
+  local = localCharacter('Trabalho Local preservado');
+  await owner.api.queueCharacterSync('local-1', local, { defer: true });
+
+  const wrongAccount = createEnvironment(server, entry, storage, { userId: 'owner-2' });
+  await wrongAccount.api.resumePendingCharacterSync('auth-change');
+  assert.equal(server.updateCount, 0);
+  assert.equal(wrongAccount.api.getCharacterSyncState('local-1').state, 'conflict');
+  const metadata = JSON.parse(storage.getItem('cronicasRessonanciaOnlineCharacterSyncV1:local-1'));
+  assert.equal(metadata.conflictReason, 'owner-mismatch');
+  assert.equal(local.fields.nome, 'Trabalho Local preservado');
+});
+
 test('retomada ignora personagem somente Local', async () => {
   const local = localCharacter('Somente Local');
   const server = createServer();
