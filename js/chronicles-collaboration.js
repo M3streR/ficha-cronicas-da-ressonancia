@@ -13,6 +13,11 @@
   let managerEpoch = 0;
   let syncEpoch = 0;
   let syncUserId = null;
+  let characterRealtimeChannel = null;
+  let characterRealtimeDesiredLocalId = '';
+  let characterRealtimeSession = null;
+  let characterRealtimeEpoch = 0;
+  let characterRealtimeRestartTimer = null;
   let recoveryTimer = null;
   let recoveryPromise = null;
   let recoveryRequested = false;
@@ -626,6 +631,7 @@
 
   function rememberVersion(localId, row, options = {}) {
     if (!metadataWriteAuthorized(localId)) return currentVersion(localId);
+    const previous = currentVersion(localId);
     const version = {
       remoteId: row.id,
       ownerId: row.owner_id,
@@ -646,6 +652,9 @@
       updatedAt: row.updated_at,
       dirty: options.dirty === true
     });
+    if (characterRealtimeDesiredLocalId === localId && previous?.remoteId !== row.id) {
+      scheduleCharacterRealtimeRestart(localId);
+    }
     return version;
   }
 
@@ -745,6 +754,7 @@
       console.warn('[Personagem online] Não foi possível remover os metadados de sincronização:', error);
     }
     announceCharacterEvent('publication-removed', localId);
+    if (characterRealtimeDesiredLocalId === localId) scheduleCharacterRealtimeRestart(localId);
     return true;
   }
 
@@ -1814,6 +1824,298 @@
     return true;
   }
 
+  function canOwnCharacterRealtime(localId) {
+    const authority = editAuthority();
+    if (!authority) return true;
+    const state = authority.getState?.(localId);
+    if (!state || state.mode === 'closed') return false;
+    return ['editor', 'restricted', 'consultative'].includes(state.mode) && state.canMutate !== false;
+  }
+
+  function characterRealtimeState() {
+    return characterRealtimeSession ? {
+      localId: characterRealtimeSession.localId,
+      remoteId: characterRealtimeSession.remoteId,
+      ownerId: characterRealtimeSession.ownerId,
+      epoch: characterRealtimeSession.epoch,
+      subscribed: Boolean(characterRealtimeChannel),
+      inFlight: characterRealtimeSession.inFlight === true,
+      invalidated: characterRealtimeSession.invalidated === true
+    } : null;
+  }
+
+  function removeCharacterRealtimeChannel() {
+    const channel = characterRealtimeChannel;
+    characterRealtimeChannel = null;
+    if (channel && global.CronicasSupabase?.client) {
+      try {
+        const removal = global.CronicasSupabase.client.removeChannel(channel);
+        if (removal?.catch) void removal.catch(error => {
+          console.warn('[Personagem online] Não foi possível remover a subscription Realtime:', error);
+        });
+      } catch (error) {
+        console.warn('[Personagem online] Não foi possível remover a subscription Realtime:', error);
+      }
+    }
+  }
+
+  function stopCharacterRealtime(localId = '', options = {}) {
+    if (localId && characterRealtimeSession?.localId && characterRealtimeSession.localId !== localId) return false;
+    ++characterRealtimeEpoch;
+    global.clearTimeout(characterRealtimeRestartTimer);
+    characterRealtimeRestartTimer = null;
+    if (characterRealtimeSession?.reconcileTimer) {
+      global.clearTimeout(characterRealtimeSession.reconcileTimer);
+    }
+    removeCharacterRealtimeChannel();
+    characterRealtimeSession = null;
+    if (options.preserveDesired !== true) characterRealtimeDesiredLocalId = '';
+    return true;
+  }
+
+  function enqueueCharacterRealtimeReconciliation(localId, sessionEpoch) {
+    const previous = characterSyncQueues.get(localId) || Promise.resolve();
+    const next = previous.catch(() => undefined).then(() => withCharacterAuthority(
+      localId,
+      'realtime-reconcile',
+      () => performCharacterRealtimeReconciliation(localId, sessionEpoch)
+    ));
+    characterSyncQueues.set(localId, next);
+    return next.finally(() => {
+      if (characterSyncQueues.get(localId) === next) characterSyncQueues.delete(localId);
+    });
+  }
+
+  async function performCharacterRealtimeReconciliation(localId, sessionEpoch) {
+    const session = characterRealtimeSession;
+    if (!session || session.epoch !== sessionEpoch || session.localId !== localId) {
+      return { ok: false, cancelled: true };
+    }
+    if (!hasConnectivitySignal() || !canOwnCharacterRealtime(localId)) {
+      return { ok: false, cancelled: true };
+    }
+
+    const local = localCharacters().find(item => item.id === localId);
+    if (!local) return { ok: false, missing: true };
+    const metadataBeforeRead = currentVersion(localId);
+    if (!metadataBeforeRead?.conflict) {
+      setCharacterSyncState(localId, 'checking', 'Verificando atualização Online', {
+        syncedAt: metadataBeforeRead?.baseUpdatedAt || ''
+      });
+    }
+
+    const { auth, user } = await requireUser();
+    const row = await fetchOwnedOnlineCharacter(auth, user.id, localId);
+    if (
+      !characterRealtimeSession
+      || characterRealtimeSession.epoch !== sessionEpoch
+      || syncEpoch !== session.syncEpoch
+      || !canOwnCharacterRealtime(localId)
+    ) return { ok: false, cancelled: true };
+
+    const metadata = currentVersion(localId);
+    if (metadata?.ownerId && metadata.ownerId !== user.id) {
+      return markConflict(localId, null, 'owner-mismatch');
+    }
+    if (!row) {
+      if (metadata?.remoteId) return markConflict(localId, null, 'remote-deleted');
+      setCharacterSyncState(localId, 'local', 'Apenas Local');
+      return { ok: true, localOnly: true };
+    }
+    if (!isConsistentOnlineCharacter(row, localId, user.id)) {
+      return markConflict(localId, row, 'publication-inconsistent');
+    }
+    if (metadata?.remoteId && metadata.remoteId !== row.id) {
+      return markConflict(localId, row, 'publication-replaced');
+    }
+
+    const sameContent = snapshotsEqual(row.snapshot, local.character);
+    if (metadata?.conflict) {
+      if (!sameContent) return markConflict(localId, row, 'unresolved');
+      rememberVersion(localId, row);
+      characterSyncRetries.delete(localId);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+      editAuthority()?.activate?.(localId, { restricted: false });
+      announceCharacterEvent('remote-reconciled', localId, {
+        remoteId: row.id,
+        updatedAt: row.updated_at,
+        conflictResolved: true
+      });
+      return { ok: true, row, conflictResolved: true };
+    }
+
+    if (metadata?.dirty) {
+      if (rowMatchesPayload(row, characterPayload(local, user.id))) {
+        rememberVersion(localId, row);
+        characterSyncRetries.delete(localId);
+        setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+        announceCharacterEvent('remote-reconciled', localId, {
+          remoteId: row.id,
+          updatedAt: row.updated_at,
+          acknowledged: true
+        });
+        return { ok: true, row, acknowledged: true };
+      }
+      if (metadata.baseUpdatedAt === row.updated_at) {
+        setCharacterSyncState(localId, 'pending', 'Alterações Online pendentes', { syncedAt: metadata.baseUpdatedAt });
+        return { ok: true, pending: true };
+      }
+      return markConflict(localId, row, 'remote-changed');
+    }
+
+    if (!metadata) {
+      if (!sameContent) return markConflict(localId, row, 'legacy-divergence');
+      rememberVersion(localId, row);
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+      return { ok: true, row, adopted: true };
+    }
+    if (metadata.baseUpdatedAt === row.updated_at) {
+      setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+      return { ok: true, row, unchanged: true };
+    }
+
+    const merged = mergeRemoteSnapshot(row.snapshot, local.character);
+    const replacer = global.ChroniclesLocalCharacters?.replace;
+    if (typeof replacer !== 'function') throw new Error('LOCAL_CHARACTER_REPLACE_UNAVAILABLE');
+    await replacer(localId, merged, {
+      authorityToken: currentAuthorityToken(localId),
+      operation: 'realtime-reconcile'
+    });
+    rememberVersion(localId, row);
+    characterSyncRetries.delete(localId);
+    setCharacterSyncState(localId, 'synced', 'Publicado Online · Atualizado', { syncedAt: row.updated_at });
+    announceCharacterEvent('remote-reconciled', localId, {
+      remoteId: row.id,
+      updatedAt: row.updated_at
+    });
+    return { ok: true, row, character: merged, fromServer: true };
+  }
+
+  function drainCharacterRealtime(sessionEpoch) {
+    const session = characterRealtimeSession;
+    if (!session || session.epoch !== sessionEpoch || session.inFlight || !session.invalidated) return;
+    session.invalidated = false;
+    session.inFlight = true;
+    void enqueueCharacterRealtimeReconciliation(session.localId, sessionEpoch)
+      .catch(error => {
+        if (characterRealtimeSession?.epoch !== sessionEpoch) return;
+        const classification = classifySyncError(error);
+        const metadata = currentVersion(session.localId);
+        if (metadata?.dirty) markSyncFailure(session.localId, classification.kind);
+        const feedback = failureFeedback(classification.kind, false);
+        setCharacterSyncState(session.localId, feedback.state, feedback.message);
+        if (!classification.transient) {
+          console.error('[Personagem online] Falha permanente na reconciliação Realtime:', error);
+        }
+      })
+      .finally(() => {
+        const current = characterRealtimeSession;
+        if (!current || current.epoch !== sessionEpoch) return;
+        current.inFlight = false;
+        if (current.invalidated) drainCharacterRealtime(sessionEpoch);
+      });
+  }
+
+  function invalidateCharacterRealtime(sessionEpoch) {
+    const session = characterRealtimeSession;
+    if (!session || session.epoch !== sessionEpoch) return;
+    session.invalidated = true;
+    if (session.reconcileTimer) return;
+    session.reconcileTimer = global.setTimeout(() => {
+      if (!characterRealtimeSession || characterRealtimeSession.epoch !== sessionEpoch) return;
+      characterRealtimeSession.reconcileTimer = null;
+      drainCharacterRealtime(sessionEpoch);
+    }, 60);
+  }
+
+  async function startCharacterRealtime(localId) {
+    if (!localId) return { started: false, missing: true };
+    characterRealtimeDesiredLocalId = localId;
+    if (!hasConnectivitySignal() || !canOwnCharacterRealtime(localId)) {
+      stopCharacterRealtime(localId, { preserveDesired: true });
+      return { started: false, deferred: true };
+    }
+    let context;
+    try { context = await requireUser(); } catch (_) {
+      stopCharacterRealtime(localId, { preserveDesired: true });
+      return { started: false, authRequired: true };
+    }
+    if (characterRealtimeDesiredLocalId !== localId || !canOwnCharacterRealtime(localId)) {
+      return { started: false, cancelled: true };
+    }
+    const metadata = currentVersion(localId);
+    if (metadata?.ownerId && metadata.ownerId !== context.user.id) {
+      markConflict(localId, null, 'owner-mismatch');
+      return { started: false, conflict: true };
+    }
+    const remoteId = metadata?.remoteId || '';
+    if (
+      characterRealtimeChannel
+      && characterRealtimeSession?.localId === localId
+      && characterRealtimeSession.remoteId === remoteId
+      && characterRealtimeSession.ownerId === context.user.id
+    ) return { started: true, reused: true };
+
+    stopCharacterRealtime('', { preserveDesired: true });
+    characterRealtimeDesiredLocalId = localId;
+    const epoch = ++characterRealtimeEpoch;
+    const session = {
+      localId,
+      remoteId,
+      ownerId: context.user.id,
+      epoch,
+      syncEpoch,
+      inFlight: false,
+      invalidated: false,
+      reconcileTimer: null
+    };
+    characterRealtimeSession = session;
+    const channel = context.auth.client.channel(`online-character:${localId}:${epoch}`);
+    channel.on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'online_characters', filter: `source_local_id=eq.${localId}`
+    }, () => invalidateCharacterRealtime(epoch));
+    if (remoteId) {
+      channel.on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'online_characters', filter: `id=eq.${remoteId}`
+      }, () => invalidateCharacterRealtime(epoch));
+      channel.on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'online_characters', filter: `id=eq.${remoteId}`
+      }, () => invalidateCharacterRealtime(epoch));
+    }
+    characterRealtimeChannel = channel;
+    channel.subscribe(status => {
+      if (characterRealtimeSession?.epoch !== epoch) return;
+      if (status === 'SUBSCRIBED') {
+        invalidateCharacterRealtime(epoch);
+        return;
+      }
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        schedulePendingRecovery('realtime-channel');
+        setCharacterSyncState(localId, 'reconnecting', 'Reconectando', {
+          syncedAt: currentVersion(localId)?.baseUpdatedAt || ''
+        });
+      }
+    });
+    return { started: true, remoteId, epoch };
+  }
+
+  function scheduleCharacterRealtimeRestart(localId = characterRealtimeDesiredLocalId) {
+    if (!localId || characterRealtimeDesiredLocalId !== localId) return false;
+    global.clearTimeout(characterRealtimeRestartTimer);
+    characterRealtimeRestartTimer = global.setTimeout(() => {
+      characterRealtimeRestartTimer = null;
+      if (characterRealtimeDesiredLocalId === localId) void startCharacterRealtime(localId);
+    }, 0);
+    return true;
+  }
+
+  function refreshCharacterRealtime(localId = characterRealtimeDesiredLocalId) {
+    if (!localId) return Promise.resolve({ started: false, missing: true });
+    stopCharacterRealtime('', { preserveDesired: true });
+    characterRealtimeDesiredLocalId = localId;
+    return startCharacterRealtime(localId);
+  }
+
   function scheduleRealtimeRefresh() {
     global.clearTimeout(refreshTimer);
     const view = viewEpoch;
@@ -1901,17 +2203,26 @@
     const userId = event.detail?.user?.id || null;
     announceCharacterEvent('auth-context-changed', '', { signedIn: Boolean(userId), accountId: userId || '' });
     if (userId === syncUserId) {
-      if (userId) schedulePendingRecovery('auth-refresh');
+      if (userId) {
+        schedulePendingRecovery('auth-refresh');
+        scheduleCharacterRealtimeRestart();
+      } else {
+        stopCharacterRealtime('', { preserveDesired: true });
+      }
       return;
     }
     syncUserId = userId;
     ++syncEpoch;
+    stopCharacterRealtime('', { preserveDesired: true });
     reset();
     cancelScheduledCharacterSyncs();
     latestCharacterSnapshots.clear();
     characterSyncVersions.clear();
     characterSyncStates.clear();
-    if (userId) schedulePendingRecovery('auth-change');
+    if (userId) {
+      schedulePendingRecovery('auth-change');
+      scheduleCharacterRealtimeRestart();
+    }
     else pendingPublishedCharacters().forEach(entry => {
       markSyncFailure(entry.id, 'auth');
       const feedback = failureFeedback('auth');
@@ -1919,11 +2230,23 @@
     });
   });
 
-  global.addEventListener('offline', pauseCharacterSyncForOffline);
-  global.addEventListener('online', () => schedulePendingRecovery('online'));
-  global.addEventListener('pageshow', () => schedulePendingRecovery('pageshow'));
+  global.addEventListener('offline', () => {
+    stopCharacterRealtime('', { preserveDesired: true });
+    pauseCharacterSyncForOffline();
+  });
+  global.addEventListener('online', () => {
+    schedulePendingRecovery('online');
+    scheduleCharacterRealtimeRestart();
+  });
+  global.addEventListener('pageshow', () => {
+    schedulePendingRecovery('pageshow');
+    scheduleCharacterRealtimeRestart();
+  });
   global.document?.addEventListener?.('visibilitychange', () => {
-    if (!global.document.hidden) schedulePendingRecovery('visibility');
+    if (!global.document.hidden) {
+      schedulePendingRecovery('visibility');
+      scheduleCharacterRealtimeRestart();
+    }
   });
 
   global.ChroniclesCollaboration = Object.freeze({
@@ -1941,6 +2264,10 @@
     queueCharacterSync,
     synchronizePublishedCharacter,
     prepareCharacterTransfer,
+    startCharacterRealtime,
+    stopCharacterRealtime,
+    refreshCharacterRealtime,
+    getCharacterRealtimeState: characterRealtimeState,
     resumePendingCharacterSync,
     getCharacterSyncState,
     refreshCharacterSyncStates
