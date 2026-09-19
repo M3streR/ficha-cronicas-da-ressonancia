@@ -968,6 +968,7 @@ async function openCharacter(id, options = {}) {
   if (options.discardLegacyPending && storageMode === 'legacy') discardPendingSave();
   else await saveActiveCharacter();
   if (activeCharacterId && activeCharacterId !== id) {
+    window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
     await characterEditAuthority()?.release?.(activeCharacterId);
   }
 
@@ -1033,6 +1034,7 @@ async function openCharacter(id, options = {}) {
   restoreState(character);
   if (ownership.acquired) {
     characterEditAuthority()?.activate?.(id, { restricted: resolution?.conflict === true });
+    void window.ChroniclesCollaboration?.startCharacterRealtime?.(id);
   }
   updateCharacterEditAuthorityUI();
   const syncStatus = window.ChroniclesCollaboration?.getCharacterSyncState?.(id);
@@ -1062,6 +1064,7 @@ async function closeCharacter() {
   discardPendingSave();
   activeCharacterId = null;
   storageMode = 'closed';
+  if (closingId) window.ChroniclesCollaboration?.stopCharacterRealtime?.(closingId);
   if (closingId) await characterEditAuthority()?.release?.(closingId);
   resetCharacterView();
   updateCharacterEditAuthorityUI();
@@ -4139,6 +4142,10 @@ window.addEventListener('cronicas:auth-change', event => {
   const next = event.detail?.user?.id || null;
   if (next === onlineAccountId) return;
   onlineAccountId = next;
+  if (activeCharacterId) {
+    if (next) void window.ChroniclesCollaboration?.refreshCharacterRealtime?.(activeCharacterId);
+    else window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
+  }
   ++onlineChronicleRefreshEpoch;
   clearTimeout(onlineChronicleRefreshTimer);
   teardownChroniclesIndex();
@@ -8205,6 +8212,11 @@ function bindCharacterEditAuthority() {
   window.addEventListener('cronicas:character-edit-authority', event => {
     if (event.detail?.localId !== activeCharacterId) return;
     updateCharacterEditAuthorityUI(event.detail);
+    if (['editor', 'restricted', 'consultative'].includes(event.detail?.mode) && event.detail?.canMutate !== false) {
+      void window.ChroniclesCollaboration?.startCharacterRealtime?.(activeCharacterId);
+    } else {
+      window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
+    }
     if (event.detail?.mode === 'editor' && storageMode === 'v4') {
       queueCharacterMetadataRefresh(activeCharacterId, cloneCharacterState());
     }
@@ -8215,7 +8227,13 @@ function bindCharacterEditAuthority() {
     if (detail.localId !== activeCharacterId || storageMode !== 'v4') return;
     const authorityState = authority.getState(activeCharacterId);
     if (authorityState.canMutate) return;
-    if (!['local-draft-changed', 'draft-persisted', 'conflict-resolved', 'publication-created'].includes(detail.type)) return;
+    if (![
+      'local-draft-changed',
+      'draft-persisted',
+      'conflict-resolved',
+      'publication-created',
+      'remote-reconciled'
+    ].includes(detail.type)) return;
     const stored = readStoredCharacter(activeCharacterId);
     if (stored) {
       restoreState(stored);
@@ -9460,6 +9478,7 @@ function init() {
   });
   window.addEventListener('pagehide', () => {
     persistPendingCharacterBeforeSuspension();
+    window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
     characterEditAuthority()?.shutdown?.();
   });
   window.addEventListener('offline', persistPendingCharacterBeforeSuspension);
