@@ -7871,6 +7871,39 @@ button:disabled {
 .sheet-online-sync-status[data-state="conflict"] { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 46%, transparent); cursor: pointer; }
 .sheet-online-sync-status:disabled { opacity: 1; cursor: default; }
 
+.sheet-edit-authority {
+  width: min(calc(100% - 1.7rem), 1680px);
+  margin: .7rem auto 0;
+  padding: .7rem .85rem;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 42%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-warning) 9%, var(--color-bg-secondary));
+  color: var(--color-warning);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.sheet-edit-authority[hidden] { display: none; }
+.sheet-edit-authority > div { min-width: 0; display: grid; gap: .18rem; }
+.sheet-edit-authority strong { color: inherit; font-size: .82rem; }
+.sheet-edit-authority span { overflow-wrap: anywhere; color: var(--color-text-muted); font-size: .76rem; line-height: 1.4; }
+.sheet-edit-authority .btn { flex: 0 0 auto; }
+.character-sheet-view[data-edit-authority="observer"] .autosave-status,
+.character-sheet-view[data-edit-authority="waiting"] .autosave-status,
+.character-sheet-view[data-edit-authority="yielding"] .autosave-status,
+.character-sheet-view[data-edit-authority="reconciling"] .autosave-status,
+.character-sheet-view[data-edit-authority="restricted"] .autosave-status {
+  color: var(--color-text-muted);
+  border-color: var(--color-border-subtle, var(--line));
+  background: var(--color-surface-muted, transparent);
+}
+
+@media (max-width: 768px) {
+  .sheet-edit-authority { width: calc(100% - 1rem); align-items: stretch; flex-direction: column; }
+  .sheet-edit-authority .btn { width: 100%; }
+}
+
 .online-conflict-resolution { display: grid; gap: .85rem; }
 .online-conflict-resolution > p { margin: 0; }
 .online-conflict-versions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
