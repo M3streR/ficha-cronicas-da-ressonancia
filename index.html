@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
   <title>Ficha — Crônicas da Ressonância</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-18-offline-reconnection">
+  <link rel="stylesheet" href="style.css?v=2026-09-19-multi-tab-authority">
   <link rel="stylesheet" href="css/chronicles-workspace.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/account-auth.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/chronicles-online.css?v=2026-09-11-stable">
@@ -492,6 +492,14 @@
     <button class="mobile-resource-toggle" id="mobileResourceToggle" type="button" aria-expanded="true" aria-controls="mobileResourceValues" aria-label="Recolher barra de recursos">
       <span aria-hidden="true">⌃</span>
     </button>
+  </aside>
+
+  <aside class="sheet-edit-authority" id="sheetEditAuthority" role="status" aria-live="polite" hidden>
+    <div>
+      <strong id="sheetEditAuthorityTitle">Visualização segura</strong>
+      <span id="sheetEditAuthorityMessage">Esta ficha está sendo editada em outra aba.</span>
+    </div>
+    <button class="btn secondary" id="takeOverCharacterEditing" type="button">Assumir edição nesta aba</button>
   </aside>
 
   <main class="sheet-layout">
@@ -1192,7 +1200,8 @@
   <script src="js/chronicle-covers.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-sharing.js?v=2026-09-11-stable"></script>
-  <script src="js/chronicles-collaboration.js?v=2026-09-18-offline-reconnection"></script>
+  <script src="js/character-edit-authority.js?v=2026-09-19-multi-tab-authority"></script>
+  <script src="js/chronicles-collaboration.js?v=2026-09-19-multi-tab-authority"></script>
   <script src="js/chronicles-online-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-free-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online-combat.js?v=2026-09-11-stable"></script>
@@ -1201,6 +1210,6 @@
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-09-18-offline-reconnection"></script>
+  <script src="script.js?v=2026-09-19-multi-tab-authority"></script>
 </body>
 </html>

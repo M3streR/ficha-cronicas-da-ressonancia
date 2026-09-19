@@ -359,6 +359,98 @@ let chronicleCoverProcessingToken = 0;
 let isChronicleCoverProcessing = false;
 let chroniclesRenderToken = 0;
 let isCreatingChronicle = false;
+
+function characterEditAuthority() {
+  return window.CharacterEditAuthority || null;
+}
+
+function activeCharacterCanMutate(operation = 'edit') {
+  if (storageMode !== 'v4' || !activeCharacterId) return true;
+  return characterEditAuthority()?.canMutate?.(activeCharacterId, operation) !== false;
+}
+
+function characterMutationDeniedFeedback() {
+  showNotification(
+    'Esta aba está em visualização segura. Assuma a edição antes de alterar a ficha.',
+    'warning',
+    5200
+  );
+}
+
+function beginActiveCharacterOperation(operation = 'edit', options = {}) {
+  if (storageMode !== 'v4' || !activeCharacterId) return null;
+  const authority = characterEditAuthority();
+  if (!authority) return null;
+  return authority.beginOperation(activeCharacterId, operation, options);
+}
+
+function isSafeReadOnlyControl(element) {
+  if (!(element instanceof Element)) return false;
+  return Boolean(element.closest([
+    '#voltarPersonagens', '#exportarFicha', '#sheetOnlineSyncStatus', '#takeOverCharacterEditing',
+    '#mobileResourceToggle', '#alternarFerramentasPersonagem', '#abrirAnotacoes', '#voltarDaAnotacoes',
+    '[data-mobile-target]', '[data-content-target]', '[data-skill-filter]', '[data-favorite-filter]',
+    '#pesquisaPericias', '#limparBuscaPericias', '#filtroAtributoPericia'
+  ].join(',')));
+}
+
+function setCharacterMutationControlsDisabled(disabled) {
+  const view = document.getElementById('characterSheetView');
+  if (!view) return;
+  view.querySelectorAll('input, textarea, select, button').forEach(control => {
+    if (isSafeReadOnlyControl(control)) return;
+    if (disabled) {
+      if (!control.hasAttribute('data-authority-disabled')) {
+        control.dataset.authorityWasDisabled = control.disabled ? 'true' : 'false';
+        control.dataset.authorityDisabled = 'true';
+      }
+      control.disabled = true;
+      return;
+    }
+    if (control.dataset.authorityDisabled === 'true') {
+      control.disabled = control.dataset.authorityWasDisabled === 'true';
+      delete control.dataset.authorityDisabled;
+      delete control.dataset.authorityWasDisabled;
+    }
+  });
+}
+
+function updateCharacterEditAuthorityUI(detail = null) {
+  const view = document.getElementById('characterSheetView');
+  const banner = document.getElementById('sheetEditAuthority');
+  const title = document.getElementById('sheetEditAuthorityTitle');
+  const message = document.getElementById('sheetEditAuthorityMessage');
+  const takeover = document.getElementById('takeOverCharacterEditing');
+  if (!view || !banner || !title || !message || !takeover) return;
+  const authorityState = detail?.localId === activeCharacterId
+    ? detail
+    : characterEditAuthority()?.getState?.(activeCharacterId);
+  const mode = authorityState?.mode || 'closed';
+  view.dataset.editAuthority = mode;
+  const blocksEditing = ['observer', 'waiting', 'yielding', 'reconciling', 'restricted'].includes(mode);
+  setCharacterMutationControlsDisabled(blocksEditing);
+
+  if (mode === 'editor' || mode === 'closed' || (mode === 'consultative' && !authorityState?.peerDetected)) {
+    banner.hidden = true;
+    return;
+  }
+  banner.hidden = false;
+  takeover.hidden = !['observer', 'waiting'].includes(mode) || authorityState?.guaranteed === false;
+  takeover.disabled = mode === 'waiting';
+  const copy = {
+    observer: ['Visualização segura', 'Esta ficha está sendo editada em outra aba.'],
+    waiting: ['Transferindo edição', 'Aguardando a outra aba preservar o rascunho e liberar a edição.'],
+    yielding: ['Transferindo edição', 'As alterações foram pausadas enquanto o rascunho é entregue à outra aba.'],
+    reconciling: ['Verificando a ficha', 'Comparando o rascunho Local com a versão Online antes de liberar a edição.'],
+    restricted: ['Conflito Online', 'Resolva o conflito antes de continuar editando esta ficha.'],
+    consultative: [
+      'Outra aba detectada',
+      'Este navegador não oferece exclusividade entre abas. A proteção Online por versão continua ativa.'
+    ]
+  }[mode] || ['Coordenação entre abas', 'Verificando a propriedade temporária da edição.'];
+  title.textContent = copy[0];
+  message.textContent = copy[1];
+}
 let isUpdatingChronicle = false;
 let isDeletingChronicle = false;
 let isOpeningChronicle = false;
@@ -522,8 +614,14 @@ function readStoredCharacter(id) {
   return character;
 }
 
-function writeStoredCharacter(id, character) {
+function writeStoredCharacter(id, character, options = {}) {
   if (!isPlainObject(character)) throw new Error('INVALID_STORED_CHARACTER');
+  const authority = characterEditAuthority();
+  const authorityState = authority?.getState?.(id);
+  if (
+    authorityState && authorityState.mode !== 'closed'
+    && !authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'write')
+  ) throw new Error('CHARACTER_EDIT_NOT_AUTHORIZED');
   const key = getCharacterStorageKey(id);
   const serialized = JSON.stringify(character);
   localStorage.setItem(key, serialized);
@@ -539,7 +637,13 @@ function isStorageQuotaError(error) {
     || /quota|storage.*full|espaço/i.test(String(error?.message || ''));
 }
 
-function removeStoredCharacter(id) {
+function removeStoredCharacter(id, options = {}) {
+  const authority = characterEditAuthority();
+  const authorityState = authority?.getState?.(id);
+  if (
+    authorityState && authorityState.mode !== 'closed'
+    && !authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'delete')
+  ) throw new Error('CHARACTER_EDIT_NOT_AUTHORIZED');
   const key = getCharacterStorageKey(id);
   localStorage.removeItem(key);
   if (localStorage.getItem(key) !== null) throw new Error('CHARACTER_REMOVE_VERIFICATION_FAILED');
@@ -800,7 +904,16 @@ async function refreshCharacterMetadata(id, character) {
 function queueCharacterMetadataRefresh(id, character) {
   metadataUpdatePromise = metadataUpdatePromise
     .catch(() => undefined)
-    .then(() => refreshCharacterMetadata(id, character))
+    .then(async () => {
+      const authority = characterEditAuthority();
+      const authorityState = authority?.getState?.(id);
+      const token = authorityState && authorityState.mode !== 'closed'
+        ? authority.beginOperation(id, 'metadata')
+        : null;
+      if (authorityState && authorityState.mode !== 'closed' && !token) return false;
+      try { return await refreshCharacterMetadata(id, character); }
+      finally { authority?.endOperation?.(token); }
+    })
     .catch(error => {
       console.error('Não foi possível atualizar o resumo do personagem:', error);
       showNotification(
@@ -819,11 +932,32 @@ async function refreshActiveCharacterMetadata() {
   return queueCharacterMetadataRefresh(activeCharacterId, cloneCharacterState());
 }
 
-async function saveActiveCharacter() {
+async function saveActiveCharacter(options = {}) {
   let saved = true;
-  if (hasPendingSave) saved = saveNow(pendingSaveTargetId);
+  if (hasPendingSave || options.force === true) {
+    saved = saveNow(
+      pendingSaveTargetId ?? (storageMode === 'v4' ? activeCharacterId : null),
+      options
+    );
+  }
   await metadataUpdatePromise;
   return saved;
+}
+
+async function reconcileCharacterForEditing(localId, localCharacter, authorityToken) {
+  const resolution = await window.ChroniclesCollaboration?.resolveCharacterForOpen?.(
+    localId,
+    localCharacter,
+    { authorityToken }
+  );
+  const character = resolution?.character || localCharacter;
+  if (resolution?.fromServer) {
+    writeStoredCharacter(localId, character, {
+      authorityToken,
+      operation: authorityToken?.operation || 'reconcile'
+    });
+  }
+  return { character, resolution: resolution || null };
 }
 
 async function openCharacter(id, options = {}) {
@@ -833,6 +967,9 @@ async function openCharacter(id, options = {}) {
 
   if (options.discardLegacyPending && storageMode === 'legacy') discardPendingSave();
   else await saveActiveCharacter();
+  if (activeCharacterId && activeCharacterId !== id) {
+    await characterEditAuthority()?.release?.(activeCharacterId);
+  }
 
   const localCharacter = readStoredCharacter(id);
   if (!localCharacter) throw new Error('CHARACTER_NOT_FOUND');
@@ -840,10 +977,29 @@ async function openCharacter(id, options = {}) {
   if (!validation.valid) throw new Error(`INVALID_STORED_CHARACTER: ${validation.message}`);
 
   let character = localCharacter;
+  let resolution = null;
+  const ownership = await characterEditAuthority()?.open?.(id) || {
+    acquired: true,
+    guaranteed: false,
+    mode: 'consultative'
+  };
   try {
-    const resolution = await window.ChroniclesCollaboration?.resolveCharacterForOpen?.(id, localCharacter);
-    if (resolution?.character) character = resolution.character;
-    if (resolution?.fromServer) writeStoredCharacter(id, character);
+    if (ownership.acquired) {
+      const token = characterEditAuthority()?.beginOperation?.(id, 'reconcile', { allowDuringReconcile: true });
+      try {
+        const reconciled = await reconcileCharacterForEditing(id, localCharacter, token);
+        character = reconciled.character;
+        resolution = reconciled.resolution;
+      } finally {
+        characterEditAuthority()?.endOperation?.(token);
+      }
+    } else {
+      showNotification(
+        'Esta ficha já está sendo editada em outra aba. Ela foi aberta em visualização segura.',
+        'warning',
+        7000
+      );
+    }
     if (resolution?.conflict) {
       showNotification(
         'A ficha Online mudou em outro local. A cópia deste navegador foi preservada e nenhuma versão foi sobrescrita.',
@@ -867,7 +1023,7 @@ async function openCharacter(id, options = {}) {
   }
 
   const latestManager = readCharacterManager();
-  if (latestManager.activeCharacterId !== id) {
+  if (ownership.acquired && latestManager.activeCharacterId !== id) {
     writeCharacterManager(setActiveCharacterId(latestManager, id));
   }
 
@@ -875,6 +1031,10 @@ async function openCharacter(id, options = {}) {
   activeCharacterId = id;
   storageMode = 'v4';
   restoreState(character);
+  if (ownership.acquired) {
+    characterEditAuthority()?.activate?.(id, { restricted: resolution?.conflict === true });
+  }
+  updateCharacterEditAuthorityUI();
   const syncStatus = window.ChroniclesCollaboration?.getCharacterSyncState?.(id);
   const sheetStatus = document.getElementById('sheetOnlineSyncStatus');
   if (sheetStatus) {
@@ -885,19 +1045,26 @@ async function openCharacter(id, options = {}) {
     if (syncStatus?.state === 'conflict') sheetStatus.title = 'Abrir resolução do conflito Online';
   }
   void window.RollHistory?.open(id);
-  queueCharacterMetadataRefresh(id, cloneCharacterState(character));
+  if (ownership.acquired) queueCharacterMetadataRefresh(id, cloneCharacterState(character));
   return character;
 }
 
 async function closeCharacter() {
+  const closingId = activeCharacterId;
+  const closingAuthority = characterEditAuthority()?.getState?.(closingId);
+  const ownsClosingCharacter = !closingAuthority || ['editor', 'restricted', 'consultative', 'yielding', 'reconciling'].includes(closingAuthority.mode);
   await saveActiveCharacter();
   window.RollHistory?.close();
   const manager = readCharacterManager();
-  if (manager?.activeCharacterId) writeCharacterManager(setActiveCharacterId(manager, null));
+  if (ownsClosingCharacter && manager?.activeCharacterId === closingId) {
+    writeCharacterManager(setActiveCharacterId(manager, null));
+  }
   discardPendingSave();
   activeCharacterId = null;
   storageMode = 'closed';
+  if (closingId) await characterEditAuthority()?.release?.(closingId);
   resetCharacterView();
+  updateCharacterEditAuthorityUI();
 }
 
 function getCharacterInitial(name) {
@@ -2052,13 +2219,16 @@ globalThis.ChroniclesLocalCharacters = Object.freeze({
       throw error;
     }
   },
-  async replace(localId, character) {
+  async replace(localId, character, options = {}) {
     const stored = getValidatedStoredCharacter(localId);
     const validation = validateImportedSheet(character);
     if (!validation.valid) throw new Error(`INVALID_CONFLICT_RESOLUTION: ${validation.message}`);
     const normalized = cloneCharacterState(validation.normalized);
     try {
-      writeStoredCharacter(localId, normalized);
+      writeStoredCharacter(localId, normalized, {
+        authorityToken: options.authorityToken || null,
+        operation: options.operation || 'conflict-resolution'
+      });
       const summary = await createCharacterSummary(normalized);
       writeCharacterManager(setCharacterSummary(stored.manager, localId, summary));
       if (readStoredCharacter(localId) === null) throw new Error('CONFLICT_REPLACE_VERIFICATION_FAILED');
@@ -2066,7 +2236,10 @@ globalThis.ChroniclesLocalCharacters = Object.freeze({
       return normalized;
     } catch (error) {
       try {
-        writeStoredCharacter(localId, stored.character);
+        writeStoredCharacter(localId, stored.character, {
+          authorityToken: options.authorityToken || null,
+          operation: options.operation || 'conflict-resolution'
+        });
         writeCharacterManager(stored.manager);
         if (activeCharacterId === localId && storageMode === 'v4') restoreState(stored.character);
       } catch (rollbackError) {
@@ -4603,15 +4776,41 @@ function saveNow(
     return false;
   }
 
+  const authority = characterEditAuthority();
+  const suppliedToken = options.authorityToken || null;
+  const operation = suppliedToken?.operation || 'write';
+  const operationToken = suppliedToken || (
+    storageMode === 'v4' ? authority?.beginOperation?.(activeCharacterId, operation) : null
+  );
+  if (
+    storageMode === 'v4'
+    && authority
+    && !authority.authorizeWrite(activeCharacterId, operationToken, operation)
+  ) {
+    discardPendingSave();
+    const stored = readStoredCharacter(activeCharacterId);
+    if (stored) restoreState(stored);
+    setStatus('Visualização segura');
+    return false;
+  }
+
   captureState();
 
   try {
     if (storageMode === 'v4') {
       const capturedCharacter = cloneCharacterState();
-      writeStoredCharacter(activeCharacterId, capturedCharacter);
+      writeStoredCharacter(activeCharacterId, capturedCharacter, {
+        authorityToken: operationToken,
+        operation
+      });
       queueCharacterMetadataRefresh(activeCharacterId, capturedCharacter);
       window.ChroniclesCollaboration?.queueCharacterSync?.(activeCharacterId, capturedCharacter, {
-        defer: options.deferOnline === true
+        defer: options.deferOnline === true,
+        authorityToken: operationToken
+      });
+      authority?.announce?.('local-draft-changed', activeCharacterId, {
+        dirty: true,
+        deferredOnline: options.deferOnline === true
       });
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -4632,6 +4831,8 @@ function saveNow(
       8500
     );
     return false;
+  } finally {
+    if (!suppliedToken) authority?.endOperation?.(operationToken);
   }
 }
 
@@ -4642,6 +4843,13 @@ function persistPendingCharacterBeforeSuspension() {
 
 function scheduleSave() {
   if (isRestoring || storageMode === 'closed') return;
+  if (!activeCharacterCanMutate('edit')) {
+    discardPendingSave();
+    const stored = activeCharacterId ? readStoredCharacter(activeCharacterId) : null;
+    if (stored) queueMicrotask(() => restoreState(stored));
+    characterMutationDeniedFeedback();
+    return;
+  }
   hasPendingSave = true;
   pendingSaveTargetId = storageMode === 'v4' ? activeCharacterId : null;
   setStatus('Salvando...', 'saving');
@@ -7939,6 +8147,96 @@ function bindCharacterUtilities() {
   setCharacterUtilitiesExpanded(false);
 }
 
+function bindCharacterEditAuthority() {
+  const authority = characterEditAuthority();
+  const view = document.getElementById('characterSheetView');
+  const takeover = document.getElementById('takeOverCharacterEditing');
+  if (!authority || !view || !takeover) return;
+
+  authority.configure({
+    beforeYield: async ({ localId, authorityToken }) => {
+      const openDialogFields = document.querySelector(
+        '#modalOverlay:not([hidden]) #appModal input:not([type="hidden"]), '
+        + '#modalOverlay:not([hidden]) #appModal textarea, '
+        + '#modalOverlay:not([hidden]) #appModal select'
+      );
+      if (openDialogFields) throw new Error('EDITOR_HAS_UNSAVED_DIALOG');
+      await window.ChroniclesCollaboration?.prepareCharacterTransfer?.(localId);
+      if (activeCharacterId === localId && storageMode === 'v4') {
+        const saved = await saveActiveCharacter({ authorityToken, deferOnline: true, force: true });
+        if (!saved) throw new Error('LOCAL_DRAFT_PERSISTENCE_FAILED');
+      }
+    },
+    reconcile: async ({ localId, authorityToken }) => {
+      const localCharacter = readStoredCharacter(localId);
+      if (!localCharacter) throw new Error('CHARACTER_NOT_FOUND');
+      const reconciled = await reconcileCharacterForEditing(localId, localCharacter, authorityToken);
+      if (activeCharacterId === localId && storageMode === 'v4') {
+        restoreState(reconciled.character);
+      }
+      return reconciled.resolution || {};
+    }
+  });
+
+  takeover.addEventListener('click', async () => {
+    if (!activeCharacterId) return;
+    takeover.disabled = true;
+    const result = await authority.requestTakeover(activeCharacterId);
+    updateCharacterEditAuthorityUI();
+    if (result?.acquired && result?.guaranteed) {
+      const manager = readCharacterManager();
+      if (manager && manager.activeCharacterId !== activeCharacterId) {
+        writeCharacterManager(setActiveCharacterId(manager, activeCharacterId));
+      }
+      const stored = readStoredCharacter(activeCharacterId);
+      if (stored) restoreState(stored);
+      showNotification(
+        result.reconciliation?.conflict
+          ? 'A edição foi transferida, mas existe um conflito Online que precisa ser resolvido.'
+          : 'A edição desta ficha agora está ativa nesta aba.',
+        result.reconciliation?.conflict ? 'warning' : '',
+        6500
+      );
+    } else if (result?.error) {
+      showNotification('Não foi possível assumir a edição sem risco. O rascunho anterior foi preservado.', 'error', 7000);
+    }
+  });
+
+  window.addEventListener('cronicas:character-edit-authority', event => {
+    if (event.detail?.localId !== activeCharacterId) return;
+    updateCharacterEditAuthorityUI(event.detail);
+    if (event.detail?.mode === 'editor' && storageMode === 'v4') {
+      queueCharacterMetadataRefresh(activeCharacterId, cloneCharacterState());
+    }
+  });
+
+  window.addEventListener('cronicas:character-peer-event', event => {
+    const detail = event.detail || {};
+    if (detail.localId !== activeCharacterId || storageMode !== 'v4') return;
+    const authorityState = authority.getState(activeCharacterId);
+    if (authorityState.canMutate) return;
+    if (!['local-draft-changed', 'draft-persisted', 'conflict-resolved', 'publication-created'].includes(detail.type)) return;
+    const stored = readStoredCharacter(activeCharacterId);
+    if (stored) {
+      restoreState(stored);
+      updateCharacterEditAuthorityUI();
+    }
+  });
+
+  ['beforeinput', 'input', 'change', 'click', 'submit'].forEach(type => {
+    view.addEventListener(type, event => {
+      if (activeCharacterCanMutate('edit') || isSafeReadOnlyControl(event.target)) return;
+      const interactive = event.target instanceof Element
+        ? event.target.closest('input, textarea, select, button, form, label')
+        : null;
+      if (!interactive) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.isTrusted && type === 'click') characterMutationDeniedFeedback();
+    }, true);
+  });
+}
+
 function updateResourceAdjusterContext() {
   const resourceId = document.getElementById('ajusteRecurso')?.value;
   if (!resourceId || !resourceLabels[resourceId]) return;
@@ -8861,7 +9159,27 @@ function confirmPermanentCharacterDeletion(id) {
   });
 }
 
-async function deleteCharacterById(id, { backupPrepared = false } = {}) {
+async function deleteCharacterById(id, options = {}) {
+  const authority = characterEditAuthority();
+  try {
+    if (authority) {
+      const result = await authority.runExclusive(id, 'delete', authorityToken => (
+        performDeleteCharacterById(id, { ...options, authorityToken })
+      ));
+      if (localStorage.getItem(getCharacterStorageKey(id)) === null) await authority.release(id);
+      return result;
+    }
+    return await performDeleteCharacterById(id, options);
+  } catch (error) {
+    if (['CHARACTER_EDIT_NOT_AUTHORIZED', 'CHARACTER_EDIT_LOCKED_IN_ANOTHER_TAB'].includes(error?.message)) {
+      characterMutationDeniedFeedback();
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function performDeleteCharacterById(id, { backupPrepared = false, authorityToken = null } = {}) {
   if (isDeletingCharacter) return;
   isDeletingCharacter = true;
   await Promise.resolve();
@@ -8883,7 +9201,7 @@ async function deleteCharacterById(id, { backupPrepared = false } = {}) {
     writeCharacterManager(nextManager);
     indexUpdated = true;
 
-    removeStoredCharacter(id);
+    removeStoredCharacter(id, { authorityToken, operation: 'delete' });
     if (localStorage.getItem(getCharacterStorageKey(id)) !== null) {
       throw new Error('CHARACTER_DELETE_VERIFICATION_FAILED');
     }
@@ -9014,10 +9332,26 @@ function importSheet(file) {
             const previousCharacter = storageMode === 'v4' && activeCharacterId
               ? readStoredCharacter(activeCharacterId)
               : null;
+            const authority = characterEditAuthority();
+            const authorityToken = storageMode === 'v4' && activeCharacterId
+              ? authority?.beginOperation?.(activeCharacterId, 'write')
+              : null;
+            if (storageMode === 'v4' && authority && !authorityToken) {
+              characterMutationDeniedFeedback();
+              return;
+            }
             try {
               if (storageMode === 'v4' && activeCharacterId) {
-                writeStoredCharacter(activeCharacterId, validation.normalized);
+                writeStoredCharacter(activeCharacterId, validation.normalized, {
+                  authorityToken,
+                  operation: 'write'
+                });
                 await refreshCharacterMetadata(activeCharacterId, validation.normalized);
+                await window.ChroniclesCollaboration?.queueCharacterSync?.(
+                  activeCharacterId,
+                  validation.normalized,
+                  { defer: true, authorityToken }
+                );
               } else {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(validation.normalized));
               }
@@ -9033,13 +9367,18 @@ function importSheet(file) {
               console.error(error);
               if (previousCharacter && activeCharacterId) {
                 try {
-                  writeStoredCharacter(activeCharacterId, previousCharacter);
+                  writeStoredCharacter(activeCharacterId, previousCharacter, {
+                    authorityToken,
+                    operation: 'write'
+                  });
                   await refreshCharacterMetadata(activeCharacterId, previousCharacter);
                 } catch (rollbackError) {
                   console.error('Não foi possível restaurar o personagem após a falha de importação:', rollbackError);
                 }
               }
               showNotification('Não foi possível salvar a ficha importada. O personagem atual foi mantido.', 'error', 6500);
+            } finally {
+              authority?.endOperation?.(authorityToken);
             }
           }
         },
@@ -9087,6 +9426,7 @@ function init() {
   bindSimpleFields();
   bindAttributeControls();
   bindCharacterUtilities();
+  bindCharacterEditAuthority();
   bindResourceAdjuster();
   bindDynamicButtons();
   bindFavoriteFilters();
@@ -9118,7 +9458,10 @@ function init() {
   window.addEventListener('beforeunload', () => {
     persistPendingCharacterBeforeSuspension();
   });
-  window.addEventListener('pagehide', persistPendingCharacterBeforeSuspension);
+  window.addEventListener('pagehide', () => {
+    persistPendingCharacterBeforeSuspension();
+    characterEditAuthority()?.shutdown?.();
+  });
   window.addEventListener('offline', persistPendingCharacterBeforeSuspension);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) persistPendingCharacterBeforeSuspension();
