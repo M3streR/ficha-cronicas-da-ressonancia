@@ -371,3 +371,15 @@ test('Realtime preserva Encantamentos confirmados e dados privados locais', asyn
   assert.deepEqual(harness.local.enchantments,enchantments);
   assert.deepEqual(harness.local.notes,localCharacter('x').notes);
 });
+
+test('Realtime relê ambos os olhos e preserva o conjunto original, sem modal', async()=>{
+ const harness=await openPublishedHarness();
+ const eyes={version:1,unlocked:true,activeEye:'left',firstRevealSeen:true,blockedRightRecordId:'original-record',confidentManifestations:[{nome:'Eco',custo:'3',descricao:'Confirmado Online'}]};
+ harness.server.row.snapshot.coyoteEyes=eyes;
+ harness.server.row.snapshot.manifestations=[{nome:'Direito',custo:'02',coyoteRecordId:'original-record'}];
+ harness.server.row.updated_at=harness.server.timestamp();
+ harness.channels.at(-1).emit('UPDATE');await wait();
+ assert.deepEqual(harness.local.coyoteEyes,eyes);
+ assert.equal(harness.local.manifestations[0].custo,'02');
+ assert.deepEqual(harness.local.notes,localCharacter('x').notes);
+});

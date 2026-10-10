@@ -490,8 +490,12 @@
       skills: clone(source.skills || {}),
       equipment: clone(source.equipment || []),
       enchantments: clone(source.enchantments || []),
+      goldGeneration: global.GoldGeneration
+        ? global.GoldGeneration.normalizeState(source.goldGeneration)
+        : clone(source.goldGeneration || { version: 1, unlocked: false, active: false, officialEnhancements: {} }),
       abilities: clone(source.abilities || []),
       manifestations: clone(source.manifestations || []),
+      ...(source.coyoteEyes !== undefined ? { coyoteEyes: global.CoyoteEyes ? global.CoyoteEyes.normalize(source.coyoteEyes) : clone(source.coyoteEyes) } : {}),
       automaticAbilityFavorites: clone(source.automaticAbilityFavorites || {}),
       activeEffects: clone(source.activeEffects || []),
       criticalStates: clone(source.criticalStates || {

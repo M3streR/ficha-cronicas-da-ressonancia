@@ -239,6 +239,8 @@ function createEnvironment(server, getLocal, storage = createStorage(), options 
     Set,
     Promise
   });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/gold-generation.js'), 'utf8'), context, { filename: 'gold-generation.js' });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/coyote-eyes.js'), 'utf8'), context, { filename: 'coyote-eyes.js' });
   vm.runInContext(collaborationSource, context, { filename: 'chronicles-collaboration.js' });
   serviceState.emit = (type, detail = {}) => emit(listeners, type, detail);
   serviceState.setOnline = online => {
@@ -889,4 +891,59 @@ test('resolução de conflito mantém Encantamentos no backup Local e na versão
   assert.equal((await env.api.resolveCharacterConflict('local-1','use-online')).ok,true);
   assert.deepEqual(env.serviceState.backups[0].request.character.enchantments,[item]);
   assert.deepEqual(env.serviceState.replaced.character.enchantments,chosen);
+});
+
+test('Geração de Ouro e descritores manuais seguem snapshot, CAS, conflito e backup sem incluir notas/foto', async () => {
+  let local = localCharacter('Inicial');
+  const server = createServer(); server.row = publishedRow(local, server);
+  const env = createEnvironment(server, () => ({ id: 'local-1', name: local.fields.nome, level: 1, className: 'Vanguarda', thumbnail: 'thumb', character: local }));
+  await env.api.resolveCharacterForOpen('local-1', local);
+  local.goldGeneration = { version: 1, unlocked: true, active: true, round: 4, availableFromRound: 5, officialEnhancements: {} };
+  const config = { enabled: true, aspect: 'Alvos', normalValue: '2', enhancedValue: '4', calculation: 'numeric', basePnCost: '3' };
+  local.manifestations = [{ nome: 'Selo', custo: '3', signatureEnhancement: config }];
+  local.abilities = [{ nome: 'Personalizada', custo: 'Texto que não é interpretado', signatureEnhancement: config }];
+  assert.equal((await env.api.synchronizePublishedCharacter('local-1', local)).ok, true);
+  assert.deepEqual(server.row.snapshot.goldGeneration, local.goldGeneration);
+  assert.deepEqual(server.row.snapshot.manifestations[0].signatureEnhancement, config);
+  assert.equal(server.row.snapshot.notes, undefined); assert.equal(server.row.snapshot.photo, undefined);
+  const reopened = await env.api.resolveCharacterForOpen('local-1', local);
+  assert.deepEqual(copy(reopened.character.goldGeneration), local.goldGeneration);
+  assert.deepEqual(reopened.character.notes, local.notes);
+  local.goldGeneration.round = 5;
+  server.row.snapshot.goldGeneration = { ...local.goldGeneration, active: false, round: 8, availableFromRound: 9 };
+  server.row.updated_at = server.timestamp();
+  const chosen = copy(server.row.snapshot.goldGeneration);
+  assert.equal((await env.api.synchronizePublishedCharacter('local-1', local)).conflict, true);
+  assert.equal(local.goldGeneration.round, 5);
+  assert.equal((await env.api.resolveCharacterConflict('local-1', 'use-online')).ok, true);
+  assert.equal(env.serviceState.backups[0].request.character.goldGeneration.round, 5);
+  assert.deepEqual(env.serviceState.replaced.character.goldGeneration, chosen);
+  assert.deepEqual(env.serviceState.replaced.character.abilities[0].signatureEnhancement, config);
+});
+
+test('dois olhos seguem CAS, reabertura e backup de conflito sem perder conjunto oculto', async () => {
+ let local=localCharacter('Coyote');
+ local.manifestations=[{nome:'Direito original',custo:'02',coyoteRecordId:'record-right'}];
+ local.coyoteEyes={version:1,unlocked:true,activeEye:'left',firstRevealSeen:true,blockedRightRecordId:'record-right',confidentManifestations:[{nome:'Esquerdo',custo:'3',descricao:'Parágrafo\n\nseguinte'}]};
+ const server=createServer();server.row=publishedRow(local,server); server.row.snapshot=copy(local); delete server.row.snapshot.notes; delete server.row.snapshot.photo;
+ const env=createEnvironment(server,()=>({id:'local-1',name:local.fields.nome,level:1,className:'Vanguarda',thumbnail:'thumb',character:local}));
+ await env.api.resolveCharacterForOpen('local-1',local);
+ local.coyoteEyes.confidentManifestations[0].descricao='Edição Local';
+ assert.equal((await env.api.synchronizePublishedCharacter('local-1',local)).ok,true);
+ assert.deepEqual(server.row.snapshot.coyoteEyes,local.coyoteEyes);
+ assert.equal(server.row.snapshot.manifestations[0].custo,'02');
+ const reopened=await env.api.resolveCharacterForOpen('local-1',local);
+ assert.deepEqual(copy(reopened.character.coyoteEyes),local.coyoteEyes);
+ assert.deepEqual(reopened.character.notes,local.notes);
+ local.coyoteEyes.activeEye='right';
+ server.row.snapshot.coyoteEyes.confidentManifestations[0].descricao='Edição Online';
+ server.row.updated_at=server.timestamp();
+ const chosen=copy(server.row.snapshot.coyoteEyes);
+ assert.equal((await env.api.synchronizePublishedCharacter('local-1',local)).conflict,true);
+ assert.equal(local.coyoteEyes.activeEye,'right');
+ assert.equal((await env.api.resolveCharacterConflict('local-1','use-online')).ok,true);
+ assert.equal(env.serviceState.backups[0].request.character.coyoteEyes.activeEye,'right');
+ assert.deepEqual(env.serviceState.replaced.character.coyoteEyes,chosen);
+ assert.equal(env.serviceState.replaced.character.manifestations[0].custo,'02');
+ assert.deepEqual(env.serviceState.replaced.character.photo,local.photo);
 });

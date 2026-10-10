@@ -304,6 +304,7 @@ const state = {
   skills: {},
   equipment: [],
   enchantments: [],
+  goldGeneration: window.GoldGeneration.normalizeState(),
   abilities: [],
   manifestations: [],
   automaticAbilityFavorites: {},
@@ -4438,6 +4439,7 @@ function closeModal() {
   const closed = modalLifecycle;
   modalLifecycle = null;
   document.getElementById('appModal').classList.remove('enchantments-modal');
+  delete document.getElementById('appModal').dataset.characterMode;
   overlay.hidden = true;
   closed?.onClose?.();
   document.body.classList.remove('modal-open');
@@ -4446,9 +4448,12 @@ function closeModal() {
   if (returnTarget?.isConnected) returnTarget.focus();
 }
 
-function openModal({ title, content, actions = [], owner = '', modalClass = '', beforeClose = null, onClose = null }) {
+function openModal({ title, content, actions = [], owner = '', modalClass = '', beforeClose = null, onClose = null, sheetContext = false }) {
   if (modalLifecycle && modalLifecycle.owner !== owner && closeModal() === false) return false;
-  modalLifecycle = { owner, beforeClose, onClose };
+  modalLifecycle = { owner, beforeClose, onClose, sheetContext, characterId: sheetContext ? activeCharacterId : null };
+  const modal = document.getElementById('appModal');
+  if (sheetContext && state.goldGeneration.active && !document.getElementById('characterSheetView').hidden) modal.dataset.characterMode = 'gold';
+  else delete modal.dataset.characterMode;
   document.getElementById('appModal').classList.toggle('enchantments-modal', modalClass === 'enchantments-modal');
   closeQuickDice();
   const overlay = document.getElementById('modalOverlay');
@@ -4485,6 +4490,10 @@ function openModal({ title, content, actions = [], owner = '', modalClass = '', 
     const firstAction = actionsContainer.querySelector('button');
     (firstAction || document.getElementById('modalClose')).focus();
   });
+}
+
+function openSheetModal(options) {
+  return openModal({ ...options, sheetContext: true });
 }
 
 function bindModalSystem() {
@@ -4644,6 +4653,7 @@ async function openOnlineCharacterConflict(localId) {
   if (!localId) return false;
   if (activeCharacterId === localId && storageMode === 'v4') await saveActiveCharacter();
   openModal({
+    sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
     title: 'Verificando conflito Online',
     content: createModalContent('Carregando as versões Local e Online…'),
     actions: []
@@ -4657,6 +4667,7 @@ async function openOnlineCharacterConflict(localId) {
     }
     const copy = ONLINE_CONFLICT_COPY[details.reason] || ONLINE_CONFLICT_COPY['remote-changed'];
     openModal({
+      sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
       title: copy.title,
       content: createOnlineConflictContent(details),
       actions: conflictResolutionActions(localId, details)
@@ -4665,6 +4676,7 @@ async function openOnlineCharacterConflict(localId) {
   } catch (error) {
     console.error('Não foi possível carregar o conflito Online:', error);
     openModal({
+      sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
       title: 'Conflito não carregado',
       content: createModalContent(
         'Não foi possível consultar a versão Online agora.',
@@ -4678,6 +4690,7 @@ async function openOnlineCharacterConflict(localId) {
 
 async function runOnlineConflictResolution(localId, action) {
   openModal({
+    sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
     title: 'Resolvendo conflito',
     content: createModalContent('Criando o backup necessário e verificando novamente a versão Online…'),
     actions: []
@@ -4700,6 +4713,7 @@ async function runOnlineConflictResolution(localId, action) {
       republish: 'O personagem foi republicado explicitamente.'
     };
     openModal({
+      sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
       title: 'Conflito resolvido',
       content: createModalContent(messages[action], backupName ? `Backup criado: ${backupName}.` : ''),
       actions: [{ label: 'Concluir', spanAll: true }]
@@ -4708,6 +4722,7 @@ async function runOnlineConflictResolution(localId, action) {
   } catch (error) {
     console.error('Não foi possível resolver o conflito Online:', error);
     openModal({
+      sheetContext: localId === activeCharacterId && !document.getElementById('characterSheetView').hidden,
       title: 'Conflito preservado',
       content: createModalContent(
         'A resolução não foi concluída.',
@@ -4746,10 +4761,11 @@ function captureState() {
 
   state.equipment = captureDynamicList('listaEquipamentos');
   state.abilities = captureDynamicList('listaHabilidades', { excludeAutomatic: true });
-  state.manifestations = captureDynamicList('listaManifestacoes');
+  window.CoyoteEyes.capture(state, captureDynamicList('listaManifestacoes'));
   state.notes = captureNotes();
   state.activeEffects = captureActiveEffects();
   state.criticalStates = normalizeCriticalStates(state.criticalStates);
+  state.goldGeneration = window.GoldGeneration.normalizeState(state.goldGeneration);
   if (
     isPlainObject(state.automaticAbilityFavorites)
     && !Object.keys(state.automaticAbilityFavorites).length
@@ -4767,6 +4783,9 @@ function captureDynamicList(containerId, options = {}) {
         data[field.dataset.field] = field.value;
       });
       if (card.dataset.favorite === 'true') data.favorite = true;
+      if (card.dataset.coyoteRecordId) data.coyoteRecordId = card.dataset.coyoteRecordId;
+      const enhancement = window.GoldGeneration.cardConfig(card);
+      if (enhancement) data.signatureEnhancement = cloneCharacterState(enhancement);
       if (card.dataset.cardType === 'equipment') {
         const catalogId = card.dataset.catalogId;
         if (EQUIPMENT_CATALOG_BY_ID.has(catalogId)) data.catalogId = catalogId;
@@ -4939,7 +4958,10 @@ function updateResourceUI(resourceId) {
 
   updateResourceChangeFeedback(resourceId, card, current);
 
-  if (resourceId === 'pnAtual') updateAllManifestationUseStates();
+  if (resourceId === 'pnAtual') {
+    updateAllManifestationUseStates();
+    window.GoldGeneration.refresh({ cards: false });
+  }
   updateMobileResource(resourceId);
   if (document.getElementById('ajusteRecurso')?.value === resourceId) updateResourceAdjusterContext();
   if (resourceId === 'pvAtual' || resourceId === 'psAtual') reconcileCriticalStates();
@@ -5121,7 +5143,7 @@ function openDyingRecoveryModal() {
   error.hidden = true;
   form.append(amountLabel, resonantLabel, error);
 
-  openModal({
+  openSheetModal({
     title: 'Registrar cura',
     content: form,
     actions: [
@@ -5258,6 +5280,7 @@ function createEmptyCharacterState() {
     skills: {},
     equipment: [],
     enchantments: [],
+    goldGeneration: window.GoldGeneration.normalizeState(),
     abilities: [],
     manifestations: [{ nome: 'Manifestação 1' }],
     automaticAbilityFavorites: {},
@@ -5279,8 +5302,11 @@ function restoreState(saved) {
   state.skills = isPlainObject(restored.skills) ? { ...restored.skills } : {};
   state.equipment = Array.isArray(restored.equipment) ? cloneCharacterState(restored.equipment) : [];
   state.enchantments = cloneCharacterState(restored.enchantments || []);
+  state.goldGeneration = window.GoldGeneration.normalizeState(restored.goldGeneration);
   state.abilities = Array.isArray(restored.abilities) ? cloneCharacterState(restored.abilities) : [];
   state.manifestations = Array.isArray(restored.manifestations) ? cloneCharacterState(restored.manifestations) : [];
+  if (restored.coyoteEyes !== undefined) state.coyoteEyes = window.CoyoteEyes.normalize(restored.coyoteEyes);
+  else delete state.coyoteEyes;
   state.notes = Array.isArray(restored.notes) ? cloneCharacterState(restored.notes) : [];
   state.activeEffects = Array.isArray(restored.activeEffects) ? cloneCharacterState(restored.activeEffects) : [];
   state.criticalStates = normalizeCriticalStates(restored.criticalStates);
@@ -5321,9 +5347,9 @@ function restoreState(saved) {
 
   restoreDynamicList('listaEquipamentos', 'templateEquipamento', state.equipment, 'Novo equipamento');
   restoreDynamicList('listaHabilidades', 'templateHabilidade', state.abilities, 'Nova habilidade');
-  restoreDynamicList('listaManifestacoes', 'templateManifestacao', state.manifestations, 'Nova Manifestação');
+  restoreDynamicList('listaManifestacoes', 'templateManifestacao', window.CoyoteEyes.activeRecords(state), 'Nova Manifestação');
 
-  if (!state.manifestations.length) {
+  if (!state.manifestations.length && !state.coyoteEyes) {
     addDynamicCard('listaManifestacoes', 'templateManifestacao', { nome: 'Manifestação 1' });
   }
   renderNotes(state.notes);
@@ -5336,6 +5362,8 @@ function restoreState(saved) {
   recalculateDefense();
   lastAutomationSnapshot = getAutomationSnapshot();
   isRestoring = false;
+  window.GoldGeneration.refresh();
+  window.CoyoteEyes.refresh();
   if (normalizedAttributeIds.length) scheduleSave();
 }
 
@@ -5998,7 +6026,7 @@ function readAndApplyPhoto(file) {
 
     setPhoto(previousPhoto);
     saveNow();
-    openModal({
+    openSheetModal({
       title: 'Foto não adicionada',
       content: createModalContent(
         'A imagem ocuparia mais espaço do que este navegador permite.',
@@ -6012,7 +6040,7 @@ function readAndApplyPhoto(file) {
 
 function handleSelectedPhoto(file, input) {
   if (!file.type.startsWith('image/')) {
-    openModal({
+    openSheetModal({
       title: 'Imagem inválida',
       content: createModalContent('Escolha um arquivo de imagem válido. A foto atual foi mantida.'),
       actions: [{ label: 'Entendi', className: 'secondary', spanAll: true }]
@@ -6028,7 +6056,7 @@ function handleSelectedPhoto(file, input) {
   }
 
   const sizeInMb = (file.size / (1024 * 1024)).toFixed(1).replace('.', ',');
-  openModal({
+  openSheetModal({
     title: 'Esta imagem é grande',
     content: createModalContent(
       `A imagem possui aproximadamente ${sizeInMb} MB e pode ultrapassar o espaço disponível neste navegador.`,
@@ -6766,7 +6794,7 @@ function openEffectAdditionMenu() {
   );
   content.append(introduction, choices);
 
-  openModal({
+  openSheetModal({
     title: 'Adicionar efeito',
     content,
     actions: [{ label: 'Cancelar', className: 'secondary', spanAll: true }]
@@ -6848,7 +6876,7 @@ function createConditionCatalogContent() {
 
 function openConditionCatalog({ focusConditionId = '' } = {}) {
   const content = createConditionCatalogContent();
-  openModal({
+  openSheetModal({
     title: 'Condições',
     content,
     actions: [
@@ -6937,7 +6965,7 @@ function commitOfficialCondition(condition) {
 }
 
 function openRepeatedConditionWarning(condition, existingCard) {
-  openModal({
+  openSheetModal({
     title: 'Condição já ativa',
     content: createModalContent(`“${condition.name}” já está ativo.`, CONDITION_REPETITION_RULE),
     actions: [
@@ -6967,7 +6995,7 @@ function requestOfficialConditionAddition(condition) {
 }
 
 function openConditionDetails(condition) {
-  openModal({
+  openSheetModal({
     title: 'Detalhes da Condição',
     content: createConditionDetailContent(condition),
     actions: [
@@ -7065,7 +7093,7 @@ function openEquipmentAdditionMenu() {
     createEffectSourceChoice('Item Personalizado', 'Criar um equipamento livre com os campos atuais.', addCustomEquipmentFromMenu)
   );
   content.append(introduction, choices);
-  openModal({
+  openSheetModal({
     title: 'Adicionar equipamento',
     content,
     actions: [{ label: 'Cancelar', className: 'secondary', spanAll: true }]
@@ -7088,7 +7116,7 @@ function openWeaponCatalogMenu() {
     ));
   });
   content.append(introduction, choices);
-  openModal({
+  openSheetModal({
     title: 'Armas',
     content,
     actions: [
@@ -7126,7 +7154,7 @@ function openEquipmentCatalogGroup(groupId, { focusEquipmentId = '' } = {}) {
   const group = getEquipmentCatalogGroup(groupId);
   if (!group) return;
   const content = createEquipmentCatalogGroupContent(group);
-  openModal({
+  openSheetModal({
     title: group.label,
     content,
     actions: [
@@ -7164,7 +7192,7 @@ function createEquipmentDetailContent(equipment) {
 }
 
 function openEquipmentDetails(equipment, groupId) {
-  openModal({
+  openSheetModal({
     title: 'Detalhes do equipamento',
     content: createEquipmentDetailContent(equipment),
     actions: [
@@ -7352,7 +7380,7 @@ function openEquipmentModificationCatalog(card, { focusModificationId = '' } = {
     return;
   }
   const content = createEquipmentModificationCatalogContent(card);
-  openModal({
+  openSheetModal({
     title: isCustomEquipmentCard(card) ? 'Modificações disponíveis' : 'Modificações compatíveis',
     content,
     actions: [{ label: 'Cancelar', className: 'secondary', spanAll: true }]
@@ -7379,7 +7407,7 @@ function createEquipmentModificationDetailContent(modification) {
 }
 
 function openEquipmentModificationDetails(card, modification) {
-  openModal({
+  openSheetModal({
     title: 'Detalhes da modificação',
     content: createEquipmentModificationDetailContent(modification),
     actions: [
@@ -7463,7 +7491,7 @@ function openActiveEffectForm(card = null) {
     error
   );
 
-  openModal({
+  openSheetModal({
     title: card ? 'Editar efeito' : 'Adicionar efeito',
     content: form,
     actions: [
@@ -7509,7 +7537,7 @@ function openActiveEffectForm(card = null) {
 }
 
 function requestActiveEffectDeletion(card) {
-  openModal({
+  openSheetModal({
     title: 'Remover efeito?',
     content: createModalContent(
       `“${card.dataset.effectName}”`,
@@ -7623,7 +7651,7 @@ function captureNotes() {
 
 function requestNoteDeletion(card) {
   const title = card.querySelector('.note-title-input')?.value.trim() || 'Anotação sem título';
-  openModal({
+  openSheetModal({
     title: 'Excluir anotação?',
     content: createModalContent(
       `“${title}”`,
@@ -7773,6 +7801,7 @@ function addDynamicCard(containerId, templateId, values = {}, defaultTitle = '',
     : containerId === 'listaHabilidades'
       ? 'ability'
       : 'manifestation';
+  if (values.coyoteRecordId) card.dataset.coyoteRecordId = values.coyoteRecordId;
   card.open = options.startOpen ?? true;
   bindFavoriteButton(card, { favorite: values.favorite === true });
 
@@ -7806,6 +7835,9 @@ function addDynamicCard(containerId, templateId, values = {}, defaultTitle = '',
     useButton.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
+      if (!activeCharacterCanMutate('edit') || !card.isConnected) return;
+      const usageCharacterId = activeCharacterId;
+      const usageEye = window.CoyoteEyes.effectiveEye(state);
       const cost = Math.max(0, Number(card.querySelector('[data-field="custo"]').value || 0));
       const current = numberValue('pnAtual');
       const name = card.querySelector('[data-field="nome"]')?.value.trim() || 'esta Manifestação';
@@ -7816,6 +7848,7 @@ function addDynamicCard(containerId, templateId, values = {}, defaultTitle = '',
       }
 
       if (cost > 0 && !confirm(`Usar ${name} e gastar ${cost} PN?`)) return;
+      if (!activeCharacterCanMutate('edit') || !card.isConnected || activeCharacterId !== usageCharacterId || window.CoyoteEyes.effectiveEye(state) !== usageEye) return;
       applyResourceDelta('pnAtual', -cost, false);
       setCardFeedback(card, `${name} utilizada. Restam ${numberValue('pnAtual')} PN.`, 'success');
       setAdjusterFeedback(`${name} utilizada. Custo: ${cost} PN.`);
@@ -7823,6 +7856,7 @@ function addDynamicCard(containerId, templateId, values = {}, defaultTitle = '',
   }
 
   container.appendChild(card);
+  if (card.dataset.cardType !== 'equipment') window.GoldGeneration.attach(card, values.signatureEnhancement);
   updateCardSummary(card, defaultTitle);
   if (card.dataset.cardType === 'manifestation') updateManifestationUseState(card);
   applyFavoriteFilter(card.dataset.cardType);
@@ -7867,6 +7901,7 @@ function addAutomaticClassAbility(className, ability) {
   const container = document.getElementById('listaHabilidades');
   const firstPersonalAbility = container.querySelector('.editable-card:not(.automatic-class-ability)');
   container.insertBefore(card, firstPersonalAbility);
+  window.GoldGeneration.attach(card);
   applyFavoriteFilter('ability');
   return card;
 }
@@ -8283,8 +8318,75 @@ function updateResourceAdjusterContext() {
 }
 
 function bindDynamicButtons() {
+  window.CoyoteEyes.configure({
+    identity: () => activeCharacterId || '',
+    read: () => state,
+    canEdit: () => activeCharacterCanMutate('edit'),
+    ownerId: async () => (await window.CronicasSupabase?.getUser?.())?.id || '',
+    feedback: showNotification,
+    switchEye: (initialize, prepareOnly = false) => {
+      if (!activeCharacterCanMutate('edit')) return { ok: false };
+      captureState();
+      const previous = cloneCharacterState();
+      const token = beginActiveCharacterOperation('edit');
+      if (storageMode === 'v4' && characterEditAuthority() && !token) return { ok: false };
+      try {
+        const next = initialize(previous);
+        const first = !next.coyoteEyes.firstRevealSeen;
+        if (!prepareOnly) {
+          next.coyoteEyes.activeEye = next.coyoteEyes.unlocked && next.coyoteEyes.activeEye === 'left' ? 'right' : 'left';
+          next.coyoteEyes.unlocked = true;
+          next.coyoteEyes.firstRevealSeen = true;
+        }
+        state.manifestations = next.manifestations;
+        state.coyoteEyes = next.coyoteEyes;
+        restoreDynamicList('listaManifestacoes', 'templateManifestacao', window.CoyoteEyes.activeRecords(state), 'Nova Manifestação');
+        if (!saveNow(activeCharacterId, { authorityToken: token })) throw new Error('Não foi possível salvar a alternância. Os dois conjuntos foram preservados.');
+        return { ok: true, first };
+      } catch (error) {
+        state.manifestations = previous.manifestations;
+        if (previous.coyoteEyes) state.coyoteEyes = previous.coyoteEyes; else delete state.coyoteEyes;
+        restoreDynamicList('listaManifestacoes', 'templateManifestacao', window.CoyoteEyes.activeRecords(state), 'Nova Manifestação');
+        window.CoyoteEyes.refresh();
+        throw error;
+      } finally { characterEditAuthority()?.endOperation?.(token); }
+    }
+  });
+  window.GoldGeneration.configure({
+    identity: () => activeCharacterId || (storageMode !== 'closed' ? 'legacy-sheet' : ''),
+    read: () => window.GoldGeneration.normalizeState(state.goldGeneration),
+    canEdit: () => activeCharacterCanMutate('edit'),
+    pn: () => numberValue('pnAtual'),
+    openModal, close: closeModal, feedback: showNotification,
+    modalTheme: active => {
+      const modal = document.getElementById('appModal');
+      if (active && modalLifecycle?.sheetContext && modalLifecycle.characterId === activeCharacterId && !document.getElementById('characterSheetView').hidden) modal.dataset.characterMode = 'gold';
+      else delete modal.dataset.characterMode;
+    },
+    changed: scheduleSave,
+    configureOfficial: (id, config) => {
+      if (!activeCharacterCanMutate('edit')) return;
+      state.goldGeneration.officialEnhancements[id] = cloneCharacterState(config);
+      scheduleSave();
+    },
+    commit: (next, pn) => {
+      if (!activeCharacterCanMutate('edit')) return false;
+      const previous = cloneCharacterState(state.goldGeneration);
+      const previousPn = document.getElementById('pnAtual').value;
+      state.goldGeneration = window.GoldGeneration.normalizeState(next);
+      if (pn !== undefined) document.getElementById('pnAtual').value = String(pn);
+      const saved = saveNow();
+      if (!saved) {
+        state.goldGeneration = previous;
+        document.getElementById('pnAtual').value = previousPn;
+        state.fields.pnAtual = previousPn;
+      }
+      updateResourceUI('pnAtual');
+      return saved;
+    }
+  });
   window.Enchantments.configure({
-    openModal, close: closeModal,
+    openModal: options => openModal({ ...options, sheetContext: true }), close: closeModal,
     identity: () => activeCharacterId || storageMode,
     read: () => cloneCharacterState(state.enchantments || []),
     canEdit: () => activeCharacterCanMutate('edit'),
@@ -8515,6 +8617,7 @@ function validateImportedSheet(imported) {
     skills: { ...imported.skills },
     equipment: JSON.parse(JSON.stringify(imported.equipment)),
     enchantments: [],
+    goldGeneration: window.GoldGeneration.normalizeState(),
     abilities: JSON.parse(JSON.stringify(imported.abilities)),
     manifestations: JSON.parse(JSON.stringify(imported.manifestations)),
     automaticAbilityFavorites: {},
@@ -8524,6 +8627,12 @@ function validateImportedSheet(imported) {
   };
   try { normalized.enchantments = window.Enchantments.validate(imported.enchantments); }
   catch (error) { return { valid: false, reason: 'invalid', message: error.message }; }
+  try { normalized.goldGeneration = window.GoldGeneration.normalizeState(imported.goldGeneration); }
+  catch (error) { return { valid: false, reason: 'invalid', message: error.message }; }
+  if (imported.coyoteEyes !== undefined) {
+    try { normalized.coyoteEyes = window.CoyoteEyes.normalize(imported.coyoteEyes); }
+    catch (error) { return { valid: false, reason: 'invalid', message: error.message }; }
+  }
   const corrections = [];
   if (Object.prototype.hasOwnProperty.call(normalized.fields, 'totalis')) {
     delete normalized.fields.totalis;
@@ -8536,6 +8645,8 @@ function validateImportedSheet(imported) {
     'skills',
     'equipment',
     'enchantments',
+    'goldGeneration',
+    'coyoteEyes',
     'abilities',
     'manifestations',
     'automaticAbilityFavorites',
@@ -8795,11 +8906,13 @@ function validateImportedSheet(imported) {
     ['manifestations', ['nome', 'custo', 'acao', 'alcance', 'alvo', 'duracao', 'teste', 'tipo', 'descricao', 'efeito', 'limitacoes'], 'Manifestação']
   ];
 
+  if (normalized.coyoteEyes) listSchemas.push(['confidentManifestations', listSchemas[2][1], 'Manifestação']);
   for (const [listName, allowedFields, label] of listSchemas) {
-    if (normalized[listName].length > 500) {
+    const list = listName === 'confidentManifestations' ? normalized.coyoteEyes.confidentManifestations : normalized[listName];
+    if (list.length > 500) {
       return { valid: false, reason: 'invalid', message: `A lista de ${label}s é grande demais para ser uma ficha válida.` };
     }
-    normalized[listName] = normalized[listName].map((item, index) => {
+    const cleanedList = list.map((item, index) => {
       if (!isPlainObject(item)) throw new Error(`INVALID_LIST:${label}:${index + 1}`);
       const cleanItem = {};
       for (const field of allowedFields) {
@@ -8811,7 +8924,19 @@ function validateImportedSheet(imported) {
       else if (item.favorite !== undefined && item.favorite !== false) {
         corrections.push(`O favorito do ${label} ${index + 1} foi ajustado.`);
       }
+      if (item.signatureEnhancement !== undefined && listName !== 'equipment') {
+        try { cleanItem.signatureEnhancement = window.GoldGeneration.configuration(item.signatureEnhancement); }
+        catch (error) { throw new Error(`INVALID_FIELD:${label}:${index + 1}: ${error.message}`); }
+      }
       const additionalAllowedFields = [];
+      if (['manifestations', 'confidentManifestations'].includes(listName)) {
+        additionalAllowedFields.push('coyoteRecordId');
+        if (item.coyoteRecordId !== undefined) {
+          if (typeof item.coyoteRecordId !== 'string' || !item.coyoteRecordId || item.coyoteRecordId.length > 128) throw new Error('INVALID_MANIFESTATION_ID');
+          cleanItem.coyoteRecordId = item.coyoteRecordId;
+        }
+      }
+      if (listName !== 'equipment') additionalAllowedFields.push('signatureEnhancement');
       if (listName === 'equipment') {
         additionalAllowedFields.push('catalogId', 'catalogModifications');
         if (item.catalogId !== undefined) {
@@ -8846,7 +8971,7 @@ function validateImportedSheet(imported) {
           corrections.push(`O nível da habilidade ${index + 1} foi ajustado para ${abilityLevel}.`);
         }
       }
-      if (listName === 'manifestations' && cleanItem.custo !== undefined) {
+      if (['manifestations', 'confidentManifestations'].includes(listName) && cleanItem.custo !== undefined) {
         const manifestationCost = Number(cleanItem.custo);
         const safeCost = Number.isFinite(manifestationCost) ? Math.max(0, manifestationCost) : 0;
         if (!Number.isFinite(manifestationCost) || manifestationCost !== safeCost) {
@@ -8862,6 +8987,8 @@ function validateImportedSheet(imported) {
       if (removedFields.length) corrections.push(`Campos desconhecidos foram removidos do ${label} ${index + 1}.`);
       return cleanItem;
     });
+    if (listName === 'confidentManifestations') normalized.coyoteEyes.confidentManifestations = cleanedList;
+    else normalized[listName] = cleanedList;
   }
 
   if (!Object.keys(normalized.automaticAbilityFavorites).length) {
@@ -9034,6 +9161,7 @@ async function duplicateCharacterById(id, actionButton, { closeMobileModal = fal
     }
 
     const duplicate = cloneCharacterState(validation.normalized);
+    duplicate.goldGeneration = window.GoldGeneration.duplicate(duplicate.goldGeneration);
     const originalName = String(duplicate.fields?.nome || '').trim();
     if (originalName) duplicate.fields.nome = `${originalName} — Cópia`;
 
@@ -9155,6 +9283,7 @@ async function openCharacterDeletionOptions(id) {
     const { summary } = getValidatedStoredCharacter(id);
     openModal({
       title: 'Excluir personagem?',
+      sheetContext: id === activeCharacterId && !document.getElementById('characterSheetView').hidden,
       content: createCharacterDeletionPreview(id, summary),
       actions: [
         {
@@ -9188,6 +9317,7 @@ async function openCharacterDeletionOptions(id) {
 
 function confirmPermanentCharacterDeletion(id) {
   openModal({
+    sheetContext: id === activeCharacterId && !document.getElementById('characterSheetView').hidden,
     title: 'Excluir permanentemente este personagem?',
     content: createModalContent(
       'Sem um arquivo exportado, não será possível recuperá-lo.',
@@ -9334,7 +9464,7 @@ function exportSheet({ notify = true } = {}) {
 }
 
 function rejectImport(message, incompatible = false) {
-  openModal({
+  openSheetModal({
     title: incompatible ? 'Versão incompatível' : 'Importação recusada',
     content: createModalContent(message, 'O personagem atual permanece intacto.'),
     actions: [{ label: 'Entendi', className: 'secondary', spanAll: true }]
@@ -9368,6 +9498,7 @@ function importSheet(file) {
 
     openModal({
       title: 'Importar personagem?',
+      sheetContext: true,
       content: (() => {
         const preview = createImportPreview(validation);
         const notice = document.createElement('p');
