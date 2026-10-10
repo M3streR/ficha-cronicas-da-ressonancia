@@ -183,11 +183,11 @@ const server = http.createServer(async (request, response) => {
     assert.equal(await page.locator('#goldGenerationControls').isVisible(), false);
     assert.equal(await page.locator('#characterSheetView').getAttribute('data-character-mode'), null);
     assert.equal(await page.locator('.character-panel').evaluate(element => getComputedStyle(element).backgroundColor), standardColor);
-    // Touch gesture unlocks the same object and still opens notes.
+    // Five touches on DEF unlock the same object; notes remain independent.
     await page.evaluate(async () => { await openCharacter('character-touch-003'); showCharacterSheetView(); });
     await page.evaluate(() => {
-      const brand = document.getElementById('sheetBrand');
-      for (let index = 0; index < 5; index++) brand.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'touch', bubbles: true }));
+      const label = document.querySelector('.defense-card .defense-label');
+      for (let index = 0; index < 5; index++) label.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'touch', bubbles: true }));
       document.getElementById('abrirAnotacoes').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     });
     assert.equal((await state()).goldGeneration.unlocked, true);
@@ -206,10 +206,15 @@ const server = http.createServer(async (request, response) => {
     assert.equal(await touchPage.evaluate(() => state.goldGeneration.unlocked), false);
     assert.equal(await touchPage.locator('#notesView').isVisible(), true);
     await touchPage.evaluate(() => closeNotesView());
-    for (let i = 0; i < 5; i++) await touchPage.locator('#sheetBrand h1').tap();
-    await touchPage.locator('#abrirAnotacoes').tap();
+    await touchPage.evaluate(() => showMobileSection('resumo', { scrollToTop: false }));
+    const defenseBefore = await touchPage.locator('#defesaTotal').textContent();
+    for (let i = 0; i < 4; i++) await touchPage.locator('.defense-card .defense-label').tap();
+    assert.equal(await touchPage.evaluate(() => state.goldGeneration.unlocked), false);
+    await touchPage.locator('.defense-card .defense-label').tap();
+    await touchPage.waitForFunction(() => state.goldGeneration.unlocked);
     assert.equal(await touchPage.evaluate(() => state.goldGeneration.unlocked), true);
-    assert.equal(await touchPage.locator('#notesView').isVisible(), true);
+    assert.equal(await touchPage.locator('#notesView').isVisible(), false);
+    assert.equal(await touchPage.locator('#defesaTotal').textContent(), defenseBefore);
     await touchContext.close();
     await page.evaluate(async () => { closeNotesView(); await openCharacter('character-gold-001'); showCharacterSheetView(); });
     // Standard shared modal is not themed merely because a gold sheet is open.

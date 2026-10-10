@@ -60,7 +60,7 @@
     return result;
   }
 
-  let hooks, currentIdentity = '', keyIndex = 0, keyTime = 0, taps = 0, tapTime = 0, armedUntil = 0;
+  let hooks, currentIdentity = '', keyIndex = 0, keyTime = 0, taps = 0, tapTime = 0;
   let revealTimer;
   const configs = new WeakMap();
   const sequence = ['ArrowUp', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'KeyG', 'KeyE'];
@@ -70,7 +70,7 @@
   const button = (label, action, className = 'btn secondary') => {
     const element = node('button', label, className); element.type = 'button'; element.addEventListener('click', action); return element;
   };
-  function resetSequence() { keyIndex = 0; keyTime = 0; taps = 0; tapTime = 0; armedUntil = 0; }
+  function resetSequence() { keyIndex = 0; keyTime = 0; taps = 0; tapTime = 0; }
   function visible() { return hooks && !document.getElementById('characterSheetView').hidden && Boolean(hooks.identity()); }
   function active() { return visible() && hooks.read().active; }
   function editable() { return visible() && hooks.canEdit(); }
@@ -239,17 +239,16 @@
       keyIndex = event.code === sequence[keyIndex] ? keyIndex + 1 : event.code === 'ArrowUp' ? 1 : 0;
       keyTime = now; if (keyIndex === sequence.length) unlock();
     });
-    document.getElementById('sheetBrand').addEventListener('pointerup', event => {
-      if (!visible() || !editable() || hooks.read().unlocked || event.pointerType !== 'touch') return;
-      const now = Date.now(); if (now - tapTime > 650 || taps >= 5) taps = 0;
-      taps++; tapTime = now; if (taps === 5) armedUntil = now + 1500;
-    });
     document.getElementById('characterSheetView').addEventListener('pointerup', event => {
-      if (!event.target.closest('#sheetBrand, #abrirAnotacoes')) { taps = 0; armedUntil = 0; }
-    });
-    document.getElementById('abrirAnotacoes').addEventListener('click', event => {
-      if (Date.now() <= armedUntil && taps === 5 && event.detail > 0) unlock();
-      else { taps = 0; armedUntil = 0; }
+      if (!event.target.closest('.defense-card .defense-label') || event.pointerType !== 'touch'
+        || !visible() || !editable() || hooks.read().unlocked
+        || !document.getElementById('modalOverlay').hidden || document.querySelector('dialog[open]')) {
+        taps = 0; tapTime = 0; return;
+      }
+      const now = Date.now();
+      if (!taps || now - tapTime > 3000) { taps = 0; tapTime = now; }
+      taps++;
+      if (taps === 5) { taps = 0; tapTime = 0; unlock(); }
     });
     global.addEventListener('blur', resetSequence);
     document.addEventListener('visibilitychange', () => { if (document.hidden) resetSequence(); });
