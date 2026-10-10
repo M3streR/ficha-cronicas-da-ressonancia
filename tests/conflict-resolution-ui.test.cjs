@@ -42,8 +42,8 @@ const server = http.createServer(async (request, response) => {
       let manager = createEmptyCharacterManager();
       manager = setCharacterSummary(manager, localId, summary);
       manager = setActiveCharacterId(manager, localId);
-      writeStoredCharacter(localId, character);
-      writeCharacterManager(manager);
+      await writeStoredCharacter(localId, character);
+      await writeCharacterManager(manager);
       const result = await ChroniclesLocalCharacters.createConflictBackup({
         sourceLocalId: localId,
         kind: 'local',

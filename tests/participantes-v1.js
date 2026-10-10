@@ -118,15 +118,16 @@ document.getElementById('run').onclick = async () => {
     await Promise.allSettled([api.deleteChronicle(races.id),api.createChronicleParticipant(races.id,{name:'Não pode ficar órfão'})]);
     check(!(await req(db.transaction('chronicleParticipants').objectStore('chronicleParticipants').index('chronicleId').getAll(races.id))).length,'Criar participante concorrendo com exclusão não deixa órfãos');
     const [html, appSource] = await Promise.all([fetch('../index.html').then(r=>r.text()),fetch('../script.js').then(r=>r.text())]);
+    const characterStorageURL=scriptURL((await fetch("../js/character-storage.js").then(r=>r.text())).replaceAll("cronicasRessonancia",prefix));
     const appURL=scriptURL(appSource.replaceAll('cronicasRessonancia',prefix));
     await new Promise(resolve=>{
       frame.onload=resolve;
       frame.srcdoc=html.replace('<head>',`<head><base href="${new URL('../',location.href)}">`)
         .replace(/src="js\/chronicles-storage.js[^"]*"/,`src="${storageURL}"`)
-        .replace(/src="script.js[^"]*"/,`src="${appURL}"`);
+        .replace(/src="js\/character-storage.js[^"]*"/,`src="${characterStorageURL}"`).replace(/src="script.js[^"]*"/,`src="${appURL}"`);
     });
     const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id);
-    await wait(()=>typeof w.renderChronicleParticipants==='function' && !el('characterManagerView').hidden);
+    await wait(()=>w.characterStorageReady && typeof w.renderChronicleParticipants==='function' && !el('characterManagerView').hidden);
     const uiApi=w.ChroniclesStorage;
     const open=async id=>{
       if(el('characterManagerView').dataset.activeEnvironment!=='chronicles') w.showManagerSection('chronicles');
@@ -243,7 +244,7 @@ document.getElementById('run').onclick = async () => {
     const docSource=frame.srcdoc;
     await new Promise(resolve=>{frame.onload=resolve;frame.srcdoc=docSource;});
     const reloaded=frame.contentWindow;
-    await wait(()=>typeof reloaded.renderChronicleParticipants==='function' && !reloaded.document.getElementById('characterManagerView').hidden);
+    await wait(()=>reloaded.characterStorageReady && typeof reloaded.renderChronicleParticipants==='function' && !reloaded.document.getElementById('characterManagerView').hidden);
     check(JSON.stringify((await reloaded.ChroniclesStorage.listChronicleParticipants(legacy.id)).participants)===persisted,'Recarregar aplicação preserva IDs, nomes e timestamps');
     reloaded.showManagerSection('chronicles');await reloaded.showChroniclesIndex();
     await reloaded.openChronicleDetail(legacy.id,1,reloaded.document.querySelector(`[data-chronicle-id="${legacy.id}"] button`));

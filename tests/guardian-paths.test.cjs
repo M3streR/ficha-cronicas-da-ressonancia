@@ -32,7 +32,7 @@ function names(cards) {
 
   try {
     await page.goto(`http://127.0.0.1:${server.address().port}/index.html`);
-    await page.waitForFunction(() => typeof createEmptyCharacterState === 'function');
+    await page.waitForFunction(() => window.characterStorageReady);
 
     const options = await page.locator('#classe option').evaluateAll(elements => elements.map(option => ({
       value: option.value,
@@ -75,10 +75,10 @@ function names(cards) {
       legacy.abilities = [{ nome: 'Habilidade preservada', efeito: 'Conteúdo pessoal.' }];
 
       const localId = 'guardian-legacy-local';
-      writeStoredCharacter(localId, legacy);
+      await writeStoredCharacter(localId, legacy);
       let manager = readCharacterManager() || createEmptyCharacterManager();
       manager = setCharacterSummary(manager, localId, await createCharacterSummary(legacy));
-      writeCharacterManager(manager);
+      await writeCharacterManager(manager);
       await openCharacter(localId);
       const local = {
         className: document.getElementById('classe').value,
@@ -193,18 +193,22 @@ function names(cards) {
     const online = await page.evaluate(async () => {
       captureState();
       const localId = 'guardian-online-test';
-      writeStoredCharacter(localId, JSON.parse(JSON.stringify(state)));
+      await writeStoredCharacter(localId, JSON.parse(JSON.stringify(state)));
       let manager = readCharacterManager() || createEmptyCharacterManager();
       manager = setCharacterSummary(manager, localId, await createCharacterSummary(state));
-      writeCharacterManager(manager);
+      await writeCharacterManager(manager);
       let payload = null;
+      const base = '2026-10-10T00:00:00.123456Z';
+      const row = { id: 'published-character', owner_id: 'guardian-owner', source_local_id: localId,
+        name: 'Versão anterior', level: 1, class_name: 'Guardião Regente', signature: '', thumbnail: '',
+        snapshot: { ...JSON.parse(JSON.stringify(state)), fields: { ...state.fields, nome: 'Versão anterior' } }, updated_at: base };
       const query = {
-        select() { return this; },
-        eq() { return this; },
-        maybeSingle: async () => ({ data: { id: 'published-character' }, error: null }),
-        upsert(value) { payload = value; return this; },
-        single: async () => ({ data: { id: 'published-character', ...payload }, error: null })
+        select() { return this; }, eq() { return this; },
+        update(value) { payload = value; return this; },
+        maybeSingle: async () => ({ data: payload ? { ...row, ...payload, updated_at: '2026-10-10T00:00:00.123457Z' } : row, error: null })
       };
+      await CharacterStorage.commit({[CharacterStorage.keys.sync+localId]:JSON.stringify({remoteId:row.id,ownerId:row.owner_id,baseUpdatedAt:base,dirty:true,conflict:false})});
+      window.dispatchEvent(new CustomEvent('cronicas:character-storage-refreshed',{detail:[CharacterStorage.keys.sync+localId]}));
       window.CronicasSupabase = {
         ready: Promise.resolve(), authenticated: true,
         getUser: async () => ({ id: 'guardian-owner' }),

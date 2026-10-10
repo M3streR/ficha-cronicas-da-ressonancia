@@ -23,7 +23,7 @@ const server = http.createServer(async (request, response) => {
 async function waitForApplication(page) {
   await page.waitForFunction(() => (
     typeof createEmptyCharacterState === 'function'
-    && typeof openCharacter === 'function'
+    && typeof openCharacter === 'function' && window.characterStorageReady===true
     && window.CharacterEditAuthority
     && window.ChroniclesLocalCharacters
   ));
@@ -36,8 +36,8 @@ async function seedCharacter(page, name = 'Sentinela entre abas') {
     const summary = await createCharacterSummary(character);
     let manager = createEmptyCharacterManager();
     manager = setCharacterSummary(manager, characterId, summary);
-    writeStoredCharacter(characterId, character);
-    writeCharacterManager(manager);
+    await writeStoredCharacter(characterId, character);
+    await writeCharacterManager(manager);
   }, { characterId, name });
 }
 
@@ -91,14 +91,14 @@ async function openSeededCharacter(page) {
 
     await editor.locator('#nome').fill('Rascunho preservado pela editora');
     await editor.waitForFunction(characterId => {
-      const stored = JSON.parse(localStorage.getItem(`cronicasRessonanciaCharacterV4:${characterId}`));
+      const stored = JSON.parse(CharacterStorage.get(`cronicasRessonanciaCharacterV4:${characterId}`));
       return stored?.fields?.nome === 'Rascunho preservado pela editora';
     }, characterId);
     await observer.waitForFunction(() => document.getElementById('nome').value === 'Rascunho preservado pela editora');
 
     const programmaticAttempt = await observer.evaluate(async characterId => {
       document.getElementById('nome').value = 'Escrita indevida';
-      const saveResult = saveNow(characterId);
+      const saveResult = await saveNow(characterId);
       const syncResult = await ChroniclesCollaboration.queueCharacterSync(
         characterId,
         readStoredCharacter(characterId),
@@ -109,7 +109,7 @@ async function openSeededCharacter(page) {
       try {
         const copy = readStoredCharacter(characterId);
         copy.fields.nome = 'Escrita direta indevida';
-        writeStoredCharacter(characterId, copy);
+        await writeStoredCharacter(characterId, copy);
       } catch (error) {
         directWriteBlocked = error.message === 'CHARACTER_EDIT_NOT_AUTHORIZED';
       }
@@ -160,6 +160,7 @@ async function openSeededCharacter(page) {
       CharacterEditAuthority.getState(characterId).mode === 'observer'
     ), characterId);
     assert.equal(await observer.locator('#nome').inputValue(), 'Transferência com debounce pendente', JSON.stringify(transferBefore));
+    assert.equal(await observer.evaluate(id => readCharacterManager().characters[id].name, characterId), 'Transferência com debounce pendente', 'o resumo acompanha o rascunho confirmado antes da transferência');
     assert.equal(await editor.locator('#nome').isDisabled(), true, 'a editora anterior perde autorização');
     assert.equal(await observer.locator('#nome').isEnabled(), true, 'a nova editora só é liberada após reconciliar');
 

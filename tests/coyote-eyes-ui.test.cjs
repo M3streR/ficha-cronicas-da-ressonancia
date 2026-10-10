@@ -30,18 +30,19 @@ const server = http.createServer(async (request, response) => {
  async function sequence(keys=['ArrowLeft','ArrowRight','c','o','y']) {
    await page.locator('#voltarPersonagens').focus();
    for(const key of keys) await page.keyboard.press(key);
+   await page.waitForFunction(()=>!hasPendingSave && !CharacterStorage.isPending());
  }
  async function eye(expected) {await page.waitForFunction(value=>CoyoteEyes.effectiveEye(state)===value,expected);}
  async function show() {await page.evaluate(()=>{showMobileSection('conteudo',{scrollToTop:false});document.getElementById('contentTabManifestacoes').click();});}
  const cards=()=>page.locator('#listaManifestacoes .manifestation-card');
  try {
-  await page.goto(url); await page.waitForFunction(()=>typeof openCharacter==='function');
+  await page.goto(url); await page.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
   await page.evaluate(async({fixture,id})=>{
    let manager=createEmptyCharacterManager();
-   writeStoredCharacter(id,fixture);manager=setCharacterSummary(manager,id,await createCharacterSummary(fixture));
-   const other=cloneCharacterState(fixture);writeStoredCharacter('character-coyote-copy',other);
+   await writeStoredCharacter(id,fixture);manager=setCharacterSummary(manager,id,await createCharacterSummary(fixture));
+   const other=cloneCharacterState(fixture);await writeStoredCharacter('character-coyote-copy',other);
    manager=setCharacterSummary(manager,'character-coyote-copy',await createCharacterSummary(other));
-   writeCharacterManager(manager);await openCharacter(id);showCharacterSheetView();saveNow();
+   await writeCharacterManager(manager);await openCharacter(id);showCharacterSheetView();await saveNow();
   },{fixture,id});
   await page.waitForFunction(()=>Boolean(state.coyoteEyes));
   const before=await read();
@@ -52,7 +53,7 @@ const server = http.createServer(async (request, response) => {
   await page.locator('#nome').focus();
   for(const key of ['ArrowLeft','ArrowRight','c','o','y']) await page.keyboard.press(key);
   assert.equal((await read()).coyoteEyes.unlocked,false);
-  await page.locator('#nome').fill(fixture.fields.nome);await page.evaluate(()=>saveNow());
+  await page.locator('#nome').fill(fixture.fields.nome);await page.evaluate(async ()=>await saveNow());
   await sequence(['ArrowLeft','ArrowRight','c','x','y']);assert.equal((await read()).coyoteEyes.unlocked,false);
   await sequence(['ArrowLeft','ArrowRight','Shift+c','o','y']);assert.equal((await read()).coyoteEyes.unlocked,false);
   await page.locator('#voltarPersonagens').focus();
@@ -69,17 +70,17 @@ const server = http.createServer(async (request, response) => {
   assert.deepEqual(await page.evaluate(()=>({header:getComputedStyle(document.querySelector('.app-header')).backgroundImage,info:getComputedStyle(document.querySelector('.character-panel')).backgroundImage,manager:getComputedStyle(document.getElementById('characterManagerView')).backgroundImage})),outside);
   await cards().first().locator('.card-title').click();
   await cards().first().locator('[data-field=descricao]').fill('Edição esquerda\n\nsegundo parágrafo');
-  await page.evaluate(()=>saveNow());
+  await page.evaluate(async ()=>await saveNow());
   await sequence();await eye('right');
   assert.deepEqual(strip((await read()).manifestations),fixture.manifestations);
   await cards().first().locator('.card-title').click();
   await cards().first().locator('[data-field=efeito]').fill('Edição direita');
-  await page.evaluate(()=>saveNow());
+  await page.evaluate(async ()=>await saveNow());
   await sequence();await eye('left');
   assert.equal(await cards().first().locator('[data-field=descricao]').inputValue(),'Edição esquerda\n\nsegundo parágrafo');
   assert.equal((await read()).manifestations[0].efeito,'Edição direita');
   await page.locator('#adicionarManifestacao').click();assert.equal(await cards().count(),4);
-  await cards().last().locator('.remove-card').click();await page.evaluate(()=>saveNow());assert.equal(await cards().count(),3);
+  await cards().last().locator('.remove-card').click();await page.evaluate(async ()=>await saveNow());assert.equal(await cards().count(),3);
   for(let i=0;i<6;i++){await sequence();await eye(i%2===0?'right':'left');assert.equal(await cards().count(),3);}
   await sequence(['ArrowUp','ArrowUp','ArrowLeft','ArrowDown','g','e']);
   assert.equal((await read()).goldGeneration.active,true);
@@ -88,7 +89,7 @@ const server = http.createServer(async (request, response) => {
   await first.locator('.gold-enhancement-config input[type=checkbox]').check();
   await first.locator('[data-gold-field=aspect]').fill('Dados de dano');
   await first.locator('[data-gold-field=normalValue]').fill('1');
-  await page.evaluate(()=>saveNow());
+  await page.evaluate(async ()=>await saveNow());
   await first.getByRole('button',{name:'Usar Aprimoramento',exact:true}).click();
   const pn=Number((await read()).fields.pnAtual);
   // Modal blocks a secret switch; detached card confirmation cannot debit PN.
@@ -98,6 +99,7 @@ const server = http.createServer(async (request, response) => {
   assert.equal(Number((await read()).fields.pnAtual),pn);
   await cards().first().getByRole('button',{name:'Usar Aprimoramento',exact:true}).click();
   await page.locator('#appModal').getByRole('button',{name:'Confirmar Aprimoramento',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('modalOverlay').hidden && !hasPendingSave && !CharacterStorage.isPending());
   assert.equal(Number((await read()).fields.pnAtual),pn-5);
   assert.equal((await read()).coyoteEyes.confidentManifestations[0].signatureEnhancement.enabled,true);
   const pnAfter=Number((await read()).fields.pnAtual);
@@ -106,7 +108,7 @@ const server = http.createServer(async (request, response) => {
   const solitude=cards().nth(2);
   assert.equal(await solitude.locator('input[type=checkbox]').count(),0);
   assert.equal(await solitude.getByRole('button',{name:'Usar Aprimoramento',exact:true}).count(),0);
-  await solitude.locator('.card-title').click();await solitude.locator('[data-field=nome]').fill('Solidão renomeada');await page.evaluate(()=>saveNow());
+  await solitude.locator('.card-title').click();await solitude.locator('[data-field=nome]').fill('Solidão renomeada');await page.evaluate(async ()=>await saveNow());
   assert.equal(await solitude.locator('input[type=checkbox]').count(),0);
   assert.equal((await read()).manifestations[2].custo,'02');
   // Failed Local write leaves both sets and the active eye intact.
@@ -117,7 +119,7 @@ const server = http.createServer(async (request, response) => {
   assert.deepEqual((await read()).manifestations,snapshot.manifestations);
   await page.evaluate(()=>{writeStoredCharacter=window.coyoteOriginalWriter;});
   await sequence();await eye('left');
-  await page.reload();await page.waitForFunction(()=>typeof openCharacter==='function');
+  await page.reload();await page.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
   await eye('left');await show();
   assert.equal(await page.locator('.coyote-reveal').count(),0);
@@ -142,17 +144,18 @@ const server = http.createServer(async (request, response) => {
   await sequence();await eye('right');await sequence();await eye('left');
   assert.equal((await read()).coyoteEyes.confidentManifestations.length,3);
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
-  const observer=await context.newPage();await observer.goto(url);await observer.waitForFunction(()=>typeof openCharacter==='function');
+  const observer=await context.newPage();await observer.goto(url);await observer.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
   await observer.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
   const beforeObserver=await read();assert.equal(await observer.evaluate(()=>CoyoteEyes.toggle()),false);assert.deepEqual(await read(),beforeObserver);await observer.close();
   // Empty left set is intentional and stays empty after two switches and restoration.
-  await page.evaluate(()=>{document.querySelectorAll('#listaManifestacoes .remove-card').forEach(button=>button.click());saveNow();});
+  await page.evaluate(async ()=>{document.querySelectorAll('#listaManifestacoes .remove-card').forEach(button=>button.click());await saveNow();});
   assert.equal((await read()).coyoteEyes.confidentManifestations.length,0);
   await sequence();await eye('right');await sequence();await eye('left');assert.equal(await cards().count(),0);
-  await page.evaluate(()=>{state.coyoteEyes.confidentManifestations=CoyoteEyes.initialConfident();restoreDynamicList('listaManifestacoes','templateManifestacao',CoyoteEyes.activeRecords(state),'Nova Manifestação');saveNow();});
+  await page.evaluate(async ()=>{state.coyoteEyes.confidentManifestations=CoyoteEyes.initialConfident();restoreDynamicList('listaManifestacoes','templateManifestacao',CoyoteEyes.activeRecords(state),'Nova Manifestação');await saveNow();});
   const artifacts=path.join(root,'tests/artifacts/coyote-eyes');await fs.mkdir(artifacts,{recursive:true});
   for(const gold of [false,true]) {
    if((await read()).goldGeneration.active!==gold) await page.locator('#goldGenerationToggle').click();
+   await page.waitForFunction(value=>(document.getElementById('characterSheetView').dataset.characterMode==='gold')===value,gold);
    const border=await page.locator('.character-panel').evaluate(element=>getComputedStyle(element).borderColor);
    for(const width of [1920,1366,1280,1279,1024,768,430,390,360,320]) {
     await page.setViewportSize({width,height:width>=1024?900:844});
@@ -172,13 +175,13 @@ const server = http.createServer(async (request, response) => {
   // A different browser can import the exported file and use the secret without login.
   const playerContext=await browser.newContext();const player=await playerContext.newPage();await player.goto(url);
   player.on('pageerror',error=>errors.push(error.message));
-  await player.waitForFunction(()=>typeof openCharacter==='function');
+  await player.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
   await player.evaluate(async data=>{const imported=await storeImportedCharacterAsNew(validateImportedSheet(data).normalized);await openCharacter(imported);showCharacterSheetView();},exported);
   assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'left');
   await player.locator('#voltarPersonagens').focus();for(const key of ['ArrowLeft','ArrowRight','c','o','y']) await player.keyboard.press(key);
   assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'right');
   assert.equal(await player.locator('#listaManifestacoes .manifestation-card').first().locator('[data-field=efeito]').inputValue(),'Edição direita');
-  await player.reload();await player.waitForFunction(()=>typeof openCharacter==='function');
+  await player.reload();await player.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
   await player.evaluate(async()=>{await openCharacter(readCharacterManager().order[0]);showCharacterSheetView();});
   assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'right');
   assert.equal(await player.evaluate(()=>state.coyoteEyes.confidentManifestations[0].descricao),'Edição esquerda\n\nsegundo parágrafo');

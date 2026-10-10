@@ -34,7 +34,7 @@ const server = http.createServer(async (request, response) => {
       const c = createEmptyCharacterState(); c.fields.nome = 'Teste';
       let m = createEmptyCharacterManager();
       m = setCharacterSummary(m, id, await createCharacterSummary(c));
-      writeStoredCharacter(id,c); writeCharacterManager(m);
+      await writeStoredCharacter(id,c); await writeCharacterManager(m);
       await openCharacter(id);
       showCharacterSheetView();
       showMobileSection('conteudo', {scrollToTop:false});
@@ -50,6 +50,7 @@ const server = http.createServer(async (request, response) => {
       await modal.locator('[name="action"]').fill('Reforçar');
       await modal.locator('[name="description"]').fill('Primeiro parágrafo.\n\nSegundo parágrafo.');
       await modal.getByRole('button',{name:'Salvar Encantamento',exact:true}).click();
+      await page.waitForFunction(()=>!CharacterStorage.isPending());
     }
     await add('Selo dourado');
     await add('Selo vermelho','Ruptura');
@@ -73,6 +74,7 @@ const server = http.createServer(async (request, response) => {
     await modal.locator('summary').first().click();
     await modal.getByRole('button',{name:'Remover',exact:true}).first().click();
     await modal.getByRole('button',{name:'Confirmar abandono',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('#appModal .enchantment-card').length===2);
     assert.equal(await modal.locator('.enchantment-card').count(),2);
 
     await modal.getByRole('button',{name:'+ Adicionar Encantamento',exact:true}).click();
@@ -88,25 +90,28 @@ const server = http.createServer(async (request, response) => {
       writeStoredCharacter=()=>{throw new Error('TEST_STORAGE_FAILURE');};
     });
     await modal.getByRole('button',{name:'Salvar Encantamento',exact:true}).click();
+      await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.match(await modal.locator('[role="alert"]').innerText(),/rascunho.*preservado/i);
     assert.equal(await modal.locator('[name="name"]').inputValue(),'Selo de alvo personalizado');
     await page.evaluate(() => { writeStoredCharacter=window.savedWriterForEnchantmentsTest; });
     // Another confirmed version during editing does not get silently replaced.
     await page.evaluate(() => { state.enchantments[0].name='Alterado externamente'; });
     await modal.getByRole('button',{name:'Salvar Encantamento',exact:true}).click();
+      await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.match(await modal.locator('[role="alert"]').innerText(),/mudaram durante/);
     await modal.getByRole('button',{name:'Cancelar',exact:true}).click();
     await modal.getByRole('button',{name:'Descartar alterações'}).click();
     // A real Web Lock observer can read but cannot mutate through programmatic submit.
     const observer=await page.context().newPage();
     await observer.goto(`http://127.0.0.1:${server.address().port}`);
-    await observer.waitForFunction(()=>typeof openCharacter==='function');
+    await observer.waitForFunction(()=>typeof openCharacter==='function' && window.characterStorageReady===true);
     await observer.evaluate(async()=>{await openCharacter('character-enchantments-001'); showCharacterSheetView(); Enchantments.open();});
     assert.equal(await observer.locator('#appModal').getByRole('button',{name:'+ Adicionar Encantamento',exact:true}).isDisabled(),true);
     await observer.evaluate(()=>document.querySelector('#appModal button:not(#modalClose)').dispatchEvent(new MouseEvent('click',{bubbles:true})));
     assert.equal(await observer.locator('.enchantment-form').count(),0);
     assert.equal(await observer.evaluate(()=>readStoredCharacter('character-enchantments-001').enchantments.length),2);
     await observer.close();
+    await page.evaluate(async()=>await saveNow());
     const persistence = await page.evaluate(() => {
       const stored = readStoredCharacter(activeCharacterId);
       const imported = validateImportedSheet(JSON.parse(JSON.stringify(stored)));
@@ -131,7 +136,7 @@ const server = http.createServer(async (request, response) => {
     const chunks=[]; for await (const chunk of stream) chunks.push(chunk);
     assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString()).enchantments,persistence.saved);
     await page.reload();
-    await page.waitForFunction(() => typeof openCharacter === 'function');
+    await page.waitForFunction(() => typeof openCharacter === 'function' && window.characterStorageReady===true);
     await page.evaluate(async () => { await openCharacter('character-enchantments-001'); showCharacterSheetView(); Enchantments.open(); });
     assert.equal(await modal.locator('.enchantment-card').count(),2);
     // Existing shared modal behavior is preserved.

@@ -34,6 +34,7 @@ jobs:
         env:
           CHROME_PATH: ''
         run: |
+          node tests/character-storage.test.cjs
           node tests/enchantments-ui.test.cjs
           node tests/gold-generation-ui.test.cjs
           node tests/coyote-eyes-ui.test.cjs

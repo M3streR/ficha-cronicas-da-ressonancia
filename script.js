@@ -340,6 +340,7 @@ let isDuplicatingCharacter = false;
 let isViewTransitioning = false;
 let openCharacterOptions = null;
 let storageAvailable = true;
+let characterSaveRevision = 0;
 let isRestoring = false;
 let lastAutomationSnapshot = null;
 let classAutomationNoticeTimer;
@@ -553,23 +554,21 @@ function validateCharacterManager(manager) {
   return { valid: true };
 }
 
+const characterManagerBaselines = new WeakMap();
 function readCharacterManager() {
-  const serialized = localStorage.getItem(CHARACTER_MANAGER_STORAGE_KEY);
+  const serialized = window.CharacterStorage.get(CHARACTER_MANAGER_STORAGE_KEY);
   if (serialized === null) return null;
   const manager = JSON.parse(serialized);
+  characterManagerBaselines.set(manager, JSON.parse(serialized));
   const validation = validateCharacterManager(manager);
   if (!validation.valid) throw new Error(`INVALID_CHARACTER_MANAGER: ${validation.message}`);
   return manager;
 }
 
-function writeCharacterManager(manager) {
+async function writeCharacterManager(manager) {
   const validation = validateCharacterManager(manager);
   if (!validation.valid) throw new Error(`INVALID_CHARACTER_MANAGER: ${validation.message}`);
-  const serialized = JSON.stringify(manager);
-  localStorage.setItem(CHARACTER_MANAGER_STORAGE_KEY, serialized);
-  if (localStorage.getItem(CHARACTER_MANAGER_STORAGE_KEY) !== serialized) {
-    throw new Error('CHARACTER_MANAGER_WRITE_VERIFICATION_FAILED');
-  }
+  await window.CharacterStorage.commit({}, [], () => true, { managerPatch: { base: characterManagerBaselines.get(manager) || readCharacterManager(), next: manager } });
   return manager;
 }
 
@@ -580,6 +579,7 @@ function setCharacterSummary(manager, id, summary) {
   if (!isValidCharacterSummary(summary)) throw new Error('INVALID_CHARACTER_SUMMARY');
 
   const nextManager = JSON.parse(JSON.stringify(manager));
+  characterManagerBaselines.set(nextManager, characterManagerBaselines.get(manager) || cloneCharacterState(manager));
   if (!nextManager.order.includes(id)) nextManager.order.push(id);
   nextManager.characters[id] = { ...summary };
   return nextManager;
@@ -593,6 +593,7 @@ function setActiveCharacterId(manager, id = null) {
   }
 
   const nextManager = JSON.parse(JSON.stringify(manager));
+  characterManagerBaselines.set(nextManager, characterManagerBaselines.get(manager) || cloneCharacterState(manager));
   nextManager.activeCharacterId = id;
   return nextManager;
 }
@@ -603,6 +604,7 @@ function removeCharacterFromManager(manager, id) {
   if (!isValidCharacterId(id)) throw new Error('INVALID_CHARACTER_ID');
 
   const nextManager = JSON.parse(JSON.stringify(manager));
+  characterManagerBaselines.set(nextManager, characterManagerBaselines.get(manager) || cloneCharacterState(manager));
   nextManager.order = nextManager.order.filter(characterId => characterId !== id);
   delete nextManager.characters[id];
   if (nextManager.activeCharacterId === id) nextManager.activeCharacterId = null;
@@ -610,27 +612,22 @@ function removeCharacterFromManager(manager, id) {
 }
 
 function readStoredCharacter(id) {
-  const serialized = localStorage.getItem(getCharacterStorageKey(id));
+  const serialized = window.CharacterStorage.get(getCharacterStorageKey(id));
   if (serialized === null) return null;
   const character = JSON.parse(serialized);
   if (!isPlainObject(character)) throw new Error('INVALID_STORED_CHARACTER');
   return character;
 }
 
-function writeStoredCharacter(id, character, options = {}) {
+async function writeStoredCharacter(id, character, options = {}) {
   if (!isPlainObject(character)) throw new Error('INVALID_STORED_CHARACTER');
   const authority = characterEditAuthority();
-  const authorityState = authority?.getState?.(id);
-  if (
-    authorityState && authorityState.mode !== 'closed'
-    && !authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'write')
-  ) throw new Error('CHARACTER_EDIT_NOT_AUTHORIZED');
-  const key = getCharacterStorageKey(id);
-  const serialized = JSON.stringify(character);
-  localStorage.setItem(key, serialized);
-  if (localStorage.getItem(key) !== serialized) {
-    throw new Error('CHARACTER_WRITE_VERIFICATION_FAILED');
-  }
+  const authorize = () => {
+    const current = authority?.getState?.(id);
+    return !current || current.mode === 'closed' || authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'write');
+  };
+  const puts = { [getCharacterStorageKey(id)]: JSON.stringify(character) };
+  await window.CharacterStorage.commit(puts, [], authorize, { dirtyId: options.dirty ? id : null });
   return character;
 }
 
@@ -640,16 +637,12 @@ function isStorageQuotaError(error) {
     || /quota|storage.*full|espaço/i.test(String(error?.message || ''));
 }
 
-function removeStoredCharacter(id, options = {}) {
+async function removeStoredCharacter(id, options = {}) {
   const authority = characterEditAuthority();
-  const authorityState = authority?.getState?.(id);
-  if (
-    authorityState && authorityState.mode !== 'closed'
-    && !authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'delete')
-  ) throw new Error('CHARACTER_EDIT_NOT_AUTHORIZED');
-  const key = getCharacterStorageKey(id);
-  localStorage.removeItem(key);
-  if (localStorage.getItem(key) !== null) throw new Error('CHARACTER_REMOVE_VERIFICATION_FAILED');
+  await window.CharacterStorage.commit({}, [getCharacterStorageKey(id)], () => {
+    const current = authority?.getState?.(id);
+    return !current || current.mode === 'closed' || authority.authorizeWrite(id, options.authorityToken || null, options.operation || 'delete');
+  });
 }
 
 function listStoredCharacters(manager = readCharacterManager()) {
@@ -664,12 +657,11 @@ function listStoredCharacters(manager = readCharacterManager()) {
 function inspectCharacterStorage(manager = readCharacterManager()) {
   const indexedIds = new Set(manager?.order || []);
   const missingCharacterIds = [...indexedIds].filter(id => (
-    localStorage.getItem(getCharacterStorageKey(id)) === null
+    window.CharacterStorage.get(getCharacterStorageKey(id)) === null
   ));
   const orphanedCharacterIds = [];
 
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
+  for (const [key] of window.CharacterStorage.entries()) {
     if (!key?.startsWith(CHARACTER_STORAGE_PREFIX)) continue;
     const id = key.slice(CHARACTER_STORAGE_PREFIX.length);
     if (isValidCharacterId(id) && !indexedIds.has(id)) orphanedCharacterIds.push(id);
@@ -784,14 +776,14 @@ function hasCompletedV3Migration(manager) {
   ) {
     throw new Error('INVALID_V3_MIGRATION_MARKER');
   }
-  if (localStorage.getItem(getCharacterStorageKey(migration.characterId)) === null) {
+  if (window.CharacterStorage.get(getCharacterStorageKey(migration.characterId)) === null) {
     throw new Error('MIGRATED_CHARACTER_NOT_FOUND');
   }
   return true;
 }
 
 async function migrateV3CharacterToManager() {
-  const serializedLegacyCharacter = localStorage.getItem(STORAGE_KEY);
+  const serializedLegacyCharacter = window.CharacterStorage.get(STORAGE_KEY);
   if (serializedLegacyCharacter === null) return { status: 'not-needed' };
 
   const existingManager = readCharacterManager();
@@ -816,7 +808,7 @@ async function migrateV3CharacterToManager() {
   const storedCharacter = readStoredCharacter(characterId);
 
   if (storedCharacter === null) {
-    writeStoredCharacter(characterId, legacyCharacter);
+    await writeStoredCharacter(characterId, legacyCharacter);
   } else if (JSON.stringify(storedCharacter) !== JSON.stringify(legacyCharacter)) {
     throw new Error('LEGACY_CHARACTER_ID_CONFLICT');
   }
@@ -835,7 +827,7 @@ async function migrateV3CharacterToManager() {
     v4ActivatedAt: new Date().toISOString()
   };
   nextManager = setActiveCharacterId(nextManager, characterId);
-  writeCharacterManager(nextManager);
+  await writeCharacterManager(nextManager);
 
   return { status: 'completed', characterId };
 }
@@ -845,13 +837,13 @@ async function activateMigratedCharacterStorage() {
   const migration = manager?.migrations?.[V3_MIGRATION_ID];
   if (!migration || migration.v4ActivatedAt) return false;
 
-  const serializedLegacyCharacter = localStorage.getItem(STORAGE_KEY);
+  const serializedLegacyCharacter = window.CharacterStorage.get(STORAGE_KEY);
   if (serializedLegacyCharacter === null) throw new Error('V3_RECOVERY_COPY_NOT_FOUND');
   const legacyCharacter = JSON.parse(serializedLegacyCharacter);
   const validation = validateImportedSheet(legacyCharacter);
   if (!validation.valid) throw new Error(`INVALID_V3_RECOVERY_COPY: ${validation.message}`);
 
-  writeStoredCharacter(migration.characterId, legacyCharacter);
+  await writeStoredCharacter(migration.characterId, legacyCharacter);
   const verifiedCharacter = readStoredCharacter(migration.characterId);
   if (JSON.stringify(verifiedCharacter) !== JSON.stringify(legacyCharacter)) {
     throw new Error('V4_ACTIVATION_COPY_VERIFICATION_FAILED');
@@ -864,7 +856,7 @@ async function activateMigratedCharacterStorage() {
     ...nextManager.migrations[V3_MIGRATION_ID],
     v4ActivatedAt: new Date().toISOString()
   };
-  writeCharacterManager(nextManager);
+  await writeCharacterManager(nextManager);
   return true;
 }
 
@@ -900,22 +892,23 @@ async function refreshCharacterMetadata(id, character) {
     photoFingerprint,
     updatedAt: new Date().toISOString()
   };
-  writeCharacterManager(setCharacterSummary(readCharacterManager(), id, nextSummary));
+  await writeCharacterManager(setCharacterSummary(readCharacterManager(), id, nextSummary));
   return true;
 }
 
-function queueCharacterMetadataRefresh(id, character) {
+function queueCharacterMetadataRefresh(id, character, options = {}) {
   metadataUpdatePromise = metadataUpdatePromise
     .catch(() => undefined)
     .then(async () => {
       const authority = characterEditAuthority();
       const authorityState = authority?.getState?.(id);
-      const token = authorityState && authorityState.mode !== 'closed'
+      const suppliedToken = options.authorityToken || null;
+      const token = suppliedToken || (authorityState && authorityState.mode !== 'closed'
         ? authority.beginOperation(id, 'metadata')
-        : null;
+        : null);
       if (authorityState && authorityState.mode !== 'closed' && !token) return false;
       try { return await refreshCharacterMetadata(id, character); }
-      finally { authority?.endOperation?.(token); }
+      finally { if (!suppliedToken) authority?.endOperation?.(token); }
     })
     .catch(error => {
       console.error('Não foi possível atualizar o resumo do personagem:', error);
@@ -938,13 +931,14 @@ async function refreshActiveCharacterMetadata() {
 async function saveActiveCharacter(options = {}) {
   let saved = true;
   if (hasPendingSave || options.force === true) {
-    saved = saveNow(
+    saved = await saveNow(
       pendingSaveTargetId ?? (storageMode === 'v4' ? activeCharacterId : null),
       options
     );
   }
   await metadataUpdatePromise;
-  return saved;
+  await window.CharacterStorage.flush();
+  return saved && !hasPendingSave;
 }
 
 async function reconcileCharacterForEditing(localId, localCharacter, authorityToken) {
@@ -955,7 +949,7 @@ async function reconcileCharacterForEditing(localId, localCharacter, authorityTo
   );
   const character = resolution?.character || localCharacter;
   if (resolution?.fromServer) {
-    writeStoredCharacter(localId, character, {
+    await writeStoredCharacter(localId, character, {
       authorityToken,
       operation: authorityToken?.operation || 'reconcile'
     });
@@ -964,12 +958,15 @@ async function reconcileCharacterForEditing(localId, localCharacter, authorityTo
 }
 
 async function openCharacter(id, options = {}) {
+  await window.CharacterStorage.initialize();
+  await window.CharacterStorage.flush();
+  await window.CharacterStorage.refresh();
   if (!isValidCharacterId(id)) throw new Error('INVALID_CHARACTER_ID');
   const manager = readCharacterManager();
   if (!manager || !manager.order.includes(id)) throw new Error('CHARACTER_NOT_INDEXED');
 
   if (options.discardLegacyPending && storageMode === 'legacy') discardPendingSave();
-  else await saveActiveCharacter();
+  else if (!await saveActiveCharacter()) throw new Error('LOCAL_DRAFT_PERSISTENCE_FAILED');
   if (activeCharacterId && activeCharacterId !== id) {
     window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
     await characterEditAuthority()?.release?.(activeCharacterId);
@@ -1028,7 +1025,7 @@ async function openCharacter(id, options = {}) {
 
   const latestManager = readCharacterManager();
   if (ownership.acquired && latestManager.activeCharacterId !== id) {
-    writeCharacterManager(setActiveCharacterId(latestManager, id));
+    await writeCharacterManager(setActiveCharacterId(latestManager, id));
   }
 
   discardPendingSave();
@@ -1058,11 +1055,12 @@ async function closeCharacter() {
   const closingId = activeCharacterId;
   const closingAuthority = characterEditAuthority()?.getState?.(closingId);
   const ownsClosingCharacter = !closingAuthority || ['editor', 'restricted', 'consultative', 'yielding', 'reconciling'].includes(closingAuthority.mode);
-  await saveActiveCharacter();
+  if (!await saveActiveCharacter()) throw new Error('LOCAL_DRAFT_PERSISTENCE_FAILED');
+  await window.CharacterStorage.flush();
   window.RollHistory?.close();
   const manager = readCharacterManager();
   if (ownsClosingCharacter && manager?.activeCharacterId === closingId) {
-    writeCharacterManager(setActiveCharacterId(manager, null));
+    await writeCharacterManager(setActiveCharacterId(manager, null));
   }
   discardPendingSave();
   activeCharacterId = null;
@@ -1504,22 +1502,11 @@ async function returnToCharacterManager() {
 function createUniqueCharacterId(manager) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const id = createCharacterId();
-    if (!manager.order.includes(id) && localStorage.getItem(getCharacterStorageKey(id)) === null) {
+    if (!manager.order.includes(id) && window.CharacterStorage.get(getCharacterStorageKey(id)) === null) {
       return id;
     }
   }
   throw new Error('CHARACTER_ID_GENERATION_FAILED');
-}
-
-function restoreManagerAfterFailedCreation(previousManager) {
-  if (previousManager) {
-    writeCharacterManager(previousManager);
-    return;
-  }
-  localStorage.removeItem(CHARACTER_MANAGER_STORAGE_KEY);
-  if (localStorage.getItem(CHARACTER_MANAGER_STORAGE_KEY) !== null) {
-    throw new Error('CHARACTER_MANAGER_ROLLBACK_FAILED');
-  }
 }
 
 async function createNewCharacter() {
@@ -1533,39 +1520,12 @@ async function createNewCharacter() {
   const baseManager = previousManager || createEmptyCharacterManager();
   const characterId = createUniqueCharacterId(baseManager);
   const emptyCharacter = createEmptyCharacterState();
-  let recordCreated = false;
   let indexCommitted = false;
 
   try {
-    writeStoredCharacter(characterId, emptyCharacter);
-    recordCreated = true;
-    const verifiedCharacter = readStoredCharacter(characterId);
-    if (JSON.stringify(verifiedCharacter) !== JSON.stringify(emptyCharacter)) {
-      throw new Error('NEW_CHARACTER_VERIFICATION_FAILED');
-    }
-
     const summary = await createCharacterSummary(emptyCharacter);
-    let nextManager = setCharacterSummary(baseManager, characterId, summary);
-    nextManager = setActiveCharacterId(nextManager, characterId);
-
-    try {
-      writeCharacterManager(nextManager);
-      indexCommitted = true;
-    } catch (indexError) {
-      const recoveredManager = (() => {
-        try {
-          return readCharacterManager();
-        } catch {
-          return null;
-        }
-      })();
-      indexCommitted = Boolean(
-        recoveredManager?.order.includes(characterId)
-        && recoveredManager.characters[characterId]
-        && readStoredCharacter(characterId)
-      );
-      if (!indexCommitted) throw indexError;
-    }
+    await persistNewCharacter(characterId, emptyCharacter, summary, true);
+    indexCommitted = true;
 
     await openCharacter(characterId);
     beginViewTransition(createButton, document.getElementById('characterManagerView'));
@@ -1574,18 +1534,7 @@ async function createNewCharacter() {
     console.error('Não foi possível criar o personagem:', error);
 
     if (!indexCommitted) {
-      try {
-        restoreManagerAfterFailedCreation(previousManager);
-      } catch (rollbackError) {
-        console.error('Não foi possível restaurar o índice após a falha de criação:', rollbackError);
-      }
-      if (recordCreated) {
-        try {
-          removeStoredCharacter(characterId);
-        } catch (rollbackError) {
-          console.error('Não foi possível remover o registro após a falha de criação:', rollbackError);
-        }
-      }
+      // Creation is atomic; an aborted transaction has no record or index to roll back.
     } else {
       discardPendingSave();
       activeCharacterId = null;
@@ -1602,7 +1551,7 @@ async function createNewCharacter() {
         )
         : createModalContent(
           'Não foi possível criar uma nova ficha com segurança.',
-          'Nenhum personagem existente foi alterado. Verifique o espaço disponível neste navegador e tente novamente.'
+          window.CharacterStorage.message(error)
         ),
       actions: [{ label: 'Entendi', className: 'secondary', spanAll: true }]
     });
@@ -1653,61 +1602,18 @@ function findImportedCharacterDuplicate(validation) {
   return possibleDuplicate;
 }
 
+async function persistNewCharacter(id, character, summary, active = false) {
+  await window.CharacterStorage.commit({ [getCharacterStorageKey(id)]: JSON.stringify(character) }, [], () => true, { addCharacter: { id, summary, active } });
+  if (JSON.stringify(readStoredCharacter(id)) !== JSON.stringify(character)) throw new Error('IMPORTED_CHARACTER_VERIFICATION_FAILED');
+}
+
 async function storeImportedCharacterAsNew(character) {
-  const previousManager = readCharacterManager();
-  const baseManager = previousManager || createEmptyCharacterManager();
-  const characterId = createUniqueCharacterId(baseManager);
-  let recordCreated = false;
-  let indexCommitted = false;
-
-  try {
-    writeStoredCharacter(characterId, character);
-    recordCreated = true;
-    const verifiedCharacter = readStoredCharacter(characterId);
-    if (JSON.stringify(verifiedCharacter) !== JSON.stringify(character)) {
-      throw new Error('IMPORTED_CHARACTER_VERIFICATION_FAILED');
-    }
-
-    const summary = await createCharacterSummary(character);
-    const nextManager = setCharacterSummary(baseManager, characterId, summary);
-
-    try {
-      writeCharacterManager(nextManager);
-      indexCommitted = true;
-    } catch (indexError) {
-      const recoveredManager = (() => {
-        try {
-          return readCharacterManager();
-        } catch {
-          return null;
-        }
-      })();
-      indexCommitted = Boolean(
-        recoveredManager?.order.includes(characterId)
-        && recoveredManager.characters[characterId]
-        && readStoredCharacter(characterId)
-      );
-      if (!indexCommitted) throw indexError;
-    }
-
-    return characterId;
-  } catch (error) {
-    if (!indexCommitted) {
-      try {
-        restoreManagerAfterFailedCreation(previousManager);
-      } catch (rollbackError) {
-        console.error('Não foi possível restaurar o índice após a falha de importação:', rollbackError);
-      }
-      if (recordCreated) {
-        try {
-          removeStoredCharacter(characterId);
-        } catch (rollbackError) {
-          console.error('Não foi possível remover o registro após a falha de importação:', rollbackError);
-        }
-      }
-    }
-    throw error;
-  }
+  await window.CharacterStorage.initialize();
+  const manager = readCharacterManager() || createEmptyCharacterManager();
+  const characterId = createUniqueCharacterId(manager);
+  const summary = await createCharacterSummary(character);
+  await persistNewCharacter(characterId, character, summary);
+  return characterId;
 }
 
 async function confirmMenuCharacterImport(validation) {
@@ -1730,7 +1636,7 @@ async function confirmMenuCharacterImport(validation) {
       title: 'Personagem não importado',
       content: createModalContent(
         'Não foi possível adicionar este personagem com segurança.',
-        'Todos os personagens já salvos permanecem intactos. Verifique o espaço disponível e tente novamente.'
+        window.CharacterStorage.message(error)
       ),
       actions: [{ label: 'Entendi', className: 'secondary', spanAll: true }]
     });
@@ -2206,53 +2112,29 @@ globalThis.ChroniclesLocalCharacters = Object.freeze({
     backup.fields.nome = `${baseName} — ${typeLabel} · ${date}`;
 
     const backupId = createUniqueCharacterId(source.manager);
-    let recordCreated = false;
-    try {
-      writeStoredCharacter(backupId, backup);
-      recordCreated = true;
-      const summary = await createCharacterSummary(backup);
-      writeCharacterManager(setCharacterSummary(source.manager, backupId, summary));
-      const verified = readCharacterManager();
-      if (!verified?.order.includes(backupId) || !readStoredCharacter(backupId)) {
-        throw new Error('CONFLICT_BACKUP_VERIFICATION_FAILED');
-      }
-      return { id: backupId, name: summary.name, createdAt };
-    } catch (error) {
-      try { writeCharacterManager(source.manager); } catch (_) { /* Mantém o erro original. */ }
-      if (recordCreated) {
-        try { removeStoredCharacter(backupId); } catch (_) { /* Mantém o erro original. */ }
-      }
-      throw error;
-    }
+    const summary = await createCharacterSummary(backup);
+    await persistNewCharacter(backupId, backup, summary);
+    const verified = readCharacterManager();
+    if (!verified?.order.includes(backupId) || !readStoredCharacter(backupId)) throw new Error('CONFLICT_BACKUP_VERIFICATION_FAILED');
+    return { id: backupId, name: summary.name, createdAt };
+
   },
   async replace(localId, character, options = {}) {
     const stored = getValidatedStoredCharacter(localId);
     const validation = validateImportedSheet(character);
     if (!validation.valid) throw new Error(`INVALID_CONFLICT_RESOLUTION: ${validation.message}`);
     const normalized = cloneCharacterState(validation.normalized);
-    try {
-      writeStoredCharacter(localId, normalized, {
-        authorityToken: options.authorityToken || null,
-        operation: options.operation || 'conflict-resolution'
-      });
-      const summary = await createCharacterSummary(normalized);
-      writeCharacterManager(setCharacterSummary(stored.manager, localId, summary));
-      if (readStoredCharacter(localId) === null) throw new Error('CONFLICT_REPLACE_VERIFICATION_FAILED');
-      if (activeCharacterId === localId && storageMode === 'v4') restoreState(normalized);
-      return normalized;
-    } catch (error) {
-      try {
-        writeStoredCharacter(localId, stored.character, {
-          authorityToken: options.authorityToken || null,
-          operation: options.operation || 'conflict-resolution'
-        });
-        writeCharacterManager(stored.manager);
-        if (activeCharacterId === localId && storageMode === 'v4') restoreState(stored.character);
-      } catch (rollbackError) {
-        console.error('Não foi possível restaurar a ficha após falha na resolução:', rollbackError);
-      }
-      throw error;
-    }
+    const summary = await createCharacterSummary(normalized);
+    const nextManager = setCharacterSummary(stored.manager, localId, summary);
+    const authority = characterEditAuthority(), token = options.authorityToken || null;
+    const operation = options.operation || 'conflict-resolution';
+    await window.CharacterStorage.commit({ [getCharacterStorageKey(localId)]: JSON.stringify(normalized) }, [], () => {
+      const current = authority?.getState?.(localId);
+      return !current || current.mode === 'closed' || authority.authorizeWrite(localId, token, operation);
+    }, { dirtyId: options.dirty ? localId : null, managerPatch: { base: stored.manager, next: nextManager } });
+    if (activeCharacterId === localId && storageMode === 'v4') restoreState(normalized);
+    return normalized;
+
   }
 });
 
@@ -4796,7 +4678,7 @@ function captureDynamicList(containerId, options = {}) {
     });
 }
 
-function saveNow(
+async function saveNow(
   targetId = pendingSaveTargetId ?? (storageMode === 'v4' ? activeCharacterId : null),
   options = {}
 ) {
@@ -4830,32 +4712,38 @@ function saveNow(
     return false;
   }
 
+  const revision = characterSaveRevision;
   captureState();
 
   try {
     if (storageMode === 'v4') {
       const capturedCharacter = cloneCharacterState();
-      writeStoredCharacter(activeCharacterId, capturedCharacter, {
+      await writeStoredCharacter(activeCharacterId, capturedCharacter, {
         authorityToken: operationToken,
-        operation
+        operation,
+        dirty: true
       });
-      queueCharacterMetadataRefresh(activeCharacterId, capturedCharacter);
+      await queueCharacterMetadataRefresh(activeCharacterId, capturedCharacter, { authorityToken: operationToken });
       window.ChroniclesCollaboration?.queueCharacterSync?.(activeCharacterId, capturedCharacter, {
         defer: options.deferOnline === true,
         authorityToken: operationToken
       });
+      await window.CharacterStorage.flush();
       authority?.announce?.('local-draft-changed', activeCharacterId, {
         dirty: true,
         deferredOnline: options.deferOnline === true
       });
     } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      await window.CharacterStorage.commit({ [STORAGE_KEY]: JSON.stringify(state) });
     }
-    hasPendingSave = false;
-    pendingSaveTargetId = null;
-    setStatus('Salvo neste navegador');
+    if (revision === characterSaveRevision) {
+      hasPendingSave = false;
+      pendingSaveTargetId = null;
+      setStatus('Salvo neste navegador');
+    }
     return true;
   } catch (error) {
+    hasPendingSave = true;
     storageAvailable = false;
     console.error('Não foi possível salvar a ficha:', error);
     setStatus('Erro ao salvar', 'error');
@@ -4886,6 +4774,7 @@ function scheduleSave() {
     characterMutationDeniedFeedback();
     return;
   }
+  characterSaveRevision++;
   hasPendingSave = true;
   pendingSaveTargetId = storageMode === 'v4' ? activeCharacterId : null;
   setStatus('Salvando...', 'saving');
@@ -6016,16 +5905,16 @@ function setPhoto(dataUrl) {
 function readAndApplyPhoto(file) {
   const reader = new FileReader();
   reader.onerror = () => showNotification('Não foi possível ler a imagem selecionada.', 'error');
-  reader.onload = () => {
+  reader.onload = async () => {
     const previousPhoto = state.photo;
     setPhoto(reader.result);
-    if (saveNow()) {
+    if (await saveNow()) {
       showNotification('Foto atualizada e salva neste navegador.');
       return;
     }
 
     setPhoto(previousPhoto);
-    saveNow();
+    await saveNow();
     openSheetModal({
       title: 'Foto não adicionada',
       content: createModalContent(
@@ -8222,6 +8111,7 @@ function bindCharacterEditAuthority() {
       }
     },
     reconcile: async ({ localId, authorityToken }) => {
+      await window.CharacterStorage.refresh([getCharacterStorageKey(localId), CHARACTER_MANAGER_STORAGE_KEY, window.CharacterStorage.keys.sync + localId]);
       const localCharacter = readStoredCharacter(localId);
       if (!localCharacter) throw new Error('CHARACTER_NOT_FOUND');
       const reconciled = await reconcileCharacterForEditing(localId, localCharacter, authorityToken);
@@ -8240,7 +8130,7 @@ function bindCharacterEditAuthority() {
     if (result?.acquired && result?.guaranteed) {
       const manager = readCharacterManager();
       if (manager && manager.activeCharacterId !== activeCharacterId) {
-        writeCharacterManager(setActiveCharacterId(manager, activeCharacterId));
+        await writeCharacterManager(setActiveCharacterId(manager, activeCharacterId));
       }
       const stored = readStoredCharacter(activeCharacterId);
       if (stored) restoreState(stored);
@@ -8269,7 +8159,7 @@ function bindCharacterEditAuthority() {
     }
   });
 
-  window.addEventListener('cronicas:character-peer-event', event => {
+  window.addEventListener('cronicas:character-peer-event', async event => {
     const detail = event.detail || {};
     if (detail.localId !== activeCharacterId || storageMode !== 'v4') return;
     const authorityState = authority.getState(activeCharacterId);
@@ -8281,6 +8171,7 @@ function bindCharacterEditAuthority() {
       'publication-created',
       'remote-reconciled'
     ].includes(detail.type)) return;
+    await window.CharacterStorage.refresh([getCharacterStorageKey(activeCharacterId), CHARACTER_MANAGER_STORAGE_KEY, window.CharacterStorage.keys.sync + activeCharacterId]);
     const stored = readStoredCharacter(activeCharacterId);
     if (stored) {
       restoreState(stored);
@@ -8323,7 +8214,7 @@ function bindDynamicButtons() {
     read: () => state,
     canEdit: () => activeCharacterCanMutate('edit'),
     feedback: showNotification,
-    switchEye: (initialize, prepareOnly = false) => {
+    switchEye: async (initialize, prepareOnly = false) => {
       if (!activeCharacterCanMutate('edit')) return { ok: false };
       captureState();
       const previous = cloneCharacterState();
@@ -8340,7 +8231,7 @@ function bindDynamicButtons() {
         state.manifestations = next.manifestations;
         state.coyoteEyes = next.coyoteEyes;
         restoreDynamicList('listaManifestacoes', 'templateManifestacao', window.CoyoteEyes.activeRecords(state), 'Nova Manifestação');
-        if (!saveNow(activeCharacterId, { authorityToken: token })) throw new Error('Não foi possível salvar a alternância. Os dois conjuntos foram preservados.');
+        if (!await saveNow(activeCharacterId, { authorityToken: token })) throw new Error('Não foi possível salvar a alternância. Os dois conjuntos foram preservados.');
         return { ok: true, first };
       } catch (error) {
         state.manifestations = previous.manifestations;
@@ -8368,13 +8259,13 @@ function bindDynamicButtons() {
       state.goldGeneration.officialEnhancements[id] = cloneCharacterState(config);
       scheduleSave();
     },
-    commit: (next, pn) => {
+    commit: async (next, pn) => {
       if (!activeCharacterCanMutate('edit')) return false;
       const previous = cloneCharacterState(state.goldGeneration);
       const previousPn = document.getElementById('pnAtual').value;
       state.goldGeneration = window.GoldGeneration.normalizeState(next);
       if (pn !== undefined) document.getElementById('pnAtual').value = String(pn);
-      const saved = saveNow();
+      const saved = await saveNow();
       if (!saved) {
         state.goldGeneration = previous;
         document.getElementById('pnAtual').value = previousPn;
@@ -8389,11 +8280,11 @@ function bindDynamicButtons() {
     identity: () => activeCharacterId || storageMode,
     read: () => cloneCharacterState(state.enchantments || []),
     canEdit: () => activeCharacterCanMutate('edit'),
-    commit: list => {
+    commit: async list => {
       if (!activeCharacterCanMutate('edit')) return false;
       const previous = cloneCharacterState(state.enchantments || []);
       state.enchantments = window.Enchantments.validate(list);
-      const saved = saveNow();
+      const saved = await saveNow();
       if (!saved) state.enchantments = previous;
       return saved;
     }
@@ -9142,7 +9033,6 @@ async function duplicateCharacterById(id, actionButton, { closeMobileModal = fal
 
   let previousManager = null;
   let duplicateId = '';
-  let recordCreated = false;
   let indexCommitted = false;
 
   try {
@@ -9165,14 +9055,6 @@ async function duplicateCharacterById(id, actionButton, { closeMobileModal = fal
     if (originalName) duplicate.fields.nome = `${originalName} — Cópia`;
 
     duplicateId = createUniqueCharacterId(previousManager);
-    writeStoredCharacter(duplicateId, duplicate);
-    recordCreated = true;
-
-    const verifiedDuplicate = readStoredCharacter(duplicateId);
-    if (JSON.stringify(verifiedDuplicate) !== JSON.stringify(duplicate)) {
-      throw new Error('DUPLICATED_CHARACTER_VERIFICATION_FAILED');
-    }
-
     const duplicatedAt = new Date().toISOString();
     const duplicateSummary = {
       name: originalName ? `${originalName} — Cópia` : '',
@@ -9182,8 +9064,7 @@ async function duplicateCharacterById(id, actionButton, { closeMobileModal = fal
         ?? createPhotoFingerprint(duplicate.photo || ''),
       updatedAt: duplicatedAt
     };
-    const nextManager = setCharacterSummary(previousManager, duplicateId, duplicateSummary);
-    writeCharacterManager(nextManager);
+    await persistNewCharacter(duplicateId, duplicate, duplicateSummary);
 
     const verifiedManager = readCharacterManager();
     indexCommitted = Boolean(
@@ -9200,21 +9081,6 @@ async function duplicateCharacterById(id, actionButton, { closeMobileModal = fal
     focusCharacterCardAfterManagerUpdate(duplicateId);
   } catch (error) {
     console.error('Não foi possível duplicar o personagem:', error);
-
-    if (!indexCommitted && previousManager) {
-      try {
-        writeCharacterManager(previousManager);
-      } catch (rollbackError) {
-        console.error('Não foi possível restaurar o índice após a falha de duplicação:', rollbackError);
-      }
-    }
-    if (!indexCommitted && recordCreated && duplicateId) {
-      try {
-        removeStoredCharacter(duplicateId);
-      } catch (rollbackError) {
-        console.error('Não foi possível remover a cópia incompleta:', rollbackError);
-      }
-    }
 
     openModal({
       title: 'Personagem não duplicado',
@@ -9344,7 +9210,7 @@ async function deleteCharacterById(id, options = {}) {
       const result = await authority.runExclusive(id, 'delete', authorityToken => (
         performDeleteCharacterById(id, { ...options, authorityToken })
       ));
-      if (localStorage.getItem(getCharacterStorageKey(id)) === null) await authority.release(id);
+      if (window.CharacterStorage.get(getCharacterStorageKey(id)) === null) await authority.release(id);
       return result;
     }
     return await performDeleteCharacterById(id, options);
@@ -9376,11 +9242,9 @@ async function performDeleteCharacterById(id, { backupPrepared = false, authorit
         characterRemovedAt: new Date().toISOString()
       };
     }
-    writeCharacterManager(nextManager);
+    await window.CharacterStorage.commit({}, [getCharacterStorageKey(id), window.CharacterStorage.keys.sync + id], () => !characterEditAuthority() || characterEditAuthority().authorizeWrite(id, authorityToken, 'delete'), { managerPatch: { base: previousManager, next: nextManager } });
     indexUpdated = true;
-
-    removeStoredCharacter(id, { authorityToken, operation: 'delete' });
-    if (localStorage.getItem(getCharacterStorageKey(id)) !== null) {
+    if (window.CharacterStorage.get(getCharacterStorageKey(id)) !== null) {
       throw new Error('CHARACTER_DELETE_VERIFICATION_FAILED');
     }
 
@@ -9422,10 +9286,10 @@ async function performDeleteCharacterById(id, { backupPrepared = false, authorit
     if (
       indexUpdated
       && previousManager
-      && localStorage.getItem(getCharacterStorageKey(id)) !== null
+      && window.CharacterStorage.get(getCharacterStorageKey(id)) !== null
     ) {
       try {
-        writeCharacterManager(previousManager);
+        await writeCharacterManager(previousManager);
       } catch (recoveryError) {
         console.error('Não foi possível restaurar o personagem no índice:', recoveryError);
       }
@@ -9508,9 +9372,7 @@ function importSheet(file) {
         {
           label: 'Importar',
           onClick: async () => {
-            const previousCharacter = storageMode === 'v4' && activeCharacterId
-              ? readStoredCharacter(activeCharacterId)
-              : null;
+            let importCommitted = false;
             const authority = characterEditAuthority();
             const authorityToken = storageMode === 'v4' && activeCharacterId
               ? authority?.beginOperation?.(activeCharacterId, 'write')
@@ -9521,19 +9383,19 @@ function importSheet(file) {
             }
             try {
               if (storageMode === 'v4' && activeCharacterId) {
-                writeStoredCharacter(activeCharacterId, validation.normalized, {
-                  authorityToken,
-                  operation: 'write'
+                await window.ChroniclesLocalCharacters.replace(activeCharacterId, validation.normalized, {
+                  authorityToken, operation: 'write', dirty: true
                 });
-                await refreshCharacterMetadata(activeCharacterId, validation.normalized);
+                importCommitted = true;
                 await window.ChroniclesCollaboration?.queueCharacterSync?.(
                   activeCharacterId,
                   validation.normalized,
                   { defer: true, authorityToken }
                 );
               } else {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(validation.normalized));
+                await window.CharacterStorage.commit({ [STORAGE_KEY]: JSON.stringify(validation.normalized) });
               }
+              await window.CharacterStorage.flush();
               const successMessage = validation.corrections.length
                 ? `Personagem importado. ${validation.corrections.length} correção(ões) foi(ram) aplicada(s).`
                 : 'Personagem importado com sucesso.';
@@ -9544,18 +9406,9 @@ function importSheet(file) {
               }
             } catch (error) {
               console.error(error);
-              if (previousCharacter && activeCharacterId) {
-                try {
-                  writeStoredCharacter(activeCharacterId, previousCharacter, {
-                    authorityToken,
-                    operation: 'write'
-                  });
-                  await refreshCharacterMetadata(activeCharacterId, previousCharacter);
-                } catch (rollbackError) {
-                  console.error('Não foi possível restaurar o personagem após a falha de importação:', rollbackError);
-                }
-              }
-              showNotification('Não foi possível salvar a ficha importada. O personagem atual foi mantido.', 'error', 6500);
+              showNotification(importCommitted
+                ? 'A ficha importada foi gravada, mas a confirmação Online ficou pendente. Mantenha esta aba aberta e exporte um backup.'
+                : window.CharacterStorage.message(error), 'error', 8500);
             } finally {
               authority?.endOperation?.(authorityToken);
             }
@@ -9582,7 +9435,7 @@ function bindHeaderActions() {
 
 function loadSavedState() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = window.CharacterStorage.get(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
 
     // Não migra automaticamente a v0.2 para evitar alterar o backup estável.
@@ -9597,7 +9450,31 @@ function loadSavedState() {
   }
 }
 
-function init() {
+async function init() {
+  setStatus('Preparando banco local...', 'saving');
+  window.addEventListener('cronicas:character-storage-blocked', () => showNotification('Feche as abas antigas para permitir a abertura do banco local. Seus dados não foram apagados.', 'warning', 12000));
+  try { await window.CharacterStorage.initialize(); }
+  catch (error) {
+    console.error("Banco de personagens indisponível:", error);
+    bindModalSystem();
+    openModal({title: "Armazenamento não disponível", content: createModalContent(window.CharacterStorage.message(error), "As fichas antigas não foram removidas."), actions: [{label: "Exportar recuperação", onClick: async () => {
+      const snapshot = await window.CharacterStorage.recoverySnapshot();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([JSON.stringify(snapshot)], {type: 'application/json'}));
+      link.download = 'cronicas-recuperacao-armazenamento.json'; link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }}, ...(error.message === 'LEGACY_STORAGE_CHANGED_AFTER_MIGRATION' ? [{label: 'Manter banco IndexedDB', onClick: () => {
+      openModal({title:'Confirmar fonte Local',content:createModalContent('Continuar com as fichas já gravadas no IndexedDB?', 'Exporte a recuperação primeiro. As alterações feitas por abas antigas ficam preservadas no localStorage, mas não serão aplicadas sobre o banco novo.'),actions:[{label:'Confirmar banco IndexedDB',onClick:async()=>{await window.CharacterStorage.acknowledgeLegacyChanges();location.reload();}},{label:'Cancelar',className:'secondary'}]});
+    }}] : []), {label: "Entendi", className: "secondary"}]});
+    return;
+  }
+  window.addEventListener('cronicas:character-storage-error', event => {
+    storageAvailable = false;
+    setCharacterMutationControlsDisabled(true);
+    setStatus('Armazenamento precisa de revisão', 'error');
+    showNotification(window.CharacterStorage.message(event.detail), 'error', 12000);
+  });
+  window.addEventListener('cronicas:character-storage-refreshed', () => { if (!document.getElementById('characterManagerView').hidden) renderCharacterManager(); });
   bindModalSystem();
   bindQuickDice();
   buildSkills();
@@ -9621,8 +9498,8 @@ function init() {
   captureInitialFieldValues();
   restoreState(loadSavedState());
   if (storageAvailable) setStatus('Salvo neste navegador');
-  startV3CharacterMigration();
-  void window.ChroniclesCollaboration?.resumePendingCharacterSync?.('startup');
+  await startV3CharacterMigration();
+  void window.ChroniclesCollaboration?.resumePendingCharacterSync?.('startup')?.catch(error => console.error('Retomada Online não disponível:', error));
 
   try {
     const pendingNotice = sessionStorage.getItem(NOTICE_SESSION_KEY);
@@ -9634,11 +9511,14 @@ function init() {
     console.warn('Não foi possível recuperar a mensagem de confirmação:', error);
   }
 
-  window.addEventListener('beforeunload', () => {
+  window.characterStorageReady = true;
+  window.addEventListener('beforeunload', event => {
+    if (hasPendingSave || window.CharacterStorage.isPending()) { event.preventDefault(); event.returnValue = ''; }
     persistPendingCharacterBeforeSuspension();
   });
-  window.addEventListener('pagehide', () => {
-    persistPendingCharacterBeforeSuspension();
+  window.addEventListener('pagehide', async () => {
+    await persistPendingCharacterBeforeSuspension();
+    try { await window.CharacterStorage.flush(); } catch (error) { console.error('Gravação pendente na suspensão:', error); return; }
     window.ChroniclesCollaboration?.stopCharacterRealtime?.(activeCharacterId);
     characterEditAuthority()?.shutdown?.();
   });

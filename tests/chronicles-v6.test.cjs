@@ -28,7 +28,7 @@ const server = http.createServer(async (req,res) => {
   page.on('dialog', dialog => dialog.accept());
   try {
     await page.goto(url + '/index.html');
-    await page.waitForFunction(() => typeof createEmptyCharacterState === 'function' && !!window.RollHistory);
+    await page.waitForFunction(() => window.characterStorageReady && !!window.RollHistory);
     check(await page.locator('.chronicle-actions-list button').count() === 3,'Exatamente três ações globais');
     check(await page.locator('#newConfrontationAction,#newConfrontationEmpty,#addChronicleParticipantEmpty,#manageChronicleCastAction').count() === 0,'Atalhos redundantes removidos');
     const upgrades = await page.evaluate(async () => {
@@ -68,7 +68,7 @@ const server = http.createServer(async (req,res) => {
     }); upgrades.forEach(label=>check(true,label));
     const ids = await page.evaluate(async () => {
       const character=createEmptyCharacterState();character.fields.nome='Dylann';character.fields.classe='Atirador';character.fields.nivel=2;
-      const id='character-v6-test';writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));writeCharacterManager(manager);renderCharacterManager();
+      const id='character-v6-test';await writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));await writeCharacterManager(manager);renderCharacterManager();
       const api=ChroniclesStorage,c=await api.createChronicle({name:'Crônica Alpha',type:'campaign',synopsis:'Teste'}),other=await api.createChronicle({name:'Outra Crônica',type:'oneshot',synopsis:''});
       await api.replaceChronicleCast(c.id,[id]);await api.createChronicleParticipant(c.id,{name:'Felipe'});
       const battle=await api.createConfrontation(c.id,{name:'Confronto de teste',description:'Contexto'});
@@ -202,7 +202,7 @@ const server = http.createServer(async (req,res) => {
     await page.locator('#masterShieldAccess button').filter({hasText:'Redefinir senha local'}).click();await page.locator('#modalActions button').filter({hasText:'Redefinir senha'}).click();
     await page.waitForFunction(()=>document.querySelector('#masterShieldAccess h3').textContent.includes('Definir'));
     check(await page.evaluate(async id=>Boolean(await ChroniclesStorage.getChronicleMasterNote(id)) && (await ChroniclesStorage.listPrivateEntries('investigation',id)).length>0 && (await ChroniclesStorage.listPrivateEntries('journal',id)).length>0,ids.chronicle),'Redefinir senha preserva conteúdo privado');
-    await unlock();await page.reload();
+    await unlock();await page.reload();await page.waitForFunction(()=>window.characterStorageReady);
     await page.evaluate(async ids=>{showManagerSection('chronicles');await openChronicleDetail(ids.chronicle,1,document.getElementById('openChronicleCreation'));openChronicleMasterShield();},ids);
     await page.waitForFunction(()=>!document.getElementById('masterShieldAccess').hidden);
     check(!(await page.locator('#masterShieldPrivate').isVisible()),'Reload remove desbloqueio');
@@ -250,7 +250,7 @@ const server = http.createServer(async (req,res) => {
     check(true,'Carregar mais consulta todo histórico retido dentro do Rolador');
     await page.evaluate(async()=>{await closeCharacter();showCharacterManagerView();});
     check(await page.locator('#quickDiceHistoryControls').evaluate(el=>el.hidden),'Sem personagem não expõe histórico anterior');
-    const another=await page.evaluate(async()=>{const id='other-sheet-test', character=createEmptyCharacterState();writeStoredCharacter(id,character);let manager=readCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));writeCharacterManager(manager);await openCharacter(id);showCharacterSheetView();return id;});
+    const another=await page.evaluate(async()=>{const id='other-sheet-test', character=createEmptyCharacterState();await writeStoredCharacter(id,character);let manager=readCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));await writeCharacterManager(manager);await openCharacter(id);showCharacterSheetView();return id;});
     await page.waitForFunction(()=>!document.getElementById('quickRollDestination').disabled);
     check(await page.locator('#quickRollDestination').inputValue()==='','Personagem sem Crônica usa Somente ficha');
     if(!(await page.locator('#quickDicePanel').isVisible()))await page.locator('#quickDiceToggle').click();
@@ -259,7 +259,7 @@ const server = http.createServer(async (req,res) => {
     await page.locator('#quickDiceExpression').fill('2d20');await page.locator('#quickDiceForm').evaluate(f=>f.requestSubmit());
     await page.waitForFunction(()=>document.querySelectorAll('#quickRollHistory .roll-history-row').length===1);
     check(await page.evaluate(async id=>{const r=(await ChroniclesStorage.listRollHistory('character',id)).records[0];return r.result.total===r.result.rolls.reduce((a,b)=>a+b,0)&&r.resolution==='sum';},another),'2d20 continua soma, com histórico atualizado sem rerrolar');
-    const two=await context.newPage();await two.goto(url+'/index.html');await two.evaluate(async ids=>{showManagerSection('chronicles');await openChronicleDetail(ids.chronicle,1,document.getElementById('openChronicleCreation'));openChronicleMasterShield();},ids);
+    const two=await context.newPage();await two.goto(url+'/index.html');await two.waitForFunction(()=>window.characterStorageReady);await two.evaluate(async ids=>{showManagerSection('chronicles');await openChronicleDetail(ids.chronicle,1,document.getElementById('openChronicleCreation'));openChronicleMasterShield();},ids);
     await two.waitForFunction(()=>!document.getElementById('masterShieldAccess').hidden);check(!(await two.locator('#masterShieldPrivate').isVisible()),'Outra aba não herda desbloqueio');await two.close();
     // Confrontos e Escudo possuem o fluxo atual completo em combates-flow.test.cjs.
     for (const test of ['elenco-v1','participantes-v1']) {

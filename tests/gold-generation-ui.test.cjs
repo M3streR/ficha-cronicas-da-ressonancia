@@ -26,6 +26,7 @@ const server = http.createServer(async (request, response) => {
   async function code(target = page) {
     await target.locator('#voltarPersonagens').focus();
     for (const key of ['ArrowUp', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'g', 'e']) await target.keyboard.press(key);
+    await target.waitForFunction(()=>!hasPendingSave && !CharacterStorage.isPending());
   }
   async function showManifestations() {
     await page.evaluate(() => { closeNotesView(); showMobileSection('conteudo', { scrollToTop: false }); document.getElementById('contentTabManifestacoes').click(); });
@@ -43,9 +44,9 @@ const server = http.createServer(async (request, response) => {
         character.fields.pnAtual = '16'; character.fields.pnMax = '16';
         character.manifestations = [{ nome: 'Selo de teste', custo: '3', descricao: 'Dano, alcance e duração ficam intactos.', favorite: true }];
         character.notes = [{ id: 'note-gold-001', title: 'Privada', content: 'Não compartilhar', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }];
-        writeStoredCharacter(id, character); manager = setCharacterSummary(manager, id, await createCharacterSummary(character));
+        await writeStoredCharacter(id, character); manager = setCharacterSummary(manager, id, await createCharacterSummary(character));
       }
-      writeCharacterManager(manager); await openCharacter('character-gold-001'); showCharacterSheetView();
+      await writeCharacterManager(manager); await openCharacter('character-gold-001'); showCharacterSheetView();
     });
     assert.equal(await page.locator('#goldGenerationControls').isVisible(), false);
     assert.equal(await page.locator('.gold-enhancement-config').count(), 0);
@@ -64,6 +65,7 @@ const server = http.createServer(async (request, response) => {
     await page.keyboard.press('ArrowUp'); await page.waitForTimeout(2100);
     for (const key of ['ArrowUp','ArrowLeft','ArrowDown','g','e']) await page.keyboard.press(key);
     assert.equal((await state()).goldGeneration.unlocked, false);
+    await page.evaluate(()=>{window.goldRevealObserved=false;window.goldTestObserver=new MutationObserver(()=>{if(document.querySelector('.gold-unlock-reveal'))window.goldRevealObserved=true;});goldTestObserver.observe(document.getElementById('characterSheetView'),{childList:true,subtree:true});});
     await code();
     assert.equal((await state()).goldGeneration.active, true);
     assert.equal(await page.locator('#characterSheetView').getAttribute('data-character-mode'), 'gold');
@@ -71,7 +73,7 @@ const server = http.createServer(async (request, response) => {
       accent: getComputedStyle(document.documentElement).getPropertyValue('--color-accent'),
       manager: getComputedStyle(document.getElementById('characterManagerView')).backgroundImage
     })), outsideTheme);
-    assert.equal(await page.locator('.gold-unlock-reveal').count(), 1);
+    assert.equal(await page.evaluate(()=>window.goldRevealObserved), true);
     await showManifestations();
     await card().locator('.card-title').click();
     const config = card().locator('.gold-enhancement-config');
@@ -86,15 +88,18 @@ const server = http.createServer(async (request, response) => {
     assert.equal(Number((await state()).fields.pnAtual), 16);
     await use.click();
     await page.locator('#appModal').getByRole('button', { name: 'Confirmar Aprimoramento', exact: true }).click();
+    await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.equal(Number((await state()).fields.pnAtual), 11);
     assert.equal((await state()).goldGeneration.availableFromRound, 100);
     assert.equal(await use.isDisabled(), false);
     assert.equal(await page.locator('#goldRoundControls, #goldRoundStatus, #goldAdvanceRound, #goldResetRounds').count(), 0);
     await page.locator('#goldGenerationToggle').click();
+    await page.waitForFunction(()=>!hasPendingSave && !CharacterStorage.isPending());
     assert.equal(await page.locator('.gold-enhancement-config').count(), 0);
     await page.locator('#goldGenerationToggle').click();
+    await page.waitForFunction(()=>!hasPendingSave && !CharacterStorage.isPending());
     assert.equal(await use.isDisabled(), false);
-    await page.reload(); await page.waitForFunction(() => typeof openCharacter === 'function');
+    await page.reload(); await page.waitForFunction(() => typeof openCharacter === 'function' && window.characterStorageReady===true);
     await page.evaluate(async () => { await openCharacter('character-gold-001'); showCharacterSheetView(); });
     assert.equal((await state()).goldGeneration.round, 8);
     assert.equal((await state()).goldGeneration.availableFromRound, 100);
@@ -104,11 +109,13 @@ const server = http.createServer(async (request, response) => {
     // Save failure rolls back the debit and preserves legacy data; retry remains possible.
     await page.evaluate(() => { window.goldOriginalWriter = writeStoredCharacter; writeStoredCharacter = () => { throw new Error('TEST_GOLD_STORAGE_FAILURE'); }; });
     await use.click(); await page.locator('#appModal').getByRole('button', { name: 'Confirmar Aprimoramento', exact: true }).click();
+    await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.match(await page.locator('#appModal [role=alert]').innerText(), /preservados/);
     assert.equal(Number((await state()).fields.pnAtual), 11);
     assert.equal((await state()).goldGeneration.availableFromRound, 100);
     await page.evaluate(() => { writeStoredCharacter = window.goldOriginalWriter; window.goldConfirmedButton = Array.from(document.querySelectorAll('#appModal button')).find(button => button.textContent === 'Confirmar Aprimoramento'); });
     await page.locator('#appModal').getByRole('button', { name: 'Confirmar Aprimoramento', exact: true }).click();
+    await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.equal(Number((await state()).fields.pnAtual), 6);
     await page.evaluate(() => window.goldConfirmedButton.click());
     assert.equal(Number((await state()).fields.pnAtual), 6);
@@ -116,11 +123,12 @@ const server = http.createServer(async (request, response) => {
     await use.click();
     assert.match(await page.locator('#appModal').innerText(), /espere uma rodada completa/);
     await page.locator('#appModal').getByRole('button', { name: 'Confirmar Aprimoramento', exact: true }).click();
+    await page.waitForFunction(()=>!CharacterStorage.isPending());
     assert.equal(Number((await state()).fields.pnAtual), 1);
     assert.equal(await use.isDisabled(), true);
     assert.equal((await state()).goldGeneration.round, 8);
     assert.equal((await state()).goldGeneration.availableFromRound, 100);
-    await page.evaluate(() => { document.getElementById('pnAtual').value = '16'; updateResourceUI('pnAtual'); saveNow(); });
+    await page.evaluate(async () => { document.getElementById('pnAtual').value = '16'; updateResourceUI('pnAtual'); await saveNow(); });
     // Official abilities stay derived and their manual descriptors live separately.
     await page.evaluate(() => { document.getElementById('contentTabHabilidades').click(); });
     const official = page.locator('.automatic-class-ability').first();
@@ -129,7 +137,7 @@ const server = http.createServer(async (request, response) => {
     await official.locator('[data-gold-field=aspect]').fill('Dados adicionais');
     await official.locator('[data-gold-field=normalValue]').fill('1');
     await official.locator('[data-gold-field=basePnCost]').fill('4');
-    const persisted = await page.evaluate(() => { saveNow(); return { saved: readStoredCharacter(activeCharacterId), validated: validateImportedSheet(cloneCharacterState()) }; });
+    const persisted = await page.evaluate(async () => { await saveNow(); return { saved: readStoredCharacter(activeCharacterId), validated: validateImportedSheet(cloneCharacterState()) }; });
     assert.equal(persisted.validated.valid, true);
     assert.equal(persisted.validated.normalized.goldGeneration.round, 8);
     assert.equal(persisted.validated.normalized.goldGeneration.availableFromRound, 100);
@@ -138,11 +146,11 @@ const server = http.createServer(async (request, response) => {
     assert.equal(persisted.saved.manifestations[0].signatureEnhancement.normalValue, '2');
     assert.equal(persisted.saved.manifestations[0].favorite, true);
     assert.equal(persisted.validated.normalized.manifestations[0].signatureEnhancement.aspect, 'Quantidade de alvos');
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       addDynamicCard('listaHabilidades', 'templateHabilidade', {
         nome: 'Habilidade pessoal', custo: 'Custo definido narrativamente', efeito: 'Texto original intacto.',
         signatureEnhancement: { enabled: true, calculation: 'numeric', aspect: 'Alcance', normalValue: '3', enhancedValue: '6', basePnCost: '1' }
-      }); saveNow();
+      }); await saveNow();
     });
     const personal = page.locator('#listaHabilidades .editable-card:not(.automatic-class-ability)').first();
     await personal.getByRole('button', { name: 'Usar Aprimoramento', exact: true }).click();
@@ -163,12 +171,12 @@ const server = http.createServer(async (request, response) => {
     assert.equal(copied.goldGeneration.availableFromRound, 100);
     // Observer has no new mutation path, including programmatic calls.
     const observer = await context.newPage(); await observer.goto(url);
-    await observer.waitForFunction(() => typeof openCharacter === 'function');
+    await observer.waitForFunction(() => typeof openCharacter === 'function' && window.characterStorageReady===true);
     await observer.evaluate(async () => { await openCharacter('character-gold-001'); showCharacterSheetView(); });
     assert.equal(await observer.locator('#goldGenerationToggle').isDisabled(), true);
-    const beforeObserver = await page.evaluate(() => localStorage.getItem(getCharacterStorageKey(activeCharacterId)));
+    const beforeObserver = await page.evaluate(() => CharacterStorage.get(getCharacterStorageKey(activeCharacterId)));
     await observer.evaluate(() => { document.getElementById('goldGenerationToggle').click(); document.querySelector('.gold-use-enhancement')?.click(); });
-    assert.equal(await page.evaluate(() => localStorage.getItem(getCharacterStorageKey(activeCharacterId))), beforeObserver);
+    assert.equal(await page.evaluate(() => CharacterStorage.get(getCharacterStorageKey(activeCharacterId))), beforeObserver);
     await observer.close();
     // Plain character keeps standard colors and no visible special controls.
     await page.evaluate(async () => { await openCharacter('character-alpha-002'); showCharacterSheetView(); });
@@ -186,11 +194,11 @@ const server = http.createServer(async (request, response) => {
     assert.equal(await page.locator('#notesView').isVisible(), true);
     const touchContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
     const touchPage = await touchContext.newPage(); touchPage.on('pageerror', error => errors.push(error.message));
-    await touchPage.goto(url); await touchPage.waitForFunction(() => typeof openCharacter === 'function');
+    await touchPage.goto(url); await touchPage.waitForFunction(() => typeof openCharacter === 'function' && window.characterStorageReady===true);
     await touchPage.evaluate(async () => {
       const id = 'character-real-touch-001', c = createEmptyCharacterState(); c.fields.nome = 'Toque real';
       let manager = createEmptyCharacterManager(); manager = setCharacterSummary(manager, id, await createCharacterSummary(c));
-      writeStoredCharacter(id, c); writeCharacterManager(manager); await openCharacter(id); showCharacterSheetView(); showMobileSection('conteudo', { scrollToTop: false });
+      await writeStoredCharacter(id, c); await writeCharacterManager(manager); await openCharacter(id); showCharacterSheetView(); showMobileSection('conteudo', { scrollToTop: false });
       document.getElementById('contentTabEquipamentos').click();
     });
     for (let i = 0; i < 4; i++) await touchPage.locator('#sheetBrand h1').tap();
@@ -227,9 +235,9 @@ const server = http.createServer(async (request, response) => {
     await config.locator('[data-gold-field=normalValue]').fill('2d8');
     await config.locator('[data-gold-field=enhancedValue]').fill('4d8');
     assert.match(await config.locator('.gold-enhancement-preview').innerText(), /2d8 → 4d8/);
-    await page.evaluate(() => { document.getElementById('pnAtual').value = '4'; updateResourceUI('pnAtual'); saveNow(); });
+    await page.evaluate(async () => { document.getElementById('pnAtual').value = '4'; updateResourceUI('pnAtual'); await saveNow(); });
     assert.equal(await use.isDisabled(), true);
-    await page.evaluate(() => { document.getElementById('pnAtual').value = '16'; updateResourceUI('pnAtual'); saveNow(); });
+    await page.evaluate(async () => { document.getElementById('pnAtual').value = '16'; updateResourceUI('pnAtual'); await saveNow(); });
     await fs.mkdir(artifacts, { recursive: true });
     for (const width of [1920,1366,1280,1279,1024,768,430,390,360,320]) {
       await page.setViewportSize({ width, height: width >= 1024 ? 900 : 844 });

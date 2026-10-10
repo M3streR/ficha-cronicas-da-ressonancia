@@ -28,7 +28,7 @@ const server = http.createServer(async (req,res) => {
   page.on('dialog', dialog => dialog.accept());
   try {
     await page.goto(url + '/index.html');
-    await page.waitForFunction(() => typeof createEmptyCharacterState === 'function' && !!window.RollHistory);
+    await page.waitForFunction(() => window.characterStorageReady && !!window.RollHistory);
     check(await page.locator('.chronicle-actions-list button').count() === 3,'Exatamente três ações globais');
     check(await page.locator('#newConfrontationAction,#newConfrontationEmpty,#addChronicleParticipantEmpty,#manageChronicleCastAction').count() === 0,'Atalhos redundantes removidos');
     const upgrades = await page.evaluate(async () => {
@@ -68,7 +68,7 @@ const server = http.createServer(async (req,res) => {
     }); upgrades.forEach(label=>check(true,label));
     const ids = await page.evaluate(async () => {
       const character=createEmptyCharacterState();character.fields.nome='Dylann';character.fields.classe='Atirador';character.fields.nivel=2;
-      const id='character-v6-test';writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));writeCharacterManager(manager);renderCharacterManager();
+      const id='character-v6-test';await writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));await writeCharacterManager(manager);renderCharacterManager();
       const api=ChroniclesStorage,c=await api.createChronicle({name:'Crônica Alpha',type:'campaign',synopsis:'Teste'}),other=await api.createChronicle({name:'Outra Crônica',type:'oneshot',synopsis:''});
       await api.replaceChronicleCast(c.id,[id]);await api.createChronicleParticipant(c.id,{name:'Felipe'});
       const battle=await api.createConfrontation(c.id,{name:'Confronto de teste',description:'Contexto'});
@@ -237,7 +237,7 @@ const server = http.createServer(async (req,res) => {
     await page.locator('#confrontationAdversaries').getByRole('button',{name:/Editar Monstro/}).click();await page.locator('#confrontationAdversaryPVCurrent').fill('18');await page.locator('#confrontationAdversaryForm').evaluate(f=>f.requestSubmit());
     await page.waitForFunction(()=>document.getElementById('confrontationAdversaryForm').hidden);
     check(await page.evaluate(async id=>(await ChroniclesStorage.getConfrontation(id)).active&&(await ChroniclesStorage.listConfrontationAdversaries(id)).find(a=>a.name==='Monstro').pvCurrent===18,prepared.id),'Edição operacional existente preserva active e adversário');
-    await page.reload();await openChronicle();await page.locator('[data-chronicle-detail-tab="encounters"]').click();
+    await page.reload();await page.waitForFunction(()=>window.characterStorageReady);await openChronicle();await page.locator('[data-chronicle-detail-tab="encounters"]').click();
     await page.waitForFunction(()=>document.querySelector('#confrontationIndex li'));
     check(await page.locator('#confrontationIndex li').count()===1,'Reload mantém exatamente o Confronto ativo');
     await page.locator('#confrontationIndex button').click();await page.waitForFunction(()=>!document.getElementById('confrontationView').hidden);
@@ -245,7 +245,7 @@ const server = http.createServer(async (req,res) => {
     await page.locator('#endConfrontation').click();await page.waitForFunction(()=>!document.getElementById('confrontationEmpty').hidden&&!document.getElementById('chronicleDetailView').hidden);
     check(await page.locator('#confrontationIndex li').count()===0,'Encerrar remove ativo da aba externa');
     check(await page.evaluate(async ({id,snapshot})=>!(await ChroniclesStorage.getConfrontation(id)).active&&JSON.stringify([await ChroniclesStorage.listConfrontationCharacterIds(id),await ChroniclesStorage.listConfrontationAdversaries(id)])===snapshot,{id:prepared.id,snapshot:compositionBefore}),'Encerrar não exclui nem muda composição');
-    await page.reload();await openChronicle();await page.locator('[data-chronicle-detail-tab="encounters"]').click();await page.waitForFunction(()=>!document.getElementById('confrontationEmpty').hidden);
+    await page.reload();await page.waitForFunction(()=>window.characterStorageReady);await openChronicle();await page.locator('[data-chronicle-detail-tab="encounters"]').click();await page.waitForFunction(()=>!document.getElementById('confrontationEmpty').hidden);
     check(await page.locator('#confrontationIndex li').count()===0,'Reload mantém encerrado inativo');
     await shield();await modules();await page.waitForFunction(()=>document.getElementById('masterShieldConfrontationsList').textContent.includes('Ataque preparado'));
     check(await page.locator('#masterShieldConfrontationsList li').count()===2,'Preparado/encerrado e legado preservados em Combates');
