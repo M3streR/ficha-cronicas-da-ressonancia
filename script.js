@@ -8322,7 +8322,6 @@ function bindDynamicButtons() {
     identity: () => activeCharacterId || '',
     read: () => state,
     canEdit: () => activeCharacterCanMutate('edit'),
-    ownerId: async () => (await window.CronicasSupabase?.getUser?.())?.id || '',
     feedback: showNotification,
     switchEye: (initialize, prepareOnly = false) => {
       if (!activeCharacterCanMutate('edit')) return { ok: false };

@@ -1,7 +1,5 @@
 (function (global) {
   'use strict';
-  // Original character and owner explicitly confirmed by the user; copies never inherit eligibility.
-  const approvedBindings = Object.freeze([{ localId: '0049dc8f-fd8d-4d9a-8475-f046ac4de106', ownerId: '066d66c0-d5e7-48a9-81c7-35b593d0648b' }]);
   const originalRecords = [
   {
     "nome": "PRECISÃO FANTASMAGÓRICA",
@@ -84,14 +82,22 @@
     next.coyoteEyes = { version:1, unlocked:false, activeEye:'right', firstRevealSeen:false, blockedRightRecordId:id, confidentManifestations:initialConfident() };
     return next;
   }
-  function eligible(context, bindings = approvedBindings) {
-    return Boolean(context?.localId && context?.ownerId && bindings.some(binding => binding.localId === context.localId && binding.ownerId === context.ownerId));
+  function eligible(character) {
+    if (character?.coyoteEyes !== undefined) {
+      const eyes=character.coyoteEyes;
+      return plain(eyes) && eyes.version===1 && typeof eyes.unlocked==='boolean'
+        && ['right','left'].includes(eyes.activeEye) && Array.isArray(eyes.confidentManifestations)
+        && typeof eyes.blockedRightRecordId==='string' && Boolean(eyes.blockedRightRecordId);
+    }
+    // Bootstrap older exports by their complete original bundle, never just name or account.
+    return Array.isArray(character?.manifestations) && originalRecords.every(reference =>
+      character.manifestations.some(record => plain(record) && fields.every(key => record[key]===reference[key])));
   }
-  let hooks, index=0, lastKey=0, busy=false, currentIdentity='', authEpoch=0, animationTimer;
+  let hooks, index=0, lastKey=0, busy=false, currentIdentity='', animationTimer;
   const sequence=['ArrowLeft','ArrowRight','KeyC','KeyO','KeyY'];
   function resetSequence() { index=0; lastKey=0; }
-  function bound() { return Boolean(hooks && approvedBindings.some(binding => binding.localId === hooks.identity())); }
-  function effectiveEye(character) { return bound() && character.coyoteEyes?.unlocked ? character.coyoteEyes.activeEye : 'right'; }
+  function bound() { return Boolean(hooks && eligible(hooks.read())); }
+  function effectiveEye(character) { return eligible(character) && character.coyoteEyes?.unlocked ? character.coyoteEyes.activeEye : 'right'; }
   function activeRecords(character) { return effectiveEye(character) === 'left' ? character.coyoteEyes.confidentManifestations : character.manifestations; }
   function capture(character, visibleRecords) {
     if (effectiveEye(character) === 'left') character.coyoteEyes.confidentManifestations=visibleRecords;
@@ -99,17 +105,14 @@
   }
   function canEnhance(card) {
     const data=hooks?.read()?.coyoteEyes;
-    // Before the verified binding has persisted its record ID, fail closed for the exact original record.
+    // Before the portable state has persisted its record ID, protect the exact original record.
     if (bound() && !data && fields.every(key => card.querySelector(`[data-field="${key}"]`)?.value === originalRecords[2][key])) return false;
     return !(data?.blockedRightRecordId && card.dataset.coyoteRecordId === data.blockedRightRecordId);
   }
-  async function prepareBinding() {
+  function prepareFeature() {
     if (busy || !bound() || !hooks.canEdit() || hooks.read().coyoteEyes) return;
     busy=true;
-    const identity=hooks.identity(), epoch=authEpoch;
     try {
-      const account=await hooks.ownerId();
-      if (epoch!==authEpoch || identity!==hooks.identity() || !hooks.canEdit() || !eligible({localId:identity,ownerId:account})) return;
       hooks.switchEye(initialize,true);
       refresh();
     } catch(error) { hooks.feedback(error.message,'error'); }
@@ -143,10 +146,7 @@
     resetSequence();
     if (busy || !bound() || !hooks.canEdit() || document.getElementById('characterSheetView').hidden || !document.getElementById('modalOverlay').hidden || document.querySelector('dialog[open]')) return false;
     busy=true;
-    const identity=hooks.identity(), epoch=authEpoch;
     try {
-      const account=await hooks.ownerId();
-      if (epoch!==authEpoch || document.getElementById('characterSheetView').hidden || !document.getElementById('modalOverlay').hidden || document.querySelector('dialog[open]') || identity!==hooks.identity() || !eligible({localId:identity,ownerId:account}) || !hooks.canEdit()) return false;
       const result=hooks.switchEye(initialize);
       if (!result?.ok) return false;
       refresh(); animate(result.first); return true;
@@ -165,10 +165,10 @@
     });
     global.addEventListener('blur',resetSequence);
     document.addEventListener('visibilitychange',() => { if(document.hidden) resetSequence(); });
-    global.addEventListener('cronicas:character-edit-authority',() => { resetSequence(); refresh(); void prepareBinding(); });
-    global.addEventListener('cronicas:auth-change',() => { authEpoch++; resetSequence(); void prepareBinding(); });
+    global.addEventListener('cronicas:character-edit-authority',() => { resetSequence(); refresh(); prepareFeature(); });
+    global.addEventListener('cronicas:auth-change',() => { resetSequence(); prepareFeature(); });
     refresh();
-    void prepareBinding();
+    prepareFeature();
   }
   global.CoyoteEyes=Object.freeze({normalize,records,initialConfident,initialize,eligible,effectiveEye,activeRecords,capture,canEnhance,configure,refresh,toggle,resetSequence});
 })(window);
