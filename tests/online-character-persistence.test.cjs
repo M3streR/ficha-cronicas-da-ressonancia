@@ -858,3 +858,35 @@ test('retomada ignora personagem somente Local', async () => {
   assert.equal(server.selectCount, 0);
   assert.equal(server.updateCount, 0);
 });
+
+
+test('Encantamentos integram o snapshot, CAS e reabertura sem compartilhar notas', async () => {
+  let local = localCharacter('Encantador');
+  const server = createServer(); server.row = publishedRow(local, server);
+  const environment = createEnvironment(server, () => ({id:'local-1', name:local.fields.nome, level:1, className:'Vanguarda', thumbnail:'thumb', character:local}));
+  await environment.api.resolveCharacterForOpen('local-1',local);
+  local.enchantments = [{id:'enchantment-test',name:'Selo',principle:'Fluxo',grade:'II',action:'Renovar',target:'Proteção',customTarget:'',description:'Descrição\n\ncom parágrafos.'}];
+  assert.equal((await environment.api.synchronizePublishedCharacter('local-1',local)).ok,true);
+  assert.deepEqual(server.row.snapshot.enchantments,local.enchantments);
+  assert.equal(server.row.snapshot.notes,undefined);
+  const reopened = await environment.api.resolveCharacterForOpen('local-1',local);
+  assert.deepEqual(reopened.character.enchantments,local.enchantments);
+  assert.deepEqual(reopened.character.notes,local.notes);
+});
+
+
+test('resolução de conflito mantém Encantamentos no backup Local e na versão Online escolhida', async () => {
+  let local=localCharacter('Inicial');
+  const server=createServer();server.row=publishedRow(local,server);
+  const env=createEnvironment(server,()=>({id:'local-1',name:local.fields.nome,level:1,className:'Vanguarda',thumbnail:'thumb',character:local}));
+  await env.api.resolveCharacterForOpen('local-1',local);
+  const item={id:'enchantment-local',name:'Local',principle:'Estrutura',grade:'I',action:'Reforçar',target:'Arma',customTarget:'',description:'Local'};
+  local.enchantments=[item];
+  server.row.snapshot.enchantments=[{...item,id:'enchantment-remote',name:'Online'}];
+  server.row.updated_at=server.timestamp();
+  assert.equal((await env.api.synchronizePublishedCharacter('local-1',local)).conflict,true);
+  const chosen=server.row.snapshot.enchantments;
+  assert.equal((await env.api.resolveCharacterConflict('local-1','use-online')).ok,true);
+  assert.deepEqual(env.serviceState.backups[0].request.character.enchantments,[item]);
+  assert.deepEqual(env.serviceState.replaced.character.enchantments,chosen);
+});

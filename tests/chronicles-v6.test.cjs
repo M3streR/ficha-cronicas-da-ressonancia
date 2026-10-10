@@ -144,7 +144,8 @@ const server = http.createServer(async (req,res) => {
     await page.screenshot({path:path.join(__dirname,'artifacts/correction-ficha-desktop.png'),fullPage:true});
     await page.locator('#quickDiceToggle').click();
     check(!(await page.locator('#quickDiceHistorySection').isVisible()),'Histórico inicialmente recolhido');
-    await page.locator('#quickDiceHistoryToggle').focus();await page.keyboard.press('Enter');
+    await page.waitForFunction(()=>document.activeElement===document.getElementById('quickDiceExpression'));
+    await page.locator('#quickDiceHistoryToggle').press('Enter');
     await page.waitForFunction(()=>document.getElementById('quickRollHistory').textContent.includes('Nenhuma rolagem'));
     check(await page.locator('#quickDiceHistoryToggle').getAttribute('aria-expanded')==='true','Histórico acessível por teclado e aria-expanded');
     await page.locator('#quickDiceExpression').fill('2d20+3');await page.locator('#quickDiceForm').evaluate(f=>f.requestSubmit());

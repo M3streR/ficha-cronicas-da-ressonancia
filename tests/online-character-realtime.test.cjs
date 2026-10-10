@@ -360,3 +360,14 @@ test('logout remove subscription e login recria uma única subscription ativa', 
   assert.ok(harness.channels.length >= 2);
   assert.equal(harness.api.getCharacterRealtimeState().localId, 'local-1');
 });
+
+
+test('Realtime preserva Encantamentos confirmados e dados privados locais', async () => {
+  const harness = await openPublishedHarness();
+  const enchantments = [{id:'enchantment-live',name:'Selo',principle:'Vínculo',grade:'III',action:'Sustentar',target:'Assinatura',customTarget:'',description:'Descrição integral'}];
+  harness.server.row.snapshot.enchantments=enchantments;
+  harness.server.row.updated_at=harness.server.timestamp();
+  harness.channels.at(-1).emit('UPDATE'); await wait();
+  assert.deepEqual(harness.local.enchantments,enchantments);
+  assert.deepEqual(harness.local.notes,localCharacter('x').notes);
+});

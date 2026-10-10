@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/compact.css?v=2026-09-14-layout-foundation">
   <link rel="stylesheet" href="css/layout-foundation.css?v=2026-09-14-layer-stabilization">
   <link rel="stylesheet" href="css/layers.css?v=2026-09-14-layer-stabilization">
+  <link rel="stylesheet" href="css/enchantments.css?v=2026-10-09-enchantments">
 </head>
 <body class="manager-view-open">
   <main class="character-manager environment-root" id="characterManagerView" data-active-environment="characters" aria-label="Gerenciador de Crônicas da Ressonância">
@@ -924,11 +925,16 @@
             <span class="section-kicker">Inventário</span>
             <h2>Equipamentos</h2>
           </div>
+          <div class="equipment-reference-actions">
+          <button class="content-notes-button" id="abrirEncantamentos" type="button" title="Encantamentos" aria-label="Encantamentos" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM19 3v4M17 5h4"/></svg>
+          </button>
           <button class="content-notes-button" id="abrirAnotacoes" type="button" title="Abrir anotações" aria-label="Abrir anotações">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M6.5 3.5h8a2 2 0 0 1 2 2v6.25M6.5 3.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1.25M6.5 3.5v17M9 7h4.5M9 10.5h3M14.25 16.75l4.9-4.9a1.4 1.4 0 0 1 2 2l-4.9 4.9-2.75.75.75-2.75Z"/>
             </svg>
           </button>
+          </div>
           <div class="favorite-filter" role="group" aria-label="Filtrar Equipamentos">
             <button class="active" type="button" data-favorite-filter="equipment" data-favorite-mode="all" aria-pressed="true">Todos</button>
             <button type="button" data-favorite-filter="equipment" data-favorite-mode="favorites" aria-pressed="false">★ Favoritos</button>
@@ -1201,7 +1207,8 @@
   <script src="js/chronicles-online.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-sharing.js?v=2026-09-11-stable"></script>
   <script src="js/character-edit-authority.js?v=2026-09-19-multi-tab-authority"></script>
-  <script src="js/chronicles-collaboration.js?v=2026-09-19-character-realtime"></script>
+  <script src="js/enchantments.js?v=2026-10-09-enchantments"></script>
+  <script src="js/chronicles-collaboration.js?v=2026-10-09-enchantments"></script>
   <script src="js/chronicles-online-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-free-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online-combat.js?v=2026-09-11-stable"></script>
@@ -1210,6 +1217,6 @@
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-09-19-character-realtime"></script>
+  <script src="script.js?v=2026-10-09-enchantments"></script>
 </body>
 </html>
