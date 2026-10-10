@@ -174,7 +174,7 @@
     content.append(node('p', `${prepared.info.aspect}: ${prepared.info.normal} → ${prepared.info.result}`));
     content.append(node('p', `Custo: ${prepared.info.baseCost} PN + 2 PN adicionais = ${prepared.info.totalCost} PN.`));
     content.append(node('p', 'Após utilizar um Aprimoramento, espere uma rodada completa antes de utilizar outro. Jogadores e Mestre controlam essa espera durante a sessão.'));
-    const confirm = button('Confirmar Aprimoramento', () => {
+    const confirm = button('Confirmar Aprimoramento', async () => {
       if (confirm.disabled) return;
       confirm.disabled = true;
       if (!editable() || identity !== hooks.identity() || !card.isConnected || global.CoyoteEyes?.canEnhance(card) === false || original !== JSON.stringify({ config: cardConfig(card), base: baseCost(card), state: hooks.read() })) {
@@ -182,7 +182,7 @@
       }
       try {
         const next = use(hooks.read(), cardConfig(card), baseCost(card), hooks.pn());
-        if (!hooks.commit(next.state, next.pn)) throw new Error('Não foi possível salvar. O PN e os dados anteriores foram preservados.');
+        if (!await hooks.commit(next.state, next.pn)) throw new Error('Não foi possível salvar. O PN e os dados anteriores foram preservados.');
         hooks.close(); refresh(); hooks.feedback(`Aprimoramento utilizado: ${next.info.aspect} → ${next.info.result}. Custo: ${next.info.totalCost} PN.`);
       } catch (error) {
         const alert = content.querySelector('[role="alert"]') || node('p'); alert.setAttribute('role', 'alert'); alert.textContent = error.message; content.append(alert);
@@ -192,11 +192,11 @@
     content.append(button('Cancelar', () => hooks.close()), confirm);
     hooks.openModal({ title: 'Aprimoramento de Assinatura', content, owner: 'gold-enhancement', sheetContext: true });
   }
-  function unlock() {
+  async function unlock() {
     resetSequence();
     if (!editable() || hooks.read().unlocked) return false;
     const next = normalizeState(hooks.read()); next.unlocked = true; next.active = true;
-    if (!hooks.commit(next)) return false;
+    if (!await hooks.commit(next)) return false;
     refresh();
     const sheet = document.getElementById('characterSheetView');
     const reveal = node('div', '', 'gold-unlock-reveal'); reveal.setAttribute('role', 'status');
@@ -226,10 +226,10 @@
   }
   function configure(value) {
     hooks = value;
-    document.getElementById('goldGenerationToggle').addEventListener('click', () => {
+    document.getElementById('goldGenerationToggle').addEventListener('click', async () => {
       if (!editable() || !hooks.read().unlocked) return;
       const next = normalizeState(hooks.read()); next.active = !next.active;
-      if (hooks.commit(next)) refresh();
+      if (await hooks.commit(next)) refresh();
     });
     document.addEventListener('keydown', event => {
       if (!visible() || !editable() || hooks.read().unlocked || event.repeat || event.isComposing || event.ctrlKey || event.altKey || event.metaKey

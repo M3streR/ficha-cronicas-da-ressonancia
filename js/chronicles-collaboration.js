@@ -60,7 +60,11 @@
     stack.push(token);
     authorityTokenStacks.set(localId, stack);
     try {
-      return await callback(token);
+      await global.CharacterStorage?.initialize?.();
+      await global.CharacterStorage?.flush?.();
+      const result = await callback(token);
+      await global.CharacterStorage?.flush?.();
+      return result;
     } finally {
       stack.pop();
       if (!stack.length) authorityTokenStacks.delete(localId);
@@ -77,7 +81,8 @@
   }
 
   function announceCharacterEvent(type, localId, payload = {}) {
-    editAuthority()?.announce?.(type, localId, payload);
+    if (!global.CharacterStorage) { editAuthority()?.announce?.(type, localId, payload); return; }
+    void global.CharacterStorage.flush().then(() => editAuthority()?.announce?.(type, localId, payload)).catch(error => console.error('[Personagem online] Evento não confirmado:', error));
   }
 
   function isOnlineChronicle(chronicle = currentChronicle) {
@@ -149,6 +154,20 @@
   function setCharacterSyncState(localId, state, message = '', extra = {}) {
     const previous = characterSyncStates.get(localId) || {};
     const detail = { ...previous, ...extra, localId, state, message };
+    if (state === 'synced' && global.CharacterStorage?.isPending?.()) {
+      const confirming = { ...detail, state: 'syncing', message: 'Confirmando gravação Local' };
+      characterSyncStates.set(localId, confirming);
+      global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail: confirming }));
+      void global.CharacterStorage.flush().then(() => {
+        if (characterSyncStates.get(localId) !== confirming) return;
+        characterSyncStates.set(localId, detail);
+        global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail }));
+      }).catch(error => {
+        if (characterSyncStates.get(localId) === confirming) setCharacterSyncState(localId, 'error', 'Falha ao persistir estado Online · trabalho Local preservado');
+        console.error('[Personagem online] Confirmação Local falhou:', error);
+      });
+      return;
+    }
     characterSyncStates.set(localId, detail);
     global.dispatchEvent(new CustomEvent('cronicas:character-sync-state', { detail }));
   }
@@ -589,7 +608,7 @@
 
   function readSyncMetadata(localId) {
     try {
-      const value = JSON.parse(global.localStorage?.getItem(syncMetadataKey(localId)) || 'null');
+      const value = JSON.parse((global.CharacterStorage ? global.CharacterStorage.get(syncMetadataKey(localId)) : global.localStorage?.getItem(syncMetadataKey(localId))) || 'null');
       if (!value || typeof value !== 'object') return null;
       if (!value.remoteId || !value.ownerId || !value.baseUpdatedAt) return null;
       return {
@@ -614,7 +633,7 @@
   function writeSyncMetadata(localId, value) {
     if (!metadataWriteAuthorized(localId)) return false;
     try {
-      global.localStorage?.setItem(syncMetadataKey(localId), JSON.stringify({
+      const serialized = JSON.stringify({
         remoteId: value.remoteId,
         ownerId: value.ownerId,
         baseUpdatedAt: value.baseUpdatedAt,
@@ -626,7 +645,19 @@
         backups: normalizeBackupMetadata(value.backups),
         lastFailureKind: normalizeFailureKind(value.lastFailureKind),
         lastFailureAt: value.lastFailureAt || ''
-      }));
+      });
+      if (global.CharacterStorage) {
+        const authority = editAuthority();
+        const state = authority?.getState?.(localId);
+        const supplied = currentAuthorityToken(localId);
+        const token = supplied || (state && state.mode !== 'closed' ? authority.beginOperation(localId, 'metadata') : null);
+        if (state && state.mode !== 'closed' && !token) return false;
+        const persisted = global.CharacterStorage.commit({ [syncMetadataKey(localId)]: serialized }, [], () => !state || state.mode === 'closed' || authority.authorizeWrite(localId, token, token?.operation || 'metadata'));
+        void persisted.catch(error => {
+          setCharacterSyncState(localId, 'error', 'Falha ao persistir estado Online · trabalho Local preservado');
+          console.error('[Personagem online] Metadata não persistido:', error);
+        }).finally(() => { if (!supplied) authority?.endOperation?.(token); });
+      } else global.localStorage?.setItem(syncMetadataKey(localId), serialized);
       return true;
     } catch (error) {
       console.warn('[Personagem online] Não foi possível salvar os metadados de sincronização:', error);
@@ -754,7 +785,16 @@
     if (!metadataWriteAuthorized(localId)) return false;
     characterSyncVersions.delete(localId);
     try {
-      global.localStorage?.removeItem(syncMetadataKey(localId));
+      if (global.CharacterStorage) {
+        const authority = editAuthority();
+        const state = authority?.getState?.(localId);
+        const supplied = currentAuthorityToken(localId);
+        const token = supplied || (state && state.mode !== 'closed' ? authority.beginOperation(localId, 'metadata') : null);
+        if (state && state.mode !== 'closed' && !token) return false;
+        void global.CharacterStorage.commit({}, [syncMetadataKey(localId)], () => !state || state.mode === 'closed' || authority.authorizeWrite(localId, token, token?.operation || 'metadata'))
+          .catch(error => console.error('[Personagem online] Metadata não removido:', error))
+          .finally(() => { if (!supplied) authority?.endOperation?.(token); });
+      } else global.localStorage?.removeItem(syncMetadataKey(localId));
     } catch (error) {
       console.warn('[Personagem online] Não foi possível remover os metadados de sincronização:', error);
     }
@@ -1296,7 +1336,10 @@
     const metadata = markDirty(localId);
     stack.pop();
     if (!stack.length) authorityTokenStacks.delete(localId);
-    if (!suppliedToken) authority?.endOperation?.(entryToken);
+    if (!suppliedToken) {
+      if (global.CharacterStorage) void global.CharacterStorage.flush().catch(error => console.error('[Personagem online] Pendência não persistida:', error)).finally(() => authority?.endOperation?.(entryToken));
+      else authority?.endOperation?.(entryToken);
+    }
     if (metadata?.conflict) {
       setCharacterSyncState(localId, 'conflict', 'Conflito Online · revisão necessária');
       return Promise.resolve({ ok: false, conflict: true });
@@ -1360,6 +1403,7 @@
     waiters.forEach(resolve => resolve({ ok: false, cancelled: true, transferred: true }));
     const queue = characterSyncQueues.get(localId);
     if (queue) await queue.catch(() => undefined);
+    await global.CharacterStorage?.flush?.();
     return true;
   }
 
@@ -1477,6 +1521,7 @@
   }
 
   async function resumePendingCharacterSync(trigger = 'manual') {
+    await global.CharacterStorage?.initialize?.();
     recoveryTriggers.add(trigger);
     if (recoveryTimer) global.clearTimeout(recoveryTimer);
     recoveryTimer = null;
@@ -2254,6 +2299,9 @@
     }
   });
 
+  global.addEventListener?.('cronicas:character-storage-refreshed', event => {
+    for (const key of event.detail || []) if (key.startsWith(CHARACTER_SYNC_META_PREFIX)) characterSyncVersions.delete(key.slice(CHARACTER_SYNC_META_PREFIX.length));
+  });
   global.ChroniclesCollaboration = Object.freeze({
     applyDetailMode,
     reset,

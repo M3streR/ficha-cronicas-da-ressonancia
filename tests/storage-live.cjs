@@ -51,7 +51,7 @@ const server = http.createServer(async(req,res)=>{
       await owner.evaluate(async c=>{
         const character=createEmptyCharacterState(); character.fields.nome='Caçadora da Aurora'; character.fields.classe='Atirador'; character.fields.nivel=2;
         const id='audit-'+crypto.randomUUID(); window.auditCharacterId=id;
-        writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));writeCharacterManager(manager);renderCharacterManager();
+        await writeStoredCharacter(id,character);let manager=readCharacterManager()||createEmptyCharacterManager();manager=setCharacterSummary(manager,id,await createCharacterSummary(character));await writeCharacterManager(manager);renderCharacterManager();
         document.querySelector('[data-manager-section=chronicles]').click();await showChroniclesIndex();
         await openChronicleDetail(c.id,1,document.querySelector('.chronicle-record-open'));
         setChronicleDetailSection('cast');await ChroniclesCollaboration.openCastManager(c);
@@ -62,7 +62,7 @@ const server = http.createServer(async(req,res)=>{
       const onlineCharacter=await owner.evaluate(async()=>{
         const client=CronicasSupabase.client;
         const {data,error}=await client.from('online_characters').select('id').eq('source_local_id',auditCharacterId).single();if(error)throw error;
-        const character=readStoredCharacter(auditCharacterId);character.fields.nome='Caçadora da Aurora • sincronizada';writeStoredCharacter(auditCharacterId,character);
+        const character=readStoredCharacter(auditCharacterId);character.fields.nome='Caçadora da Aurora • sincronizada';await writeStoredCharacter(auditCharacterId,character);
         await ChroniclesCollaboration.synchronizePublishedCharacter(auditCharacterId,character);
         const updated=await client.from('online_characters').select('name').eq('id',data.id).single();if(updated.data.name!==character.fields.nome)throw Error('sync failed');
         return data.id;

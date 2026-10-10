@@ -109,11 +109,11 @@
     if (bound() && !data && fields.every(key => card.querySelector(`[data-field="${key}"]`)?.value === originalRecords[2][key])) return false;
     return !(data?.blockedRightRecordId && card.dataset.coyoteRecordId === data.blockedRightRecordId);
   }
-  function prepareFeature() {
+  async function prepareFeature() {
     if (busy || !bound() || !hooks.canEdit() || hooks.read().coyoteEyes) return;
     busy=true;
     try {
-      hooks.switchEye(initialize,true);
+      await hooks.switchEye(initialize,true);
       refresh();
     } catch(error) { hooks.feedback(error.message,'error'); }
     finally { busy=false; }
@@ -147,7 +147,7 @@
     if (busy || !bound() || !hooks.canEdit() || document.getElementById('characterSheetView').hidden || !document.getElementById('modalOverlay').hidden || document.querySelector('dialog[open]')) return false;
     busy=true;
     try {
-      const result=hooks.switchEye(initialize);
+      const result=await hooks.switchEye(initialize);
       if (!result?.ok) return false;
       refresh(); animate(result.first); return true;
     } catch(error) { hooks.feedback(error.message,'error'); return false; }

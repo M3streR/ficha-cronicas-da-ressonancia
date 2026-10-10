@@ -157,11 +157,11 @@ async function forceDegree(select, degree) {
     const persistence = await page.evaluate(async fixture => {
       const validation = validateImportedSheet(fixture);
       const localId = 'skills-progression-local';
-      writeStoredCharacter(localId, validation.normalized);
+      await writeStoredCharacter(localId, validation.normalized);
       const local = readStoredCharacter(localId);
       let manager = readCharacterManager() || createEmptyCharacterManager();
       manager = setCharacterSummary(manager, localId, await createCharacterSummary(validation.normalized));
-      writeCharacterManager(manager);
+      await writeCharacterManager(manager);
 
       let payload = null;
       let operation = 'select';

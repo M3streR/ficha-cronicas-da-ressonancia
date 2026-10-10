@@ -117,7 +117,7 @@
     const save = node('button', 'Salvar Encantamento', 'btn'); save.type = 'submit';
     actions.append(save, button('Cancelar', () => changed() ? confirmDiscard(list) : list()));
     form.append(preview, actions);
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
       event.preventDefault();
       try {
         if (!hooks.canEdit() || hooks.identity() !== session.identity) throw new Error('Assuma a edição desta ficha antes de salvar.');
@@ -125,7 +125,7 @@
         const item = validate([session.draft])[0];
         const current = hooks.read();
         const next = session.editId ? current.map(value => value.id === session.editId ? item : value) : [...current, item];
-        if (!hooks.commit(validate(next))) throw new Error('Não foi possível salvar. O rascunho foi preservado.');
+        if (!await hooks.commit(validate(next))) throw new Error('Não foi possível salvar. O rascunho foi preservado.');
         list();
       } catch (failure) { error(form, failure.message); }
     });
@@ -135,11 +135,11 @@
     session.base = JSON.stringify(hooks.read());
     const content = node('div', '', 'enchantments-content');
     content.append(node('p', `Abandonar “${item.name}”?`), node('p', 'Este Encantamento será abandonado e removido da ficha. Será necessário encontrá-lo novamente para reaprendê-lo.'));
-    content.append(button('Cancelar', list), button('Confirmar abandono', () => {
+    content.append(button('Cancelar', list), button('Confirmar abandono', async () => {
       try {
         if (hooks.identity() !== session.identity || !hooks.canEdit()) throw new Error('Esta aba não possui autorização para alterar a ficha.');
         if (JSON.stringify(hooks.read()) !== session.base) throw new Error('A lista mudou. Cancele e revise antes de abandonar.');
-        if (!hooks.commit(hooks.read().filter(value => value.id !== item.id))) throw new Error('Não foi possível salvar o abandono. O registro foi preservado.');
+        if (!await hooks.commit(hooks.read().filter(value => value.id !== item.id))) throw new Error('Não foi possível salvar o abandono. O registro foi preservado.');
         list();
       } catch (failure) { error(content, failure.message); }
     }));

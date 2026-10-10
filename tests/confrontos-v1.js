@@ -96,18 +96,19 @@ document.getElementById('run').onclick=async()=>{
     IDBObjectStore.prototype.delete=originalDelete;
     check(await api.getConfrontation(battle.id) && (await api.listConfrontationCharacterIds(battle.id)).length===1 && (await api.listConfrontationAdversaries(battle.id)).length===1,'Rollback de Confronto preserva seus filhos');
     const [html,appSource]=await Promise.all([fetch('../index.html').then(r=>r.text()),fetch('../script.js').then(r=>r.text())]);
+    const characterStorageURL=scriptURL((await fetch("../js/character-storage.js").then(r=>r.text())).replaceAll("cronicasRessonancia",prefix));
     const appURL=scriptURL(appSource.replaceAll('cronicasRessonancia',prefix));
     await new Promise(resolve=>{frame.onload=resolve;frame.srcdoc=html.replace('<head>',`<head><base href="${new URL('../',location.href)}">`)
-      .replace(/src="js\/chronicles-storage.js[^"]*"/,`src="${storageURL}"`).replace(/src="script.js[^"]*"/,`src="${appURL}"`);});
+      .replace(/src="js\/chronicles-storage.js[^"]*"/,`src="${storageURL}"`).replace(/src="js\/character-storage.js[^"]*"/,`src="${characterStorageURL}"`).replace(/src="script.js[^"]*"/,`src="${appURL}"`);});
     const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id),ui=w.ConfrontationsUI,uiStorage=w.ChroniclesStorage;
     await wait(()=>!el('characterManagerView').hidden && typeof w.openConfrontationCreation==='function');
     const ids=['character-fixture-1','character-fixture-2','character-fixture-3'];
     let manager=w.readCharacterManager()||w.createEmptyCharacterManager();
     for(const [i,name] of ['Dylann','Luke','Talia'].entries()){
       const character=w.createEmptyCharacterState();character.fields.nome=name;character.fields.classe='Vanguarda';character.fields.nivel=2;character.fields.pvAtual=18;character.fields.pvMax=30;character.fields.pvTemporarios=3;
-      w.writeStoredCharacter(ids[i],character);manager=w.setCharacterSummary(manager,ids[i],await w.createCharacterSummary(character));
+      await w.writeStoredCharacter(ids[i],character);manager=w.setCharacterSummary(manager,ids[i],await w.createCharacterSummary(character));
     }
-    w.writeCharacterManager(manager);await api.replaceChronicleCast(old.id,ids);
+    await w.writeCharacterManager(manager);await api.replaceChronicleCast(old.id,ids);
     const originalSheets=ids.map(id=>JSON.stringify(w.readStoredCharacter(id)));
     w.showManagerSection('chronicles');await w.showChroniclesIndex();
     await w.openChronicleDetail(old.id,1,d.querySelector(`[data-chronicle-id="${old.id}"] button`));
@@ -158,9 +159,9 @@ document.getElementById('run').onclick=async()=>{
     check(!el('confrontationSelectionForm').hidden && el('confrontationSelectionList').querySelector(`[data-character-id="${ids[2]}"]`).checked,'Inclusão removida do Elenco durante edição é recusada, preservando escolha');
     el('cancelConfrontationSelection').click();await api.replaceChronicleCast(old.id,[ids[1]]);await ui.open(created.id);
     check(el('confrontationCharacters').textContent.includes('Fora do Elenco'),'Vínculo existente fora do Elenco permanece visível');
-    const updatedCharacter=w.readStoredCharacter(ids[1]);updatedCharacter.fields.nome='Luke Atualizado';updatedCharacter.fields.pvAtual=9;w.writeStoredCharacter(ids[1],updatedCharacter);
+    const updatedCharacter=w.readStoredCharacter(ids[1]);updatedCharacter.fields.nome='Luke Atualizado';updatedCharacter.fields.pvAtual=9;await w.writeStoredCharacter(ids[1],updatedCharacter);
     await ui.open(created.id);check(el('confrontationCharacters').textContent.includes('Luke Atualizado') && el('confrontationCharacters').textContent.includes('PV 9 / 30'),'Nova renderização resolve nome e PV atuais');
-    w.removeStoredCharacter(ids[0]);w.writeCharacterManager(w.removeCharacterFromManager(w.readCharacterManager(),ids[0]));
+    await w.removeStoredCharacter(ids[0]);await w.writeCharacterManager(w.removeCharacterFromManager(w.readCharacterManager(),ids[0]));
     await ui.open(created.id);
     check(el('confrontationCharacters').textContent.includes('Personagem indisponível') && (await api.listConfrontationCharacterIds(created.id)).includes(ids[0]),'Personagem excluído preserva referência indisponível');
     el('selectConfrontationCharacters').click();await wait(()=>el('confrontationSelectionList').querySelectorAll('input').length===2);toggle(ids[0]);el('confrontationSelectionForm').requestSubmit();await wait(()=>el('confrontationSelectionForm').hidden);

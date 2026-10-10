@@ -73,17 +73,18 @@ document.getElementById('run').onclick = async () => {
       urls.push(url); return url;
     };
     const storageURL = scriptURL(storageSource);
+    const characterStorageURL=scriptURL((await fetch("../js/character-storage.js").then(r=>r.text())).replaceAll("cronicasRessonancia",prefix));
     const appURL = scriptURL(appSource);
     await new Promise(resolve => {
       frame.onload = resolve;
       frame.srcdoc = html.replace('<head>', `<head><base href="${new URL('../',location.href)}">`)
         .replace(/src="js\/chronicles-storage.js[^\"]*"/, `src="${storageURL}"`)
-        .replace(/src="script.js[^\"]*"/, `src="${appURL}"`);
+        .replace(/src="js\/character-storage.js[^"]*"/,`src="${characterStorageURL}"`).replace(/src="script.js[^\"]*"/, `src="${appURL}"`);
     });
     const w = frame.contentWindow;
     const d = w.document;
     const el = id => d.getElementById(id);
-    await wait(() => typeof w.getChronicleCharacterDirectory === 'function' && !el('characterManagerView').hidden);
+    await wait(() => w.characterStorageReady && typeof w.getChronicleCharacterDirectory === 'function' && !el('characterManagerView').hidden);
     const api = w.ChroniclesStorage;
     assert(JSON.stringify(await api.getChronicle(old.id)) === JSON.stringify(old), 'Upgrade v1 → v6 preserva todos os metadados');
     const cover = await api.getChronicleCover(old.id);
@@ -99,11 +100,11 @@ document.getElementById('run').onclick = async () => {
     for (const [i, name] of ['Ária — Horizonte', 'Breno', 'Célia'].entries()) {
       const character = w.createEmptyCharacterState();
       character.fields.nome = name; character.fields.nivel = i + 1; character.fields.assinatura = 'Teste';
-      w.writeStoredCharacter(ids[i], character);
+      await w.writeStoredCharacter(ids[i], character);
       manager = w.setCharacterSummary(manager, ids[i], await w.createCharacterSummary(character));
     }
-    w.writeCharacterManager(manager);
-    const snapshot = () => manager.order.map(id => w.localStorage.getItem(`${prefix}CharacterV4:${id}`));
+    await w.writeCharacterManager(manager);
+    const snapshot = () => manager.order.map(id => w.CharacterStorage.get(`${prefix}CharacterV4:${id}`));
     const originalCharacters = JSON.stringify(snapshot());
     const second = await api.createChronicle({ name: 'Outra Crônica', synopsis: '', type: 'oneshot' });
     const saved = await api.replaceChronicleCast(old.id, ids.slice(0, 2), { expectedUpdatedAt: old.updatedAt });
@@ -195,7 +196,7 @@ document.getElementById('run').onclick = async () => {
     await w.saveChronicleCastManagement();
     const currentCharacter = w.readStoredCharacter(ids[0]);
     currentCharacter.fields.nome = 'Ária Atualizada'; currentCharacter.fields.nivel = 6;
-    w.writeStoredCharacter(ids[0], currentCharacter);
+    await w.writeStoredCharacter(ids[0], currentCharacter);
     await w.renderChronicleCast();
     assert(el('chronicleCastList').textContent.includes('Ária Atualizada') && el('chronicleCastList').textContent.includes('Nível 6'), 'Nova renderização lê nome e nível atuais, sem cópias');
 
@@ -273,10 +274,10 @@ document.getElementById('run').onclick = async () => {
       const character = w.createEmptyCharacterState();
       character.fields.nome = i === 0 ? 'Personagem com nome extenso para validar quebra e leitura em telas pequenas' : `Personagem de teste ${i + 1}`;
       const id = `character-large-test-${i}`;
-      w.writeStoredCharacter(id, character);
+      await w.writeStoredCharacter(id, character);
       largeManager = w.setCharacterSummary(largeManager, id, await w.createCharacterSummary(character));
     }
-    w.writeCharacterManager(largeManager);
+    await w.writeCharacterManager(largeManager);
     await open(old.id); w.setChronicleDetailSection('cast');
     await wait(() => el('chronicleCastList').querySelectorAll('.chronicle-cast-member').length === 2);
     frame.scrollIntoView({ block: 'start' });

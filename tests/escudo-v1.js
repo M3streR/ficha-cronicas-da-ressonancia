@@ -84,8 +84,9 @@ document.getElementById('run').onclick=async()=>{
     await api.deleteChronicle(corrupt.id);
     check((await req(db.transaction('chronicleMasterNotes').objectStore('chronicleMasterNotes').get(corrupt.id)))===undefined,'Exclusão da Crônica remove também nota inválida');
     const [html,appSource]=await Promise.all([fetch('../index.html').then(r=>r.text()),fetch('../script.js').then(r=>r.text())]);
+    const characterStorageURL=scriptURL((await fetch("../js/character-storage.js").then(r=>r.text())).replaceAll("cronicasRessonancia",prefix));
     const appURL=scriptURL(appSource.replaceAll('cronicasRessonancia',prefix));
-    const loadFrame=()=>new Promise(resolve=>{frame.onload=resolve;frame.srcdoc=html.replace('<head>',`<head><base href="${new URL('../',location.href)}">`).replace(/src="js\/chronicles-storage.js[^"]*"/,`src="${storageURL}"`).replace(/src="script.js[^"]*"/,`src="${appURL}"`);});
+    const loadFrame=()=>new Promise(resolve=>{frame.onload=resolve;frame.srcdoc=html.replace('<head>',`<head><base href="${new URL('../',location.href)}">`).replace(/src="js\/chronicles-storage.js[^"]*"/,`src="${storageURL}"`).replace(/src="js\/character-storage.js[^"]*"/,`src="${characterStorageURL}"`).replace(/src="script.js[^"]*"/,`src="${appURL}"`);});
     await loadFrame();
     const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id);
     await wait(()=>typeof w.openChronicleMasterShield==='function' && !el('characterManagerView').hidden);
@@ -102,8 +103,8 @@ document.getElementById('run').onclick=async()=>{
     const submit=async()=>{el('masterNoteForm').requestSubmit();await wait(()=>!el('saveMasterNote').disabled);};
     const modalButton=label=>[...d.querySelectorAll('#modalActions button')].find(b=>b.textContent===label);
     const character=w.createEmptyCharacterState();character.fields.nome='Dylann';character.fields.classe='Atirador';character.fields.nivel=2;
-    w.writeStoredCharacter('character-fixture-1',character);
-    let manager=w.readCharacterManager()||w.createEmptyCharacterManager();manager=w.setCharacterSummary(manager,'character-fixture-1',await w.createCharacterSummary(character));w.writeCharacterManager(manager);
+    await w.writeStoredCharacter('character-fixture-1',character);
+    let manager=w.readCharacterManager()||w.createEmptyCharacterManager();manager=w.setCharacterSummary(manager,'character-fixture-1',await w.createCharacterSummary(character));await w.writeCharacterManager(manager);
     await api.createConfrontation(old.id,{name:'Confronto de consulta'});
     w.showManagerSection('chronicles');await wait(()=>!el('chroniclesIndexView').hidden);
     await w.openChronicleDetail(old.id,1,el('openChronicleCreation'));await openShield();

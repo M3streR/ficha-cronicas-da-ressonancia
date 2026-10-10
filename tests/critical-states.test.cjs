@@ -140,11 +140,11 @@ async function setResource(page, selector, value) {
       const captured = JSON.parse(JSON.stringify(state));
       const validation = validateImportedSheet(captured);
       const localId = 'critical-states-local';
-      writeStoredCharacter(localId, validation.normalized);
+      await writeStoredCharacter(localId, validation.normalized);
       const local = readStoredCharacter(localId);
       let manager = readCharacterManager() || createEmptyCharacterManager();
       manager = setCharacterSummary(manager, localId, await createCharacterSummary(validation.normalized));
-      writeCharacterManager(manager);
+      await writeCharacterManager(manager);
       let payload = null;
       let operation = 'select';
       const online = {
