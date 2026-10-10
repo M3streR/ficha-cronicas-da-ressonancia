@@ -31,16 +31,16 @@ test('não infere o registro original pelo nome nem seleciona duplicatas ambígu
  altered.manifestations.push(original.manifestations[2],original.manifestations[2]);
  assert.throws(()=>api.initialize(altered),/confirmada/);
 });
-test('vinculação confirmada exige identidade original e proprietário; cópias não herdam acesso',()=>{
- const context={localId:'test-coyote',ownerId:'test-owner'};
- assert.equal(api.eligible(context),false);
- assert.equal(api.eligible(context,[context]),true);
- assert.equal(api.eligible({...context,ownerId:'other'},[context]),false);
- assert.equal(api.eligible({...context,localId:'copy'},[context]),false);
- const confirmed={localId:'0049dc8f-fd8d-4d9a-8475-f046ac4de106',ownerId:'066d66c0-d5e7-48a9-81c7-35b593d0648b'};
- assert.equal(api.eligible(confirmed),true);
- assert.equal(api.eligible({...confirmed,ownerId:'other-account'}),false);
- assert.equal(api.eligible({...confirmed,localId:'imported-copy'}),false);
+test('recurso acompanha JSON e cópias sem depender de conta ou ID do navegador',()=>{
+ assert.equal(api.eligible(original),true);
+ const prepared=api.initialize(original);
+ prepared.manifestations[0].nome='Edição preservada';
+ assert.equal(api.eligible(plain(prepared)),true);
+ assert.equal(api.eligible({fields:{nome:'Coyote Summers',assinatura:'Fantasmagoria'},manifestations:[]}),false);
+ assert.equal(api.eligible({localId:'qualquer-id',ownerId:'qualquer-conta'}),false);
+ const partial=plain(original);partial.manifestations.pop();
+ assert.equal(api.eligible(partial),false);
+ assert.equal(api.eligible({coyoteEyes:{version:999}}),false);
 });
 test('registros Confiante têm custos corretos, textos definidos e nenhuma automação/configuração',()=>{
  const records=plain(api.initialConfident());

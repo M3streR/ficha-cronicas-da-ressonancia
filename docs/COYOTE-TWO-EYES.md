@@ -4,21 +4,22 @@ Desenvolvimento em `codex/coyote-two-eyes`, baseado no commit local `e546b15`
 da Geração de Ouro sem controles de rodada. Publicação conjunta autorizada
 em 10/10/2026, sem mudanças de banco.
 
-## Vinculação confirmada
+## Acesso portátil
 
-`approvedBindings` em `js/coyote-eyes.js` usa o `localId` original e o UUID Auth
-confirmados pelo usuário no Console da ficha importada com três Manifestações.
-Nome, Classe, Assinatura, JSON importado e um marcador copiado não concedem
-elegibilidade. A publicação Online antiga com duas Manifestações não foi vinculada.
+Após a correção aprovada em 10/10/2026, o recurso acompanha `coyoteEyes` no JSON.
+Exportar, importar em outro navegador e duplicar preservam o acesso, sem vínculo
+a uma conta específica ou ao `localId` do navegador. A autoridade normal de
+edição e as permissões Online continuam obrigatórias para qualquer alteração.
 
-O teste de navegador usa uma identidade fictícia, substituindo a vinculação
-apenas na resposta do servidor HTTP do próprio teste. Não há botão ou chave de
-teste na aplicação. Também verifica que o módulo real recusa uma identidade diferente.
+JSONs anteriores sem `coyoteEyes` são reconhecidos pela correspondência integral
+das três Manifestações originais, preparando o recurso uma única vez sem alterar
+os registros. Apenas nome, Classe ou Assinatura não concedem o recurso a uma
+ficha comum. Não há substituições de código ou Auth no servidor de testes.
 
-Na identidade original confirmada, o registro exato de Solidão será
+Na preparação inicial, o registro exato de Solidão será
 identificado pela correspondência integral dos campos fornecidos e receberá
 um identificador estável. A identificação não usa apenas seu nome. Se esse
-registro tiver sido alterado antes da vinculação, ou estiver duplicado, a
+registro estiver duplicado, a
 preparação falha preservando os dados e requer confirmação do registro atual.
 Depois disso, renomear ou editar Solidão não remove sua restrição.
 
@@ -28,7 +29,7 @@ Depois disso, renomear ou editar Solidão não remove sua restrição.
 contém versão 1, `unlocked`, `activeEye`, `firstRevealSeen`,
 `blockedRightRecordId` e `confidentManifestations`. Somente o conjunto visível
 é capturado. Os registros iniciais do Esquerdo são preparados uma única vez
-na identidade autorizada, sem revelar interface antes do desbloqueio.
+na ficha compatível, sem revelar interface antes do desbloqueio.
 Excluir todos os registros não os recria. Não há limite novo de três.
 
 Sequência: ArrowLeft, ArrowRight, KeyC, KeyO, KeyY, fora de campos editáveis
@@ -51,10 +52,10 @@ Os dois conjuntos integram exportação/importação, backups, snapshot, digest,
 CAS e reconciliação existentes. Notes e foto original permanecem Locais.
 O identificador dos registros é preservado na captura e importação.
 
-Cópias e importações novas conservam ambos os conjuntos, mas exibem o Direito
-e não podem alternar porque possuem outra identidade Local. O estado gravado
-do Esquerdo continua preservado, sem se tornar autorização. Restaurar na
-identidade original recupera a funcionalidade mediante a conta proprietária.
+Cópias e importações conservam ambos os conjuntos, o olho ativo, o desbloqueio
+e a restrição de Solidão. A mesma sequência permite alternar nas cópias, inclusive
+em outro navegador e sem login no modo Local. Uma aba observadora continua sem
+permissão de escrita; Online continua usando a fila, CAS e RLS existentes.
 
 Os conjuntos ocultos não são confidenciais para participantes autorizados a
 ler o snapshot. Esse comportamento foi aprovado. O código secreto não é um
@@ -68,9 +69,8 @@ O segundo comando cria fichas de teste, exercita a sequência e fecha seu
 servidor ao terminar. Capturas Alpha/douradas ficam em
 `tests/artifacts/coyote-eyes/`, sem entrar nos commits.
 
-Para testar manualmente, abra a ficha original confirmada na conta proprietária
-e use a sequência fora de campos editáveis e diálogos. Importar em uma ficha
-nova gera outra identidade e não concede elegibilidade.
+Para testar manualmente, abra o Coyote, uma duplicata ou uma importação do seu
+JSON e use a sequência fora de campos editáveis e diálogos na aba editora.
 O arquivo JSON original não foi alterado e não integra a publicação. A fixture
 é um personagem sintético, contendo apenas as definições de Manifestações
 necessárias aos testes, sem dados da ficha pessoal, foto ou equipamentos.
@@ -94,6 +94,6 @@ de largura/zoom nas aparências Alpha e dourada. A auditoria geral registrou
 rolagem aninhada ou rodapé inacessível. Não houve exceções inesperadas nas
 páginas de teste.
 
-A vinculação final também é coberta por testes positivos e negativos de
-identidade/proprietário. As suítes de navegador usam dados fictícios de
-autorização no servidor local de teste, sem modificar personagens reais.
+O teste de navegador também exporta e importa em um contexto independente,
+sem login, confirmando alternância e restauração dos dois conjuntos. Um
+personagem comum chamado Coyote continua sem acesso. Nenhum dado real é alterado.

@@ -11,14 +11,7 @@ const server = http.createServer(async (request, response) => {
     const file = path.resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
     if (!file.startsWith(`${root}${path.sep}`)) return response.writeHead(403).end();
     response.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' });
-    let contents=await fs.readFile(file);
-    if (pathname === '/js/coyote-eyes.js' && request.headers['x-test-coyote-binding'] === 'enabled') {
-      contents=Buffer.from(contents.toString().replace(/const approvedBindings = Object\.freeze\(\[[\s\S]*?\]\);/, 'const approvedBindings = Object.freeze([{localId: "character-coyote-test-001", ownerId: "owner-coyote-test"}]);'));
-    }
-    if (pathname === '/script.js' && request.headers['x-test-coyote-binding'] === 'enabled') {
-      contents=Buffer.from(contents.toString().replace("ownerId: async () => (await window.CronicasSupabase?.getUser?.())?.id || '',", "ownerId: async () => window.__testCoyoteOwner || 'owner-coyote-test',"));
-    }
-    response.end(contents);
+    response.end(await fs.readFile(file));
   } catch { response.writeHead(404).end(); }
 });
 
@@ -26,7 +19,7 @@ const server = http.createServer(async (request, response) => {
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true});
- const context=await browser.newContext({viewport:{width:1366,height:900},extraHTTPHeaders:{'x-test-coyote-binding':'enabled'}});
+ const context=await browser.newContext({viewport:{width:1366,height:900}});
  const page=await context.newPage(), errors=[];
  page.on('pageerror',error=>errors.push(error.message));
  const url=`http://127.0.0.1:${server.address().port}`;
@@ -44,7 +37,6 @@ const server = http.createServer(async (request, response) => {
  try {
   await page.goto(url); await page.waitForFunction(()=>typeof openCharacter==='function');
   await page.evaluate(async({fixture,id})=>{
-   window.__testCoyoteOwner='owner-coyote-test';
    let manager=createEmptyCharacterManager();
    writeStoredCharacter(id,fixture);manager=setCharacterSummary(manager,id,await createCharacterSummary(fixture));
    const other=cloneCharacterState(fixture);writeStoredCharacter('character-coyote-copy',other);
@@ -126,7 +118,7 @@ const server = http.createServer(async (request, response) => {
   await page.evaluate(()=>{writeStoredCharacter=window.coyoteOriginalWriter;});
   await sequence();await eye('left');
   await page.reload();await page.waitForFunction(()=>typeof openCharacter==='function');
-  await page.evaluate(async id=>{window.__testCoyoteOwner='owner-coyote-test';await openCharacter(id);showCharacterSheetView();},id);
+  await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
   await eye('left');await show();
   assert.equal(await page.locator('.coyote-reveal').count(),0);
   assert.equal((await read()).coyoteEyes.confidentManifestations[0].descricao,'Edição esquerda\n\nsegundo parágrafo');
@@ -138,21 +130,21 @@ const server = http.createServer(async (request, response) => {
   assert.equal(exported.manifestations[2].custo,'02');assert.equal(exported.coyoteEyes.confidentManifestations.length,3);
   const importedId=await page.evaluate(async data=>storeImportedCharacterAsNew(validateImportedSheet(data).normalized),exported);
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},importedId);
-  assert.equal(await page.locator('#coyoteEyeLabel').isVisible(),false);assert.equal(await page.evaluate(()=>CoyoteEyes.toggle()),false);
-  assert.equal((await read()).coyoteEyes.activeEye,'left');assert.equal(await cards().first().locator('[data-field=efeito]').inputValue(),'Edição direita');
+  assert.equal(await page.locator('#coyoteEyeLabel').isVisible(),true);
+  assert.equal((await read()).coyoteEyes.activeEye,'left');
+  assert.equal(await cards().first().locator('[data-field=descricao]').inputValue(),'Edição esquerda\n\nsegundo parágrafo');
+  await sequence();await eye('right');
+  assert.equal(await cards().first().locator('[data-field=efeito]').inputValue(),'Edição direita');
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();await duplicateCharacterById(id);},id);
   const copiedId=await page.evaluate(()=>readCharacterManager().order.at(-1));
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},copiedId);
-  assert.equal(await page.evaluate(()=>CoyoteEyes.toggle()),false);
-  assert.equal(await page.locator('#coyoteEyeLabel').isVisible(),false);
+  assert.equal(await page.locator('#coyoteEyeLabel').isVisible(),true);
+  await sequence();await eye('right');await sequence();await eye('left');
   assert.equal((await read()).coyoteEyes.confidentManifestations.length,3);
   await page.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
   const observer=await context.newPage();await observer.goto(url);await observer.waitForFunction(()=>typeof openCharacter==='function');
-  await observer.evaluate(async id=>{window.__testCoyoteOwner='owner-coyote-test';await openCharacter(id);showCharacterSheetView();},id);
+  await observer.evaluate(async id=>{await openCharacter(id);showCharacterSheetView();},id);
   const beforeObserver=await read();assert.equal(await observer.evaluate(()=>CoyoteEyes.toggle()),false);assert.deepEqual(await read(),beforeObserver);await observer.close();
-  await page.evaluate(()=>{window.__testCoyoteOwner='wrong-owner';});
-  assert.equal(await page.evaluate(()=>CoyoteEyes.toggle()),false);
-  await page.evaluate(()=>{window.__testCoyoteOwner='owner-coyote-test';});
   // Empty left set is intentional and stays empty after two switches and restoration.
   await page.evaluate(()=>{document.querySelectorAll('#listaManifestacoes .remove-card').forEach(button=>button.click());saveNow();});
   assert.equal((await read()).coyoteEyes.confidentManifestations.length,0);
@@ -177,12 +169,30 @@ const server = http.createServer(async (request, response) => {
   }
   await page.emulateMedia({reducedMotion:'reduce'});await sequence();await eye('right');await sequence();await eye('left');
   assert.equal(await page.locator('#listaManifestacoes').evaluate(element=>getComputedStyle(element).animationName),'none');
-  // The actual production module rejects an unrelated local identity, even with matching records.
-  const unboundContext=await browser.newContext();const unbound=await unboundContext.newPage();await unbound.goto(url);
-  await unbound.waitForFunction(()=>typeof openCharacter==='function');
-  await unbound.evaluate(async({fixture,id})=>{window.__testCoyoteOwner='owner-coyote-test';const manager=setCharacterSummary(createEmptyCharacterManager(),id,await createCharacterSummary(fixture));writeStoredCharacter(id,fixture);writeCharacterManager(manager);await openCharacter(id);showCharacterSheetView();},{fixture,id});
-  assert.equal(await unbound.evaluate(()=>CoyoteEyes.toggle()),false);assert.equal(await unbound.evaluate(()=>state.coyoteEyes),undefined);await unboundContext.close();
+  // A different browser can import the exported file and use the secret without login.
+  const playerContext=await browser.newContext();const player=await playerContext.newPage();await player.goto(url);
+  player.on('pageerror',error=>errors.push(error.message));
+  await player.waitForFunction(()=>typeof openCharacter==='function');
+  await player.evaluate(async data=>{const imported=await storeImportedCharacterAsNew(validateImportedSheet(data).normalized);await openCharacter(imported);showCharacterSheetView();},exported);
+  assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'left');
+  await player.locator('#voltarPersonagens').focus();for(const key of ['ArrowLeft','ArrowRight','c','o','y']) await player.keyboard.press(key);
+  assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'right');
+  assert.equal(await player.locator('#listaManifestacoes .manifestation-card').first().locator('[data-field=efeito]').inputValue(),'Edição direita');
+  await player.reload();await player.waitForFunction(()=>typeof openCharacter==='function');
+  await player.evaluate(async()=>{await openCharacter(readCharacterManager().order[0]);showCharacterSheetView();});
+  assert.equal(await player.evaluate(()=>CoyoteEyes.effectiveEye(state)),'right');
+  assert.equal(await player.evaluate(()=>state.coyoteEyes.confidentManifestations[0].descricao),'Edição esquerda\n\nsegundo parágrafo');
+  await player.evaluate(async()=>{const c=createEmptyCharacterState();c.fields.nome='Coyote Summers';const id=await storeImportedCharacterAsNew(c);await openCharacter(id);showCharacterSheetView();});
+  assert.equal(await player.evaluate(()=>CoyoteEyes.toggle()),false);assert.equal(await player.evaluate(()=>state.coyoteEyes),undefined);
+  // Original legacy JSON also works when imported before any first unlock.
+  await player.evaluate(async data=>{const imported=await storeImportedCharacterAsNew(validateImportedSheet(data).normalized);await openCharacter(imported);showCharacterSheetView();},fixture);
+  assert.equal(await player.evaluate(()=>Boolean(state.coyoteEyes?.unlocked)),false);
+  await player.locator('#voltarPersonagens').focus();for(const key of ['ArrowLeft','ArrowRight','c','o','y']) await player.keyboard.press(key);
+  await player.waitForFunction(()=>CoyoteEyes.effectiveEye(state)==='left');
+  assert.deepEqual(strip(await player.evaluate(()=>state.manifestations)),fixture.manifestations);
+  assert.equal(await player.evaluate(()=>Number(state.fields.pnAtual)),Number(fixture.fields.pnAtual));
+  await playerContext.close();
   assert.deepEqual(errors,[]);
-  console.log('OK Coyote: literalidade, dois conjuntos, segredo, Solidão, PN, rollback, restauração, importação/exportação, cópia, autoridade, vinculação bloqueada e 60 combinações responsivas.');
+  console.log('OK Coyote: dois conjuntos, segredo portátil sem Auth/IDs, importação em outro navegador, cópias, autoridade, isolamento e 60 combinações responsivas.');
  } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
