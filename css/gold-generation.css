@@ -1,0 +1,253 @@
+/* Character-scoped theme. No document, manager or global token overrides. */
+#goldGenerationControls[hidden], .gold-config-fields[hidden] { display: none !important; }
+.character-sheet-view[data-character-mode="gold"],
+.app-modal[data-character-mode="gold"] {
+  --gold: #e9c768;
+  --gold-bright: #fff0b5;
+  --gold-edge: #a8823a;
+  --gold-violet: #b992fb;
+  --color-bg-secondary: #101026;
+  --color-surface-primary: #111021;
+  --color-surface-elevated: #201a35;
+  --color-surface-interactive: #2a2240;
+  --color-surface-input: #100f20;
+  --color-border-subtle: #504332;
+  --color-border-default: #a8823a;
+  --color-border-highlight: #e9c768;
+  --color-focus: #fff0b5;
+  --color-accent: #e9c768;
+  --color-accent-secondary: #b992fb;
+  --color-accent-hover: #f5daa0;
+  --color-accent-active: #fff0b5;
+  --color-text-primary: #f7f2e9;
+  --color-text-secondary: #dcd3e8;
+  --color-text-muted: #b9aec9;
+  --panel: #111021;
+  --panel-strong: #1a152a;
+  --line: #6a5434;
+  --accent: #e9c768;
+  --accent-strong: #fff0b5;
+  --text: #f7f2e9;
+  --muted: #b9aec9;
+  color: var(--text);
+}
+.character-sheet-view[data-character-mode="gold"] {
+  background:
+    radial-gradient(ellipse at 13% 8%, #96663222, transparent 34%),
+    radial-gradient(ellipse at 88% 26%, #6d35b933, transparent 42%),
+    linear-gradient(135deg, #070913, #110c22 54%, #090c18);
+}
+.character-sheet-view[data-character-mode="gold"] .sheet-layout {
+  /* Shrink tracks under zoom without changing the standard Alpha foundation. */
+  grid-template-columns: minmax(0, .95fr) minmax(0, .56fr) minmax(0, 1.35fr);
+}
+.character-sheet-view[data-character-mode="gold"] .app-header {
+  background: linear-gradient(110deg, #0a0c19 5%, #20122e 68%, #0c0d1a);
+  border-bottom: 1px solid var(--gold-edge);
+  box-shadow: 0 3px 22px #c792281a;
+}
+.character-sheet-view[data-character-mode="gold"] .app-header h1 {
+  color: #fff4dd;
+  text-shadow: 0 2px 14px #d4a44544;
+}
+.character-sheet-view[data-character-mode="gold"] .app-header .eyebrow,
+.character-sheet-view[data-character-mode="gold"] .panel-eyebrow {
+  color: var(--gold);
+  letter-spacing: .13em;
+}
+.character-sheet-view[data-character-mode="gold"] .panel,
+.character-sheet-view[data-character-mode="gold"] .notes-view,
+.app-modal[data-character-mode="gold"] {
+  border: 1px solid var(--gold-edge);
+  background:
+    linear-gradient(135deg, #d2a65210, transparent 26%),
+    radial-gradient(ellipse at 90% 2%, #8454c022, transparent 50%),
+    linear-gradient(160deg, #131221, #0c0e1b 60%, #191227);
+  box-shadow: inset 0 0 0 3px #0b0d19, inset 0 0 0 4px #a77b302b, 0 12px 32px #0005;
+}
+.character-sheet-view[data-character-mode="gold"] .panel {
+  background-image:
+    linear-gradient(90deg, #e1bd69, #e1bd6900), linear-gradient(180deg, #e1bd69, #e1bd6900),
+    linear-gradient(270deg, #e1bd69, #e1bd6900), linear-gradient(0deg, #e1bd69, #e1bd6900),
+    radial-gradient(ellipse at 90% 2%, #8454c022, transparent 50%), linear-gradient(160deg, #131221, #0c0e1b 60%, #191227);
+  background-size: 55px 2px, 2px 55px, 55px 2px, 2px 55px, auto, auto;
+  background-position: 7px 7px, 7px 7px, calc(100% - 7px) calc(100% - 7px), calc(100% - 7px) calc(100% - 7px), center, center;
+  background-repeat: no-repeat;
+}
+.character-sheet-view[data-character-mode="gold"] :is(#listaEquipamentos, #listaHabilidades):empty {
+  min-height: 190px;
+  display: grid;
+  align-content: end;
+  padding: 1rem;
+  border: 1px solid #a8874955;
+  border-radius: 12px;
+  background: url('../assets/gold-resonance.svg') center / contain no-repeat, radial-gradient(ellipse at 50% 90%, #59277840, transparent), #101120;
+}
+.character-sheet-view[data-character-mode="gold"] #listaEquipamentos:empty::after { content: "Nenhum equipamento registrado"; }
+.character-sheet-view[data-character-mode="gold"] #listaHabilidades:empty::after { content: "Nenhuma habilidade registrada"; }
+.character-sheet-view[data-character-mode="gold"] :is(#listaEquipamentos, #listaHabilidades):empty::after {
+  color: #fff0cc; text-align: center; font-size: .85rem; background: #101120d9; padding: .5rem; border-radius: 5px;
+}
+.character-sheet-view[data-character-mode="gold"] .panel-title-row,
+.character-sheet-view[data-character-mode="gold"] .notes-view-header {
+  border-bottom: 1px solid #ac853c70;
+  background: linear-gradient(90deg, #d4a44612, transparent 70%);
+}
+.character-sheet-view[data-character-mode="gold"] .panel h2,
+.character-sheet-view[data-character-mode="gold"] .notes-view h2,
+.app-modal[data-character-mode="gold"] h2 {
+  color: #fff0cc;
+  text-shadow: 0 1px 10px #e2b45722;
+}
+.character-sheet-view[data-character-mode="gold"] .panel-title-row::after {
+  content: "✦";
+  position: absolute;
+  right: 8px;
+  top: -9px;
+  color: var(--gold);
+  font-size: 15px;
+  pointer-events: none;
+}
+.character-sheet-view[data-character-mode="gold"] .panel-title-row { position: relative; }
+.character-sheet-view[data-character-mode="gold"] :is(input, select, textarea),
+.app-modal[data-character-mode="gold"] :is(input, select, textarea) {
+  background: linear-gradient(125deg, #171322, #0c1020);
+  border-color: #806944;
+  color: #f7f2e9;
+  box-shadow: inset 0 1px 3px #0005;
+}
+.character-sheet-view[data-character-mode="gold"] :is(input, select, textarea):focus-visible,
+.app-modal[data-character-mode="gold"] :is(input, select, textarea):focus-visible {
+  outline: 2px solid #fff0b5;
+  outline-offset: 2px;
+}
+.character-sheet-view[data-character-mode="gold"] :is(.btn, .icon-button, .content-notes-button),
+.app-modal[data-character-mode="gold"] :is(.btn, .icon-button) {
+  border-color: #a98649;
+  box-shadow: inset 0 1px 0 #ffe8a81a;
+}
+.character-sheet-view[data-character-mode="gold"] .btn:not(.secondary):not(.danger),
+.app-modal[data-character-mode="gold"] .btn:not(.secondary):not(.danger) {
+  background: linear-gradient(120deg, #cda34c, #f1d38e 58%, #bc913e);
+  color: #1c1220;
+  font-weight: 750;
+  text-shadow: none;
+}
+.character-sheet-view[data-character-mode="gold"] :is(.btn.secondary, .icon-button, .content-notes-button),
+.app-modal[data-character-mode="gold"] :is(.btn.secondary, .icon-button) {
+  background: linear-gradient(135deg, #302142, #16172a);
+  color: #fff0cc;
+}
+.character-sheet-view[data-character-mode="gold"] .btn.danger,
+.app-modal[data-character-mode="gold"] .btn.danger { border-color: var(--color-danger); color: #ffb5c6; }
+.character-sheet-view[data-character-mode="gold"] .editable-card,
+.character-sheet-view[data-character-mode="gold"] :is(.class-reference, .attribute-card, .skill-progression, .skill-row, .critical-state-card, .active-effect-card) {
+  background: linear-gradient(130deg, #28203870, #101220);
+  border-color: #81693f;
+  box-shadow: inset 0 1px 0 #dfb56116;
+}
+.character-sheet-view[data-character-mode="gold"] .editable-card > summary {
+  background: linear-gradient(100deg, #af87371a, #5d35871c 65%, transparent);
+  border-bottom-color: #80633e66;
+}
+.character-sheet-view[data-character-mode="gold"] :is(.empty-state, .content-empty-state, .empty-card, .favorite-empty-state, .notes-empty-state, .dynamic-empty-state) {
+  background:
+    radial-gradient(ellipse at 50% 90%, #70439442, transparent 65%),
+    repeating-linear-gradient(60deg, transparent, transparent 52px, #ddb96508 53px, transparent 54px),
+    linear-gradient(180deg, #141323, #161027);
+  border-color: #957843;
+  box-shadow: inset 0 0 24px #e2b34a0a;
+}
+.character-sheet-view[data-character-mode="gold"] .resource-card {
+  background: linear-gradient(145deg, #241b2b, #0c1020 66%);
+  box-shadow: inset 0 0 0 2px #0c0e19, 0 0 14px #c99b3120;
+}
+/* Keep each resource's existing semantic colors, rather than using the accent. */
+.character-sheet-view[data-character-mode="gold"] [data-resource-card="pvAtual"] { border-color: var(--color-resource-pv); }
+.character-sheet-view[data-character-mode="gold"] [data-resource-card="pnAtual"] { border-color: var(--color-resource-pn); }
+.character-sheet-view[data-character-mode="gold"] [data-resource-card="psAtual"] { border-color: var(--color-resource-ps); }
+.character-sheet-view[data-character-mode="gold"] .defense-card {
+  background: radial-gradient(ellipse at 50% 20%, #bd8f332e, transparent 70%), #11121e;
+  border-color: var(--gold);
+}
+.character-sheet-view[data-character-mode="gold"] :is(.mobile-resource-bar, .mobile-nav) {
+  background: #151022;
+  border-color: #b28b49;
+}
+.character-sheet-view[data-character-mode="gold"] :is(.mobile-nav button, .content-tabs button)[aria-selected="true"] {
+  color: #fff0b5;
+  border-color: #dab45c;
+  background: #372342;
+}
+.character-sheet-view[data-character-mode="gold"] .portrait-upload {
+  background: radial-gradient(circle at center, #7e4ca435, transparent 62%), #0d1121;
+  border-color: #c49c4d;
+}
+.character-sheet-view[data-character-mode="gold"] .portrait-upload:not(.has-image) {
+  background: url('../assets/gold-resonance.svg') center / 200% no-repeat, #10101d;
+}
+.character-sheet-view[data-character-mode="gold"] #fotoPlaceholder { background: #10101d9e; border-radius: 8px; }
+.character-sheet-view[data-character-mode="gold"] .portrait-upload::before { border-color: #d7b15a77; }
+.app-modal[data-character-mode="gold"] .enchantment-card {
+  /* Principle color stays authoritative for the identifying border. */
+  background: linear-gradient(130deg, #251b3570, #10121c);
+  border-left-color: var(--principle-color);
+}
+.gold-generation-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .7rem; min-width: 0; }
+.gold-mode-title { color: #e9c768; font-weight: 750; font-size: .85rem; letter-spacing: .08em; }
+.gold-generation-controls .btn { min-height: 34px; padding: .4rem .65rem; font-size: .76rem; white-space: normal; }
+.gold-enhancement-config { grid-column: 1 / -1; min-width: 0; border: 1px solid #b09050; border-radius: 10px; padding: .75rem; margin: .4rem 0; }
+.gold-enhancement-config legend { color: #f0d38d; padding: 0 .3rem; font-size: .85rem; }
+.gold-enhancement-config .gold-compatible-label { display: flex; align-items: center; gap: .6rem; }
+.gold-compatible-label input[type="checkbox"] { width: 18px; min-height: 18px; flex: 0 0 18px; accent-color: #e9c768; }
+.gold-config-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-top: .7rem; }
+.gold-config-fields label { display: grid; gap: .3rem; min-width: 0; }
+.gold-config-fields :is(input, select) { width: 100%; min-width: 0; }
+.gold-enhancement-preview, .gold-config-help { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.gold-config-help { font-size: .75rem; color: #cec2dd; line-height: 1.5; }
+.gold-enhancement-preview { color: #f2da9d; font-size: .82rem; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary {
+  grid-auto-flow: row;
+  grid-template-areas: none;
+  grid-template-columns: auto minmax(0, 1fr) repeat(3, auto);
+}
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary::before { grid-area: auto; grid-column: 1; grid-row: 1; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .card-summary { grid-area: auto; grid-column: 2; grid-row: 1; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .use-manifestation { grid-area: auto; grid-column: 3; grid-row: 1; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .favorite-card-button { grid-area: auto; grid-column: 4; grid-row: 1; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .remove-card { grid-area: auto; grid-column: 5; grid-row: 1; }
+.character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .automatic-badge { grid-area: auto; grid-column: 2 / -1; grid-row: 2; }
+.gold-use-enhancement { grid-column: 2 / -1; grid-row: 3; justify-self: end; min-width: 0; max-width: 100%; white-space: normal; flex-shrink: 1; font-size: .73rem; }
+.gold-confirm-content { display: grid; gap: .75rem; overflow-wrap: anywhere; }
+.gold-unlock-reveal {
+  position: fixed; inset: auto 1rem 2rem; z-index: var(--layer-notification, 1000);
+  width: min(500px, calc(100% - 2rem)); margin-inline: auto; pointer-events: none;
+  padding: 1.2rem; text-align: center; border: 1px solid #e2bc62; border-radius: 16px;
+  background: linear-gradient(120deg, #131021f2, #352144f2);
+  box-shadow: 0 0 32px #cda74440, inset 0 0 24px #d9b14a12;
+  animation: gold-reveal 1.8s ease both;
+}
+.gold-unlock-reveal span { display: block; color: #dcd0ec; font-size: .8rem; }
+.gold-unlock-reveal strong { display: block; color: #ffe5a0; font: 700 clamp(1.2rem, 4vw, 2rem) Georgia, serif; margin-top: .3rem; }
+.gold-awakening > .sheet-layout { animation: gold-awakening 1s ease-out; }
+@keyframes gold-reveal { 0% { opacity: 0; translate: 0 8px; } 18%, 75% { opacity: 1; translate: 0 0; } 100% { opacity: 0; } }
+@keyframes gold-awakening { from { box-shadow: 0 0 36px #ecc55c55; } to { box-shadow: 0 0 0 transparent; } }
+@media (max-width: 1279px) {
+  .character-sheet-view[data-character-mode="gold"] .panel { box-shadow: inset 0 0 0 2px #0b0d19, inset 0 0 0 3px #a77b302b; }
+  .gold-generation-controls .btn { min-height: 44px; }
+}
+@media (max-width: 600px) {
+  .gold-config-fields { grid-template-columns: minmax(0, 1fr); }
+  .gold-use-enhancement { max-width: 110px; min-height: 44px; }
+  .character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .card-summary { grid-column: 2 / -1; }
+  .character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .use-manifestation { grid-column: 2; grid-row: 2; justify-self: start; }
+  .character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .favorite-card-button { grid-column: 3; grid-row: 2; }
+  .character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .remove-card { grid-column: 4; grid-row: 2; }
+  .character-sheet-view[data-character-mode="gold"] .gold-enhancement-summary .automatic-badge { grid-row: 3; }
+  .gold-use-enhancement { grid-row: 4; }
+  .character-sheet-view[data-character-mode="gold"] .app-header h1 { text-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gold-unlock-reveal, .gold-awakening > .sheet-layout { animation: none; }
+  .character-sheet-view[data-character-mode="gold"] *, .app-modal[data-character-mode="gold"] * { scroll-behavior: auto; transition: none; }
+}
