@@ -1,0 +1,31 @@
+.equipment-reference-actions { display: flex; gap: .4rem; min-width: 0; }
+.equipment-panel > .panel-title-row { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.app-modal.enchantments-modal { width: min(100%, 680px); display: flex; flex-direction: column; overflow: hidden; }
+.enchantments-modal .modal-description { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.enchantments-modal .modal-actions:empty { display: none; }
+.enchantments-content { display: grid; gap: .75rem; min-width: 0; }
+.enchantment-card { min-width: 0; border: 1px solid var(--line); border-left: 3px solid var(--principle-color); border-radius: 10px; background: rgba(255,255,255,.025); }
+.enchantment-card summary { padding: .8rem; cursor: pointer; overflow-wrap: anywhere; }
+.enchantment-meta { display: block; color: var(--principle-color); margin-top: .25rem; }
+.enchantment-body { display: grid; gap: .75rem; padding: 0 .8rem .8rem; min-width: 0; }
+.enchantment-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.enchantment-formula { overflow-wrap: anywhere; color: var(--text); }
+.enchantment-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.enchantment-actions .btn { white-space: normal; }
+.enchantment-form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .75rem; }
+.enchantment-form label { display: grid; gap: .35rem; min-width: 0; }
+.enchantment-form input, .enchantment-form select, .enchantment-form textarea { width: 100%; min-width: 0; }
+.enchantment-form label[hidden] { display: none; }
+.enchantment-wide, .enchantment-form > .enchantment-formula, .enchantment-form > [role="alert"] { grid-column: 1 / -1; }
+.enchantments-error { color: var(--danger, #f39494); }
+.enchantment-card summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+@media (max-width: 1279px) {
+  .equipment-panel > .panel-title-row { grid-template-columns: auto minmax(0,1fr) auto; }
+  .equipment-panel > .panel-title-row > .equipment-reference-actions { grid-column: 1; grid-row: 2; }
+  .equipment-panel > .panel-title-row > .favorite-filter { grid-column: 2 / 4; min-width: 0; }
+  .equipment-reference-actions .content-notes-button { width: 40px; height: 40px; flex-basis: 40px; }
+}
+@media (max-width: 700px) {
+  .enchantment-form { grid-template-columns: minmax(0,1fr); }
+  .enchantment-actions .btn { min-height: 44px; }
+}

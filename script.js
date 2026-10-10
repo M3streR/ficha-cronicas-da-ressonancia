@@ -303,6 +303,7 @@ const state = {
   fields: {},
   skills: {},
   equipment: [],
+  enchantments: [],
   abilities: [],
   manifestations: [],
   automaticAbilityFavorites: {},
@@ -345,6 +346,7 @@ let isAddingOfficialCondition = false;
 let isAddingOfficialEquipment = false;
 let notificationTimer;
 let modalReturnFocus = null;
+let modalLifecycle = null;
 let notesReturnScrollY = 0;
 let quickDiceReturnFocus = null;
 let quickDiceAnimationTimer;
@@ -388,7 +390,7 @@ function isSafeReadOnlyControl(element) {
   if (!(element instanceof Element)) return false;
   return Boolean(element.closest([
     '#voltarPersonagens', '#exportarFicha', '#sheetOnlineSyncStatus', '#takeOverCharacterEditing',
-    '#mobileResourceToggle', '#alternarFerramentasPersonagem', '#abrirAnotacoes', '#voltarDaAnotacoes',
+    '#abrirEncantamentos', '#mobileResourceToggle', '#alternarFerramentasPersonagem', '#abrirAnotacoes', '#voltarDaAnotacoes',
     '[data-mobile-target]', '[data-content-target]', '[data-skill-filter]', '[data-favorite-filter]',
     '#pesquisaPericias', '#limparBuscaPericias', '#filtroAtributoPericia'
   ].join(',')));
@@ -4432,14 +4434,22 @@ function showNotification(message, kind = 'success', duration = 4500) {
 function closeModal() {
   const overlay = document.getElementById('modalOverlay');
   if (!overlay || overlay.hidden) return;
+  if (modalLifecycle?.beforeClose?.() === false) return false;
+  const closed = modalLifecycle;
+  modalLifecycle = null;
+  document.getElementById('appModal').classList.remove('enchantments-modal');
   overlay.hidden = true;
+  closed?.onClose?.();
   document.body.classList.remove('modal-open');
   const returnTarget = modalReturnFocus;
   modalReturnFocus = null;
   if (returnTarget?.isConnected) returnTarget.focus();
 }
 
-function openModal({ title, content, actions = [] }) {
+function openModal({ title, content, actions = [], owner = '', modalClass = '', beforeClose = null, onClose = null }) {
+  if (modalLifecycle && modalLifecycle.owner !== owner && closeModal() === false) return false;
+  modalLifecycle = { owner, beforeClose, onClose };
+  document.getElementById('appModal').classList.toggle('enchantments-modal', modalClass === 'enchantments-modal');
   closeQuickDice();
   const overlay = document.getElementById('modalOverlay');
   const titleElement = document.getElementById('modalTitle');
@@ -4491,7 +4501,7 @@ function bindModalSystem() {
       return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
+    const focusable = [...modal.querySelectorAll('summary, button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')].filter(element => element.getClientRects().length);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -5247,6 +5257,7 @@ function createEmptyCharacterState() {
     fields: { ...initialFieldValues },
     skills: {},
     equipment: [],
+    enchantments: [],
     abilities: [],
     manifestations: [{ nome: 'Manifestação 1' }],
     automaticAbilityFavorites: {},
@@ -5267,6 +5278,7 @@ function restoreState(saved) {
   state.fields = isPlainObject(restored.fields) ? { ...restored.fields } : {};
   state.skills = isPlainObject(restored.skills) ? { ...restored.skills } : {};
   state.equipment = Array.isArray(restored.equipment) ? cloneCharacterState(restored.equipment) : [];
+  state.enchantments = cloneCharacterState(restored.enchantments || []);
   state.abilities = Array.isArray(restored.abilities) ? cloneCharacterState(restored.abilities) : [];
   state.manifestations = Array.isArray(restored.manifestations) ? cloneCharacterState(restored.manifestations) : [];
   state.notes = Array.isArray(restored.notes) ? cloneCharacterState(restored.notes) : [];
@@ -8271,6 +8283,21 @@ function updateResourceAdjusterContext() {
 }
 
 function bindDynamicButtons() {
+  window.Enchantments.configure({
+    openModal, close: closeModal,
+    identity: () => activeCharacterId || storageMode,
+    read: () => cloneCharacterState(state.enchantments || []),
+    canEdit: () => activeCharacterCanMutate('edit'),
+    commit: list => {
+      if (!activeCharacterCanMutate('edit')) return false;
+      const previous = cloneCharacterState(state.enchantments || []);
+      state.enchantments = window.Enchantments.validate(list);
+      const saved = saveNow();
+      if (!saved) state.enchantments = previous;
+      return saved;
+    }
+  });
+  document.getElementById('abrirEncantamentos').addEventListener('click', () => window.Enchantments.open());
   document.getElementById('adicionarEquipamento').addEventListener('click', openEquipmentAdditionMenu);
 
   document.getElementById('adicionarHabilidade').addEventListener('click', () => {
@@ -8487,6 +8514,7 @@ function validateImportedSheet(imported) {
     fields: { ...imported.fields },
     skills: { ...imported.skills },
     equipment: JSON.parse(JSON.stringify(imported.equipment)),
+    enchantments: [],
     abilities: JSON.parse(JSON.stringify(imported.abilities)),
     manifestations: JSON.parse(JSON.stringify(imported.manifestations)),
     automaticAbilityFavorites: {},
@@ -8494,6 +8522,8 @@ function validateImportedSheet(imported) {
     activeEffects: [],
     criticalStates: createDefaultCriticalStates()
   };
+  try { normalized.enchantments = window.Enchantments.validate(imported.enchantments); }
+  catch (error) { return { valid: false, reason: 'invalid', message: error.message }; }
   const corrections = [];
   if (Object.prototype.hasOwnProperty.call(normalized.fields, 'totalis')) {
     delete normalized.fields.totalis;
@@ -8505,6 +8535,7 @@ function validateImportedSheet(imported) {
     'fields',
     'skills',
     'equipment',
+    'enchantments',
     'abilities',
     'manifestations',
     'automaticAbilityFavorites',

@@ -489,6 +489,7 @@
       fields: clone(source.fields || {}),
       skills: clone(source.skills || {}),
       equipment: clone(source.equipment || []),
+      enchantments: clone(source.enchantments || []),
       abilities: clone(source.abilities || []),
       manifestations: clone(source.manifestations || []),
       automaticAbilityFavorites: clone(source.automaticAbilityFavorites || {}),
