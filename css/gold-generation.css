@@ -1,4 +1,9 @@
 /* Character-scoped theme. No document, manager or global token overrides. */
+.character-sheet-view .defense-card .defense-label {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
 #goldGenerationControls[hidden], .gold-config-fields[hidden] { display: none !important; }
 .character-sheet-view[data-character-mode="gold"],
 .app-modal[data-character-mode="gold"] {
