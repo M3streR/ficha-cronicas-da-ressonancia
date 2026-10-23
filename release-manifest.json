@@ -1,0 +1,417 @@
+{
+  "environment": "production",
+  "projectRef": "gejpqmrystvzezscmmkg",
+  "sites": [
+    "https://m3strer.github.io/ficha-cronicas-da-ressonancia/",
+    "https://ficha-cronicas-da-ressonancia.vercel.app/",
+    "https://ficha-cronicas-da-ressonancia-felipegamercps-2752.vercel.app/",
+    "https://ficha-cronicas-da-ressonancia-git-main-felipegamercps-2752.vercel.app/"
+  ],
+  "redirectsConfirmed": true,
+  "existingCharacterDatabase": "cronicasRessonanciaCharacters",
+  "existingChroniclesDatabase": "cronicasRessonanciaChronicles",
+  "existingAuthStorage": "cronicasRessonanciaSupabaseAuth",
+  "namespaceStrategy": "Reuse official stores and IDs in place; never copy experimental records into them.",
+  "files": [
+    {
+      "file": "account-access.css",
+      "sha256": "7d8e936a1f0082723c2902e2eb18227fa8952a9146bf16a2d9af60c1f823ed04"
+    },
+    {
+      "file": "account-access.js",
+      "sha256": "dd7113f3532905643d12a9da580f57245a773495ab89ba377e101f665124a4b2"
+    },
+    {
+      "file": "account-auth/config.js",
+      "sha256": "36e0c7c0dca37eb955832dfaec69e7d88083f84018093556860d5a31dc3aed1d"
+    },
+    {
+      "file": "account-auth/runtime.js",
+      "sha256": "64930690c94a2529a75def4b9fc6580b86eaa8fc91ed96fa73d959ec5fde603b"
+    },
+    {
+      "file": "account-auth/vendor/supabase-2.112.4.js",
+      "sha256": "f8ce7fab799af1916019cbd0b485b39bb80dbdbc6dc062909a751c9e5198e04c"
+    },
+    {
+      "file": "assets/atmosphere-gold.svg",
+      "sha256": "cbcc9abb07e0fc94c5a2cdf6fcb081e8847c33d3c1734d0eb41b619c333899bd"
+    },
+    {
+      "file": "assets/atmosphere.svg",
+      "sha256": "38a32b0752c4050190f9394f459b1baa8179fc9d2cd8986cc3648526edf41e55"
+    },
+    {
+      "file": "assets/corner-mirrored.svg",
+      "sha256": "cbb6d607353574d4a4ea80fdceb0f76c208afaa2cd751f745660b49e1b67d078"
+    },
+    {
+      "file": "assets/corner.svg",
+      "sha256": "5a2b955c770bff75ca63398ac3c3a59d728f0d8c393d6e3b4b4055526a9336d3"
+    },
+    {
+      "file": "assets/fonts/Cinzel-OFL.txt",
+      "sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83"
+    },
+    {
+      "file": "assets/fonts/Cinzel.ttf",
+      "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34"
+    },
+    {
+      "file": "assets/fonts/Spectral-OFL.txt",
+      "sha256": "501d6ceca8e552630fe3aa9442b9a818565680a1a2f79f3fb8c13d6f309a9e98"
+    },
+    {
+      "file": "assets/fonts/Spectral-Regular.ttf",
+      "sha256": "c89021dc20720c8d0dcf40b0b2f6e00c13665fa8041717f581396f51b8c78f5d"
+    },
+    {
+      "file": "assets/portrait.svg",
+      "sha256": "690274c8c8ab61a484572e5696924fe8dada4c84888db405cf674de6b5f60097"
+    },
+    {
+      "file": "engine-adapter.js",
+      "sha256": "6c2bbfee45817b8e17b79b1c975c15f6479193e657172f42b0b57bdbddb0d68b"
+    },
+    {
+      "file": "engine-theme.css",
+      "sha256": "d64bea755fb0150bf17457631ff64e28bf67a2ef43a7539e9f9b8a0e125c2845"
+    },
+    {
+      "file": "engine/assets/corner-mirrored.svg",
+      "sha256": "cbb6d607353574d4a4ea80fdceb0f76c208afaa2cd751f745660b49e1b67d078"
+    },
+    {
+      "file": "engine/assets/corner.svg",
+      "sha256": "5a2b955c770bff75ca63398ac3c3a59d728f0d8c393d6e3b4b4055526a9336d3"
+    },
+    {
+      "file": "engine/assets/fonts/Cinzel-OFL.txt",
+      "sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83"
+    },
+    {
+      "file": "engine/assets/fonts/Cinzel.ttf",
+      "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34"
+    },
+    {
+      "file": "engine/assets/fonts/Spectral-OFL.txt",
+      "sha256": "501d6ceca8e552630fe3aa9442b9a818565680a1a2f79f3fb8c13d6f309a9e98"
+    },
+    {
+      "file": "engine/assets/fonts/Spectral-Regular.ttf",
+      "sha256": "c89021dc20720c8d0dcf40b0b2f6e00c13665fa8041717f581396f51b8c78f5d"
+    },
+    {
+      "file": "engine/assets/gold-resonance.svg",
+      "sha256": "75716ac8833d50fab5fae008526d636fedad1cbf7518f0653c9032c5ebaecf47"
+    },
+    {
+      "file": "engine/css/account-auth.css",
+      "sha256": "6778ec163dc14342a6698c5e148ff8263caf8799150c49121054b8f106b118b1"
+    },
+    {
+      "file": "engine/css/chronicles-collaboration.css",
+      "sha256": "639e468b2367480ec122b26eb8b9aa0c438918dc97941f4db332deaa196ec70a"
+    },
+    {
+      "file": "engine/css/chronicles-free-rolls.css",
+      "sha256": "ea512ab21bec3e169d89e4992dbf3cb7fa33e256f63e59ca1c9bb0df9b927594"
+    },
+    {
+      "file": "engine/css/chronicles-online-combat.css",
+      "sha256": "69cef45ea964ba4a168ce806bed8da6aedd89fba1aec6c5743619c1afc87d7f5"
+    },
+    {
+      "file": "engine/css/chronicles-online.css",
+      "sha256": "f69a986584a8c82c1ce499c2dbf706ab0491363eabec662f54dcfcb27e1a3e89"
+    },
+    {
+      "file": "engine/css/chronicles-sharing.css",
+      "sha256": "77d0b925d48619903d59688d8cf8bd081721942ab0e069a6063a2c2123bf0267"
+    },
+    {
+      "file": "engine/css/chronicles-workspace.css",
+      "sha256": "fea0413665932f5a582cbf57e60b8a6372f5f5780571d23139bf7d749805cbc8"
+    },
+    {
+      "file": "engine/css/compact.css",
+      "sha256": "69259679b47aa9dade5e5ef7acbb94fd3b0ae9bf5ceab454b165fd9591492593"
+    },
+    {
+      "file": "engine/css/coyote-eyes.css",
+      "sha256": "f6f476b86b4cf70f0a1876903da4bdbaa5610142bfef16ba84b9cabaadee273f"
+    },
+    {
+      "file": "engine/css/enchantments.css",
+      "sha256": "5c8b3ba8ab7eae66667562d45ce7caa7d2a76ce1a5f7d0471429548debf5b14b"
+    },
+    {
+      "file": "engine/css/final-polish.css",
+      "sha256": "dedfcd395207c0350e79907bed799ac95aa05c5ad062ae552860db426de8b3d6"
+    },
+    {
+      "file": "engine/css/gold-generation.css",
+      "sha256": "8d44c056da28e0cc7983d036d388db051d92996f041986d2265e96188ed796f2"
+    },
+    {
+      "file": "engine/css/layers.css",
+      "sha256": "ae85059ef3d73bfc8890034b51f63ea0de5de4b8ccb2080c6f594b3257b7a6fa"
+    },
+    {
+      "file": "engine/css/layout-foundation.css",
+      "sha256": "66eb9fc01b423511585f0731f992556965cde5552d84dce7e6cb3bf45a0ecb52"
+    },
+    {
+      "file": "engine/engine-adapter.js",
+      "sha256": "0ecac8a7a03187a277a235cec8d248382a410a7993839538a1e2405c837b4622"
+    },
+    {
+      "file": "engine/engine-theme.css",
+      "sha256": "b867c4e8208f89dd35eba8d9d5cc46efb3e9193e7878b1fab91b7b63a9e264b1"
+    },
+    {
+      "file": "engine/gold-theme.css",
+      "sha256": "f900391c293b904731c5be6264a4b4560d1b1199be32b8f4e18e7b6b1626f04b"
+    },
+    {
+      "file": "engine/index.html",
+      "sha256": "3d0cdbaa1d7e23afdfdeaeb50dfe0f97c7fd1da9270316c0c74947368b7bcda8"
+    },
+    {
+      "file": "engine/js/character-edit-authority.js",
+      "sha256": "8ca28f69d6e4af8a228f6b0ed08d69d74cb754d3f13331bfc8f9394120007ea9"
+    },
+    {
+      "file": "engine/js/character-storage.js",
+      "sha256": "cd44d878ab930cbcc12d306b4670556224418f62677ff4e22f2ab05b46585b20"
+    },
+    {
+      "file": "engine/js/chronicle-covers.js",
+      "sha256": "f885664d99f4b5dd47d1ade8cdace8f401c6601b7f1c44eb4ce1703353b49770"
+    },
+    {
+      "file": "engine/js/chronicles-collaboration.js",
+      "sha256": "97fdee15e5617ea42972a37fe8f16aea7a4a20830512052d424f7f5c18b6da1f"
+    },
+    {
+      "file": "engine/js/chronicles-free-rolls.js",
+      "sha256": "38eaecb07cdb947638688211a29a28ce8814b27fdb6879486774ff6881cb0c90"
+    },
+    {
+      "file": "engine/js/chronicles-online-combat.js",
+      "sha256": "44f6cbfa5a781cc824a3f0d45fb2b34fa3ac32dbca321abdc1ae3c17367c7cbb"
+    },
+    {
+      "file": "engine/js/chronicles-online-rolls.js",
+      "sha256": "9043ae8a4a933d3da4dcd13f08b7faa4ab2066be8f14e34ef6fe4dd39994499f"
+    },
+    {
+      "file": "engine/js/chronicles-online.js",
+      "sha256": "030d1cc9744de595e2ff41dc07a8d2b4292dfbe04ae697d66378beb6834c3c1d"
+    },
+    {
+      "file": "engine/js/chronicles-sharing.js",
+      "sha256": "678fb5760567b6a782f466700c94ce0c02d50a500ce423d6aa77eb918691cab7"
+    },
+    {
+      "file": "engine/js/chronicles-storage.js",
+      "sha256": "5a66b04881d01d5bf487de42ba72aad8ae70c16bccbea34fab2e206694494886"
+    },
+    {
+      "file": "engine/js/confrontations.js",
+      "sha256": "abb80a2e7b7e960df05257910c153454475cddbe097ffe6b2cc8c477fd4aa08d"
+    },
+    {
+      "file": "engine/js/coyote-eyes.js",
+      "sha256": "fecdca07a73379e401bc1018263ab8d3818d604b55550a09a390e2ef26d6a204"
+    },
+    {
+      "file": "engine/js/enchantments.js",
+      "sha256": "5cdf1d0bf586ea61070f4c4fa8d2d1ec7f237928ce66294a3ee260ea287496ac"
+    },
+    {
+      "file": "engine/js/gold-generation.js",
+      "sha256": "8957909383dec87144e34d12436fc0d65861d8c658ad46728ab61e89080121a1"
+    },
+    {
+      "file": "engine/js/master-access.js",
+      "sha256": "857cc278a72a6e7d61dfa7105bc6c2c639bef81dea8f0b1539dea0bf84d26e6c"
+    },
+    {
+      "file": "engine/js/master-records.js",
+      "sha256": "1ef950c7a5e6330cda51eb21001f738737b3ae3ad1457647e43108155ef22491"
+    },
+    {
+      "file": "engine/js/master-shield.js",
+      "sha256": "d7fb4729f7bb94da838947748397826b363e38f6a587610d94f6feca823b586d"
+    },
+    {
+      "file": "engine/js/roll-history-view.js",
+      "sha256": "12e6145202965de0d64149ed2d455ca2a3ecce10148d111272aeed545b9a872f"
+    },
+    {
+      "file": "engine/js/roll-history.js",
+      "sha256": "c4f946a013f975b635b4a1ec214dcba897e334c1e975dbe6b1988f562dce0ac4"
+    },
+    {
+      "file": "engine/mobile.css",
+      "sha256": "8656798715c4b290396ab049259ba1152f03d6f89d395b0cdfb668ee783b5933"
+    },
+    {
+      "file": "engine/offline-auth.js",
+      "sha256": "7278364abef1dd9e6a5d0d9991841371007240f1c3de48e33abd2087b01f3400"
+    },
+    {
+      "file": "engine/phone-panels.js",
+      "sha256": "872a75428646d689435b888a220b0d7ec86c3b41e2ef0ab066d08ab601e89f15"
+    },
+    {
+      "file": "engine/phone-theme.css",
+      "sha256": "76af288478e45c9fd2911ea0d032b6758579ea6a3e135a18cc6ba820c138422a"
+    },
+    {
+      "file": "engine/script.js",
+      "sha256": "9362a9802d86b02157a995a3d510e87df730b0cc4d37dc364a2438a4d463b722"
+    },
+    {
+      "file": "engine/style.css",
+      "sha256": "81896bf0cb87096e8fe0eb11c63ceb8950d6c7c1696e64b776dae3ada010aef9"
+    },
+    {
+      "file": "ficha.css",
+      "sha256": "fb8abc99139fe92e746901c8b654920848330c8cae5a9b274da9aa84651cfd30"
+    },
+    {
+      "file": "ficha.html",
+      "sha256": "62b4185187857a898199ae9c9a963b931361b39007bbf98aa3b8b482c1f59026"
+    },
+    {
+      "file": "ficha.js",
+      "sha256": "18adcd56c12e7da63c38413c2f2e3c04dc637351f28292f510f322f8b7880c3c"
+    },
+    {
+      "file": "general-mobile.css",
+      "sha256": "17fd6a3eea17fb23b8ab1d58eaa80e92fff903e836752ba056637d9384137a87"
+    },
+    {
+      "file": "general-mobile.js",
+      "sha256": "df0f14cd7eb5ff99eee4127eb64127b1753d5eefaeef5eb4b04a3d867aaa373a"
+    },
+    {
+      "file": "general-refinement.css",
+      "sha256": "2e152b79bf6145d5681e2cd6fd62308ad2247a333af26a5e3a16bea00c49a5bb"
+    },
+    {
+      "file": "gold-theme.css",
+      "sha256": "bfd7e9e24a1bcd176bd1098708a8ef4cd190f9198f997d9147a4f5e4817c8796"
+    },
+    {
+      "file": "index.html",
+      "sha256": "fabb2d2fda692af2d3b191b82fda176c6c8877eaa8fda96bdb47f5557c4735a3"
+    },
+    {
+      "file": "integration.js",
+      "sha256": "15361de4a217e2f88f5c9bbae28c5e08586e86b74433c9e5485b46167ab0e827"
+    },
+    {
+      "file": "manager-page.js",
+      "sha256": "0feea433288f404b092b4eafcfd1a9f21861560244287b9a633f275a3cbe9201"
+    },
+    {
+      "file": "manager-ui/assets/characters-scene.svg",
+      "sha256": "37aabd3016dd1bd892f11dd5f024c49e594d5005b2691ca65d3921b8d9447b7f"
+    },
+    {
+      "file": "manager-ui/assets/characters.webp",
+      "sha256": "cb13454d291cf083841ecf2fb9312282d70c2fc311e0dce236f4ee33d278e77d"
+    },
+    {
+      "file": "manager-ui/assets/chronicles-scene.svg",
+      "sha256": "bffcd5bf540175a6de977fddb8fd17aa390f105b61f51133a07b1c0e121c9f06"
+    },
+    {
+      "file": "manager-ui/assets/chronicles.webp",
+      "sha256": "99468362e179031473e7912fed1ec10058fd606420e89a01d6b2bd06f4ed5f81"
+    },
+    {
+      "file": "manager-ui/lists.js",
+      "sha256": "531b660bd95ba690d77ab332f0c5392878a154a94c27cafa3c0c6ab9e2a69b84"
+    },
+    {
+      "file": "manager-ui/manager.js",
+      "sha256": "11d0ddc588cb1d1336390647c87c8e3382d2179b7983b11c30ce2b4e4e335aea"
+    },
+    {
+      "file": "manager-ui/theme.css",
+      "sha256": "87c3655db8510ab32e50e4c0ae2cb2f6b0c668d968652367546f5d29b296b10a"
+    },
+    {
+      "file": "mobile.css",
+      "sha256": "29979d05c81ddbe492ee248e6aff5eea877b463aa93ee4cc8f08999467ad21ff"
+    },
+    {
+      "file": "mobile.js",
+      "sha256": "b76c4991cf99d9f82d99f8009f9d6b9b44528bece892e5d41cfe693998676873"
+    },
+    {
+      "file": "navigation-effects.css",
+      "sha256": "e99d142313f81ef46bcc3ed6343daa60c565d092e76e374816ba92c3820e787d"
+    },
+    {
+      "file": "navigation-effects.js",
+      "sha256": "7f43558f34964d897ffbafd492f286927ba1e857595f87ac40758d7dc962e914"
+    },
+    {
+      "file": "offline-auth.js",
+      "sha256": "18fe8faf804bacd5aedd1d48155a449d37dfdc1ee95bbc0ce7b07d11a58749d1"
+    },
+    {
+      "file": "portrait-obs/panel.css",
+      "sha256": "64c0c377c409d67900438bd4f1f8861feaa53785ef3a3e410c6a5698c4574871"
+    },
+    {
+      "file": "portrait-obs/panel.js",
+      "sha256": "52b38a7e0864f79897588390c92b245df46cd28b6a62a1bd95c96863c07cee20"
+    },
+    {
+      "file": "portrait-obs/sync.js",
+      "sha256": "d2c3d487db61da9a64bd776f2fdc0ba9dae9c182d826016404e5bd2755133090"
+    },
+    {
+      "file": "quick-dice-portal.js",
+      "sha256": "44aaa7c3db3217d6ddf81cc8c39c5d4a8d1848a426c65f05fdb8082940da12f8"
+    },
+    {
+      "file": "quick-dice.css",
+      "sha256": "f965fe2a44ed235ea3aca7ee1e1eb8aaff2201360003c52efae6ed74ad1ee1b5"
+    },
+    {
+      "file": "rules.js",
+      "sha256": "42adbca41a31b6613e83b21ff63e2c8a53abf0592bad3aebe01fa8921fc9df20"
+    },
+    {
+      "file": "runtime.js",
+      "sha256": "b7e8157ab7738bfa6c8a93c307aa79930cc23523779f2079c8989a9acaacfef7"
+    },
+    {
+      "file": "secret-codes.css",
+      "sha256": "38503859a399b2d3ebff435e901fb06a33fecdac8fd9ecdc545f8c1200ebc406"
+    },
+    {
+      "file": "secret-codes.js",
+      "sha256": "66d46a541b2f166a0ccab723bd3dfb13fa8a8b1c8278d5e82076576bab1fc378"
+    },
+    {
+      "file": "storage.js",
+      "sha256": "26e88681909d22af2441accbf0dd1afe3d3719a6bd30e99c57aac4c192af77e0"
+    },
+    {
+      "file": "official-storage-backup.js",
+      "sha256": "c5707a155c9556cf2635acc68c73f0d269a22b075de196e3e555e740bbdaa866"
+    },
+    {
+      "file": "portrait-obs/portrait-servidor-local.zip",
+      "sha256": "d082648deb554dd6d4050eaac84bbb71934a36aea853377049f2fa4ab856386e"
+    }
+  ]
+}

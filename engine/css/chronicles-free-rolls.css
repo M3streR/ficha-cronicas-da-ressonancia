@@ -1,0 +1,140 @@
+.chronicle-free-rolls-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.chronicle-free-rolls-panel[hidden] { display: none; }
+
+.chronicle-free-rolls-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-subtle, var(--line));
+}
+
+.chronicle-free-rolls-heading h3,
+.chronicle-free-rolls-heading p { margin: 0; }
+.chronicle-free-rolls-heading p {
+  margin-top: .35rem;
+  color: var(--color-text-muted);
+  font-size: .9rem;
+}
+
+.chronicle-free-rolls-status:not(:empty) {
+  margin: 0;
+  padding: .75rem 1rem;
+  border: 1px solid var(--color-border-subtle, var(--line));
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted, rgba(255,255,255,.03));
+}
+
+.chronicle-free-rolls-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chronicle-free-roll-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border-subtle, var(--line));
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-accent, var(--accent)) 7%, transparent), transparent 48%),
+    var(--color-surface-elevated, var(--panel));
+  box-shadow: var(--shadow-sm, 0 10px 26px rgba(0,0,0,.15));
+}
+
+.chronicle-free-roll-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: .8rem;
+}
+
+.chronicle-free-roll-identity { display: grid; gap: .16rem; min-width: 0; }
+.chronicle-free-roll-identity strong,
+.chronicle-free-roll-identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chronicle-free-roll-identity span {
+  color: var(--color-text-secondary);
+  font-size: .88rem;
+}
+.chronicle-free-roll-total {
+  color: var(--color-accent, var(--accent));
+  font: 700 clamp(1.65rem, 3vw, 2.2rem)/1 var(--font-display, inherit);
+}
+.chronicle-free-roll-expression {
+  margin: .85rem 0 .35rem;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.chronicle-free-roll-byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: .8rem;
+}
+.chronicle-free-roll-details {
+  margin-top: .8rem;
+  padding-top: .7rem;
+  border-top: 1px solid var(--color-border-subtle, var(--line));
+}
+.chronicle-free-roll-details summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: .82rem;
+  font-weight: 700;
+}
+.chronicle-free-roll-details summary:focus-visible {
+  outline: 2px solid var(--color-accent, var(--accent));
+  outline-offset: 3px;
+}
+.chronicle-free-roll-breakdown {
+  display: grid;
+  gap: .4rem;
+  margin: .7rem 0 0;
+}
+.chronicle-free-roll-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.chronicle-free-roll-breakdown dt { color: var(--color-text-muted); }
+.chronicle-free-roll-breakdown dd { margin: 0; color: var(--color-text-primary); text-align: right; }
+.chronicle-free-rolls-empty {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem;
+  border: 1px dashed var(--color-border-subtle, var(--line));
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+}
+.chronicle-free-rolls-empty[hidden] { display: none; }
+.chronicle-free-rolls-empty > span { color: var(--color-accent, var(--accent)); font-size: 1.5rem; }
+.chronicle-free-rolls-empty p { margin: .25rem 0 0; color: var(--color-text-muted); }
+.chronicle-free-rolls-more { justify-self: center; }
+
+@media (max-width: 760px) {
+  .chronicle-free-rolls-heading { align-items: stretch; }
+  .chronicle-free-rolls-heading .btn { align-self: start; min-height: var(--alpha-touch-target, 44px); }
+  .chronicle-free-rolls-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 430px) {
+  .chronicle-free-rolls-heading { display: grid; }
+  .chronicle-free-rolls-heading .btn { width: 100%; }
+  .chronicle-free-roll-card { padding: .9rem; }
+}

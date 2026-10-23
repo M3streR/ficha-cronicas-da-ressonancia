@@ -1,0 +1,306 @@
+.chronicle-sharing-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(820px, calc(100dvh - 32px));
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  border-radius: var(--radius, 20px);
+  background: color-mix(in srgb, var(--color-surface-primary) 98%, transparent);
+  color: var(--color-text-primary);
+  box-shadow: 0 28px 90px var(--color-shadow-strong), inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
+  overflow: hidden;
+}
+
+.chronicle-sharing-dialog::backdrop {
+  background: var(--color-overlay);
+  backdrop-filter: blur(7px);
+}
+
+.chronicle-sharing-shell {
+  display: grid;
+  min-width: 0;
+  gap: 22px;
+  padding: clamp(24px, 4vw, 38px);
+  max-height: min(820px, calc(100dvh - 32px));
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 33%),
+    linear-gradient(145deg, var(--color-surface-elevated), var(--color-bg-secondary));
+}
+
+.chronicle-sharing-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.chronicle-sharing-header > div { min-width: 0; }
+
+.chronicle-sharing-header h2 {
+  margin: 7px 0 0;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.chronicle-sharing-close {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 50%;
+  background: var(--color-surface-interactive);
+  color: inherit;
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chronicle-sharing-close:hover:not(:disabled),
+.chronicle-sharing-close:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent) 48%, transparent);
+  background: var(--color-accent-soft);
+}
+
+.chronicle-sharing-lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.chronicle-sharing-note {
+  display: grid;
+  gap: 7px;
+  padding: 17px 19px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 20%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--color-warning) 72%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 5.5%, transparent);
+}
+
+.chronicle-sharing-note strong {
+  color: var(--color-warning);
+}
+
+.chronicle-sharing-note span {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.chronicle-sharing-feedback {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.chronicle-sharing-feedback[data-kind="success"] {
+  color: var(--color-success);
+}
+
+.chronicle-sharing-feedback[data-kind="error"] {
+  color: var(--color-danger);
+}
+
+.chronicle-sharing-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.chronicle-invite-create {
+  justify-self: start;
+}
+
+.chronicle-invite-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.chronicle-invite-options label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.chronicle-invite-options select {
+  width: 100%;
+}
+
+.chronicle-invite-list {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.chronicle-invite-empty {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 23px;
+  border: 1px dashed color-mix(in srgb, var(--color-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 2.5%, transparent);
+  color: var(--color-text-muted);
+}
+
+.chronicle-invite-empty > span {
+  color: var(--color-accent-active);
+  font-size: 1.7rem;
+}
+
+.chronicle-invite-empty strong,
+.chronicle-invite-empty p {
+  margin: 0;
+}
+
+.chronicle-invite-empty p {
+  margin-top: 5px;
+  font-size: 0.88rem;
+}
+
+.chronicle-invite-card {
+  display: grid;
+  min-width: 0;
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 19%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent);
+}
+
+.chronicle-invite-card.is-used,
+.chronicle-invite-card.is-revoked,
+.chronicle-invite-card.is-expired,
+.chronicle-invite-card.is-limited {
+  opacity: 0.66;
+}
+
+.chronicle-invite-card-top,
+.chronicle-invite-card-top > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chronicle-invite-card-top > div {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: stretch;
+  gap: 4px 12px;
+}
+
+.chronicle-invite-card strong {
+  font-size: 0.91rem;
+  overflow-wrap: anywhere;
+}
+
+.chronicle-invite-usage,
+.chronicle-invite-expiry {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.chronicle-invite-usage { grid-column: 1; }
+.chronicle-invite-expiry { grid-column: 1; }
+.chronicle-invite-status { grid-column: 2; grid-row: 1 / span 3; }
+
+.chronicle-invite-status {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 26%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
+  color: var(--color-success);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.is-used .chronicle-invite-status,
+.is-revoked .chronicle-invite-status,
+.is-expired .chronicle-invite-status,
+.is-limited .chronicle-invite-status {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(245, 241, 255, 0.58);
+}
+
+.chronicle-invite-card input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid rgba(173, 143, 255, 0.17);
+  background: rgba(5, 4, 17, 0.45);
+  color: rgba(245, 241, 255, 0.76);
+  font: inherit;
+  font-size: 0.81rem;
+}
+
+.chronicle-invite-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.chronicle-invite-card-actions .btn,
+.chronicle-sharing-actions .btn {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chronicle-invite-revoke {
+  color: var(--color-danger);
+}
+
+#makeChronicleOnlineAction[hidden],
+#inviteChronicleAction[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 620px) {
+  .chronicle-sharing-dialog {
+    width: calc(100vw - 18px);
+    max-height: calc(100dvh - 18px);
+    border-radius: 15px;
+  }
+
+  .chronicle-sharing-shell {
+    padding: 22px 17px;
+    max-height: calc(100dvh - 18px);
+  }
+
+  .chronicle-sharing-actions,
+  .chronicle-invite-card-actions {
+    display: grid;
+  }
+
+  .chronicle-invite-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chronicle-sharing-actions .btn,
+  .chronicle-invite-card-actions .btn {
+    width: 100%;
+  }
+
+  .chronicle-invite-card-top > div {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chronicle-invite-status { grid-column: 1; grid-row: auto; justify-self: start; }
+}

@@ -1,0 +1,62 @@
+/* Only the embedded experimental sheet; the manager and desktop retain their styles. */
+@media(max-width:1024px){
+ body.v2-embedded[data-v2-mobile]{font-size:16px;overflow-wrap:anywhere}
+ body.v2-embedded[data-v2-mobile] :is(input,select,textarea){font-size:16px;max-width:100%;min-width:0;box-sizing:border-box;scroll-margin-block:70px 20px}
+ body.v2-embedded[data-v2-mobile] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select){min-height:44px}
+ body.v2-embedded[data-v2-mobile] :is(button,.btn,summary){touch-action:manipulation}
+ body.v2-embedded[data-v2-mobile] :is(button,.btn){min-height:44px;white-space:normal;flex-shrink:0}
+ body.v2-embedded[data-v2-mobile] :is(.icon-button,.favorite-card-button,.remove-card,.modal-close){min-width:44px;min-height:44px}
+ body.v2-embedded[data-v2-mobile] :is(.form-grid,.equipment-summary,.enchantment-form){grid-template-columns:minmax(0,1fr)}
+ body.v2-embedded[data-v2-mobile] :is(.form-grid,.equipment-summary,.enchantment-form)>*{min-width:0;max-width:100%;grid-column:auto}
+ body.v2-embedded[data-v2-mobile] :is(.editable-card-body,.equipment-card-body,.ability-card-body,.manifestation-card-body){padding:12px;min-width:0}
+ body.v2-embedded[data-v2-mobile] :is(.card-meta,.card-actions,.enchantment-actions,.equipment-modification-row){flex-wrap:wrap;gap:6px}
+ body.v2-embedded[data-v2-mobile] :is(.card-meta-item,.card-status){white-space:normal;overflow-wrap:anywhere;max-width:100%;text-overflow:clip}
+ body.v2-embedded[data-v2-mobile] :is(.card-title,.enchantment-card summary,.enchantments-heading h2){overflow-wrap:anywhere;white-space:normal}
+ body.v2-embedded[data-v2-mobile] :is(.panel-title-row,.notes-page-header){display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+ body.v2-embedded[data-v2-mobile] .panel-title-row h2{flex:1 0 100%;margin:0;white-space:normal;font-size:18px}
+ body.v2-embedded[data-v2-mobile] :is(.panel-title-row .favorite-filter,.panel-title-row .card-search){flex:1;min-width:0}
+ body.v2-embedded[data-v2-mobile] :is(.content-panel,.notes-panel,#v2-state-tools,#v2-enchantments){padding:var(--v2-section-padding,12px)!important}
+ body.v2-embedded[data-v2-mobile] :is(.manifestation-grid,.card-list,.notes-list){grid-template-columns:minmax(0,1fr);min-width:0}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary{display:grid;grid-template-areas:none;grid-template-columns:16px minmax(0,1fr) 56px 44px 44px;gap:8px;align-items:center}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>*{grid-area:auto}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary::before{grid-column:1;grid-row:1}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>.card-summary{grid-column:2/-1;grid-row:1}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>button{grid-row:2;justify-self:end}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>button:last-child{grid-column:5}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>button:nth-last-child(2){grid-column:4}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>button:nth-last-child(3){grid-column:3}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>.card-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end}
+ body.v2-embedded[data-v2-mobile] .editable-card>summary>.automatic-badge{grid-column:1/5;grid-row:2;justify-self:start;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ body.v2-embedded[data-v2-mobile] .class-reference-description{font-size:15px;line-height:1.6}
+ body.v2-embedded[data-v2-mobile] .class-reference-progression{font-size:14px}
+ body.v2-embedded[data-v2-mobile] .card-meta-item{font-size:12px;line-height:1.4}
+ body.v2-embedded[data-v2-mobile] .panel-title-row>div:first-child{flex:1 0 100%;min-width:0}
+ body.v2-embedded[data-v2-mobile] .panel-title-row>.equipment-reference-actions:empty{display:none}
+ body.v2-embedded[data-v2-mobile] .panel-title-row>.favorite-filter{display:flex;flex:1 1 180px;min-width:min(100%,180px)}
+ body.v2-embedded[data-v2-mobile] .panel-title-row>.btn{flex:1 0 96px}
+ body.v2-embedded[data-v2-mobile] .favorite-filter button{flex:1;min-width:75px;white-space:nowrap;font-size:13px;padding:8px}
+ body.v2-embedded[data-v2-mobile] .use-manifestation{min-width:56px;width:56px;white-space:nowrap;padding-inline:6px}
+ body.v2-embedded[data-v2-mobile] .note-card{min-width:0;padding:12px}
+ body.v2-embedded[data-v2-mobile] .note-card-header{flex-wrap:wrap;gap:8px}
+ body.v2-embedded[data-v2-mobile] .note-title-input{width:100%;min-width:0;font-size:18px}
+ body.v2-embedded[data-v2-mobile] .note-content-input{width:100%;min-height:240px;max-height:none;resize:vertical;line-height:1.6}
+ body.v2-embedded[data-v2-mobile] textarea{min-height:120px;line-height:1.5;resize:vertical}
+ body.v2-embedded[data-v2-mobile] #modalOverlay{padding:8px;backdrop-filter:none}
+ body.v2-embedded[data-v2-mobile] #appModal{box-sizing:border-box;width:min(100%,680px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:12px;scroll-padding-block:65px 20px;overscroll-behavior:contain}
+ body.v2-embedded[data-v2-mobile] #appModal h2{min-height:44px;margin:0 48px 12px 0;display:flex;align-items:center;font-size:18px;overflow-wrap:anywhere}
+ body.v2-embedded[data-v2-mobile] #modalClose{position:sticky;top:0;float:right;margin:0 0 -44px auto;right:auto;z-index:4;background:#211a32;min-width:44px;min-height:44px}
+ body.v2-embedded[data-v2-mobile] #appModal .modal-description{min-width:0;max-width:100%;scroll-padding-block:12px 24px}
+ body.v2-embedded[data-v2-mobile] .modal-actions{grid-template-columns:minmax(0,1fr);gap:8px}
+ body.v2-embedded[data-v2-mobile] .modal-actions>*{grid-column:auto}
+ body.v2-embedded[data-v2-mobile] #appModal.enchantments-modal{max-width:calc(100vw - 16px);overflow-y:auto;display:block}
+ body.v2-embedded[data-v2-mobile] .enchantments-modal .modal-description{overflow:visible}
+ body.v2-embedded[data-v2-mobile] :is(.adjuster-grid,.effect-form,.critical-recovery-form){min-width:0;grid-template-columns:minmax(0,1fr)}
+ body.v2-embedded[data-v2-mobile] :is(.gold-generation-panel,.coyote-eyes-panel){min-width:0;max-width:100%}
+ body.v2-embedded[data-v2-mobile] :is(.gold-generation-actions,.coyote-eyes-actions,.character-utility-actions){flex-wrap:wrap}
+ body.v2-embedded[data-v2-mobile] .modal-overlay{backdrop-filter:none}
+}
+@media(max-width:400px){
+ body.v2-embedded[data-v2-mobile] .editable-card>summary{grid-template-columns:16px minmax(0,1fr) 56px 44px 44px;padding:10px!important}
+ body.v2-embedded[data-v2-mobile] .enchantments-heading{gap:10px}
+ body.v2-embedded[data-v2-mobile] .enchantments-heading h2{font-size:17px}
+}

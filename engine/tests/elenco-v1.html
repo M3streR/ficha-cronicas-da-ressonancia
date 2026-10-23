@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elenco V1 — testes isolados</title>
+<style>
+body { margin: 16px; background: #101224; color: #f7f4ff; font: 15px system-ui; }
+button { padding: 12px; margin: 4px; }
+iframe { display:block; border:1px solid #aaa; height:850px; margin-top:16px; max-width:none; }
+li { margin: 5px 0; } .fail { color:#ff8b9f; } .pass { color:#82e8ac; }
+</style>
+<h1>Elenco V1 — testes isolados</h1>
+<p>Usa os arquivos reais com nomes de armazenamento exclusivos por execução. Não acessa dados do site.</p>
+<button id="run">Executar testes</button>
+<button data-width="1440">Desktop 1440</button><button data-width="768">Tablet 768</button>
+<button data-width="390">Mobile 390</button><button data-width="320">Mobile 320</button>
+<p id="status" role="status">Pronto.</p><ol id="results"></ol>
+<iframe id="app" title="Ficha em ambiente isolado de teste" width="1440"></iframe>
+<script src="elenco-v1.js"></script>
+</html>

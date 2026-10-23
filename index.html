@@ -1,10 +1,12 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<base href="./engine/">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:* http://localhost:* https://gejpqmrystvzezscmmkg.supabase.co wss://gejpqmrystvzezscmmkg.supabase.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; frame-src 'self';">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#171226">
-  <title>Ficha — Crônicas da Ressonância</title>
+  <title>Crônicas da Ressonância — Personagens</title>
   <link rel="stylesheet" href="style.css?v=2026-09-19-multi-tab-authority">
   <link rel="stylesheet" href="css/chronicles-workspace.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/account-auth.css?v=2026-09-11-stable">
@@ -20,12 +22,15 @@
   <link rel="stylesheet" href="css/enchantments.css?v=2026-10-09-enchantments">
   <link rel="stylesheet" href="css/coyote-eyes.css?v=2026-10-10-coyote-eyes">
   <link rel="stylesheet" href="css/gold-generation.css?v=2026-10-10-defense-unlock">
+  <link rel="stylesheet" href="../manager-ui/theme.css">
+  <link rel="stylesheet" href="../account-access.css"><script src="../account-access.js" defer></script>
+  <link rel="stylesheet" href="../navigation-effects.css"><script src="../navigation-effects.js" defer></script>
 </head>
-<body class="manager-view-open">
+<body class="manager-view-open manager-v2" data-screen="manager">
   <main class="character-manager environment-root" id="characterManagerView" data-active-environment="characters" aria-label="Gerenciador de Crônicas da Ressonância">
     <div class="manager-app-shell">
       <header class="manager-topbar manager-environment-brand">
-        <h1>Crônicas da Ressonância</h1>
+        <div class="manager-brand"><svg class="manager-brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1Q18 12 29 16Q18 20 16 31Q14 20 3 16Q14 12 16 1Z"/><path d="M16 10L22 16 16 22 10 16Z"/></svg><div><h1>Crônicas da Ressonância</h1><p>Gerenciador de personagens</p></div></div>
       </header>
 
       <div class="manager-workspace">
@@ -33,16 +38,18 @@
           <nav class="manager-navigation" aria-label="Navegação principal">
             <button class="manager-nav-item active" type="button" data-manager-section="characters" aria-controls="managerCharactersPanel" aria-current="page">Personagens</button>
             <button class="manager-nav-item" type="button" data-manager-section="chronicles" aria-controls="managerChroniclesPanel">Crônicas</button>
-          </nav>
+          </nav><div class="manager-sidebar-art" aria-hidden="true"><span class="manager-arcane-line"></span><span class="manager-arcane-seal">✧</span><p>Histórias<br>que ecoam<br>entre mundos</p><span>◇</span></div>
         </aside>
 
         <div class="manager-content manager-environment-stage">
           <section class="manager-section manager-environment manager-environment-characters manager-characters-panel" id="managerCharactersPanel" data-manager-panel="characters" aria-label="Personagens" tabindex="-1">
-            <div class="manager-content-actions">
+            <header class="manager-characters-header"><div class="manager-directory-heading"><span class="manager-eyebrow">Entre mundos e histórias</span><h2 id="managerCharactersTitle">Seus personagens</h2><p>Crie, edite e gerencie seus personagens de Crônicas da Ressonância.<br>Cada história começa com um nome.</p></div><div class="manager-content-actions"><button class="btn secondary" id="managerCreateList" type="button" disabled>Criar nova lista</button>
               <button class="btn secondary" id="managerImportCharacter" type="button">Importar Personagem</button>
               <input id="managerImportFile" type="file" accept=".json,application/json" hidden>
-            </div>
-
+            </div></header>
+            <nav id="characterListNavigation" class="manager-lists" aria-label="Listas de personagens" hidden></nav>
+            <div id="characterListActions" class="manager-list-actions" hidden></div>
+            <p id="characterListFeedback" class="manager-list-feedback" role="status" aria-live="polite"></p>
             <div class="character-gallery" id="characterCardList" aria-label="Personagens salvos" aria-live="polite">
               <button class="create-character-card" id="managerCreateCharacter" type="button">
                 <span class="create-character-symbol" aria-hidden="true">+</span>
@@ -1208,12 +1215,15 @@
 
   <span class="site-watermark">Created by FR0D</span>
 
-  <script type="module" src="js/supabase-client.js?v=2026-09-11-stable"></script>
+  <script src="../account-auth/vendor/supabase-2.112.4.js"></script>
+  <script src="../account-auth/config.js"></script>
+  <script src="../account-auth/runtime.js"></script>
+  <script src="offline-auth.js"></script>
   <script src="js/chronicles-storage.js?v=2026-09-11-stable"></script>
   <script src="js/chronicle-covers.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-sharing.js?v=2026-09-11-stable"></script>
-  <script src="js/character-storage.js?v=2026-10-10-indexeddb"></script>
+  <script src="js/character-storage.js?v=2026-10-10-indexeddb"></script><script src="../official-storage-backup.js"></script>
   <script src="js/character-edit-authority.js?v=2026-09-19-multi-tab-authority"></script>
   <script src="js/enchantments.js?v=2026-10-10-indexeddb"></script>
   <script src="js/coyote-eyes.js?v=2026-10-10-indexeddb"></script>
@@ -1228,5 +1238,5 @@
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
   <script src="script.js?v=2026-10-10-indexeddb"></script>
-</body>
+<script src="engine-adapter.js"></script><script src="../storage.js"></script><script src="../manager-page.js"></script><script src="../portrait-obs/sync.js"></script><script src="../manager-ui/lists.js"></script><script src="../manager-ui/manager.js"></script></body>
 </html>

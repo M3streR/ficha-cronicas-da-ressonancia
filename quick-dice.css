@@ -1,0 +1,68 @@
+/* One global arcane roller. Styles do not affect other panels or modal systems. */
+#quickDiceTool{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:var(--qd-bottom,18px);z-index:70;color:#f5eafa;font:14px/1.4 Spectral,Georgia,serif}
+#quickDiceTool button,#quickDiceTool input,#quickDiceTool select{font:inherit}
+#quickDiceTool button{cursor:pointer;color:inherit}
+#quickDiceTool button:focus-visible,#quickDiceTool input:focus-visible,#quickDiceTool select:focus-visible,#quickDiceTool summary:focus-visible{outline:2px solid #e1b9ff;outline-offset:3px}
+#quickDiceTool .quick-dice-toggle{display:grid;place-items:center;width:48px;height:48px;padding:10px;border:1px solid #b28acf;background:linear-gradient(135deg,#48315f,#131426 75%);box-shadow:inset 0 0 0 3px #12101f,0 5px 22px #0007;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+#quickDiceTool .quick-dice-toggle svg{width:28px;height:28px;fill:none;stroke:#e5c7fb;stroke-width:1.4}
+#quickDiceTool .quick-dice-toggle[aria-expanded="true"]{background:linear-gradient(135deg,#6a4085,#241a39);filter:drop-shadow(0 0 7px #a278c8)}
+#quickDiceTool .quick-dice-panel{position:absolute;right:0;bottom:62px;width:min(410px,calc(100vw - 36px));max-height:var(--qd-height,calc(100dvh - 110px));overflow-y:auto;overscroll-behavior:contain;padding:20px;border:1px solid #9d7ab5;background:radial-gradient(ellipse at top right,#61437738,transparent 55%),linear-gradient(130deg,#171526f7,#0b0f1dfc);box-shadow:inset 0 0 0 3px #090d19,inset 0 0 0 4px #80609455,0 16px 50px #0009;border-radius:2px;scrollbar-width:thin;scrollbar-color:#89639d #111323}
+#quickDiceTool .quick-dice-panel:before{content:'';position:absolute;inset:5px 5px auto;height:28px;background:url('assets/corner.svg') left top/28px no-repeat,url('assets/corner-mirrored.svg') right top/28px no-repeat;pointer-events:none}
+#quickDiceTool .quick-dice-header{display:flex;align-items:center;gap:12px;padding-bottom:15px;margin-bottom:17px;border-bottom:1px solid #8b669552}
+#quickDiceTool .quick-dice-header>div{min-width:0;flex:1;display:flex;flex-direction:column-reverse;gap:4px}
+#quickDiceTool .quick-dice-header h2{font:500 20px/1.2 Cinzel,Georgia,serif;letter-spacing:.035em;margin:0;color:#efdcfc}
+#quickDiceTool .section-kicker{font:10px/1.4 Cinzel,Georgia,serif;letter-spacing:.08em;color:#ba9dcc}
+#quickDiceTool .quick-dice-emblem{font-size:36px;color:#c29cde;filter:drop-shadow(0 0 7px #b985d864)}
+#quickDiceTool .quick-dice-close{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;padding:0;font-size:23px;line-height:1;background:#241a32;border:1px solid #76548e}
+#quickDiceTool .quick-dice-form{margin:0 0 12px;display:grid;gap:7px}
+#quickDiceTool .quick-dice-form>label{color:#c4a6d5;font:10px Cinzel,Georgia,serif;letter-spacing:.12em;text-transform:uppercase}
+#quickDiceTool .quick-dice-input-row{display:flex;gap:9px}
+#quickDiceTool .quick-dice-input-row input{flex:1;min-width:0;width:100%;height:45px;padding:8px 12px;border:1px solid #856298;background:#090e1c;color:#fff;font:22px/1.2 Spectral,Georgia,serif;border-radius:0;font-variant-numeric:tabular-nums}
+#quickDiceTool .quick-dice-roll{flex:0 0 84px;min-height:45px;border:1px solid #c6a3e7;background:linear-gradient(135deg,#704491,#3a2853);padding:8px 14px;box-shadow:inset 0 0 0 3px #22143055;color:#fff;font:500 13px Cinzel,Georgia,serif}
+#quickDiceTool .quick-dice-form small{font-size:11px;color:#ac95ba}
+#quickDiceTool .quick-dice-error{font-size:13px;color:#ffa5b5;padding:9px;border-left:2px solid #d87991;background:#57213733}
+#quickDiceTool .quick-dice-result{padding:14px 12px;margin-top:14px;border:1px solid #9170a65c;background:linear-gradient(135deg,#3924404a,#0b1121);border-radius:1px}
+#quickDiceTool .quick-dice-eyebrow{margin:0 0 7px;font:10px Cinzel,Georgia,serif;letter-spacing:.13em;text-transform:uppercase;color:#ba9acc}
+#quickDiceTool .quick-dice-result-name{margin:0 0 5px;color:#e1bdef;font-weight:600}
+#quickDiceTool .quick-dice-expression{font-size:20px;margin:0 0 12px;color:#ede5f6;overflow-wrap:anywhere}
+#quickDiceTool .quick-dice-breakdown{margin:0;display:grid;gap:8px}
+#quickDiceTool .quick-dice-breakdown>div:first-child>dt{display:none}
+#quickDiceTool .quick-dice-breakdown dd{margin:0}
+#quickDiceTool #quickDiceRolls{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+#quickDiceTool .quick-dice-roll-value{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px;border:1px solid #a993b340;color:#fff;background:#090c1880}
+#quickDiceTool .quick-dice-roll-value small{font:10px/1.3 Spectral,Georgia,serif;text-transform:uppercase;letter-spacing:.03em}
+#quickDiceTool .quick-dice-roll-value b{font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
+#quickDiceTool .quick-dice-roll-value.is-highest{color:#98e7b7;border-color:#78cfa76b;background:#164c2933}
+#quickDiceTool .quick-dice-roll-value.is-lowest{color:#f3a2ac;border-color:#d17f8b61;background:#64243426}
+#quickDiceTool #quickDiceModifierRow{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#d3bbdf}
+#quickDiceTool .quick-dice-total{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0 9px;margin-top:9px;border-top:1px solid #9570aa55}
+#quickDiceTool .quick-dice-total>span{font:10px/1.4 Cinzel,Georgia,serif;text-transform:uppercase;letter-spacing:.08em;color:#ccb1dc;max-width:100px}
+#quickDiceTool .quick-dice-total output{font:600 44px/1 Cinzel,Georgia,serif;color:#e3b7ff;text-shadow:0 0 20px #aa6ee15e;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#quickDiceTool .quick-dice-calculation{font-size:12px;color:#c0a3d1;margin:0;text-align:right;overflow-wrap:anywhere}
+#quickDiceTool .quick-dice-destination{margin:13px 0;font-size:12px;padding:9px 0;border-block:1px solid #77538b44}
+#quickDiceTool .dice-destination{display:flex;align-items:center;gap:12px}
+#quickDiceTool .dice-destination>span{color:#cbb0da}
+#quickDiceTool #quickRollDestination{flex:1;min-width:0;padding:6px;border:1px solid #76548e;background:#151526;color:#f3e9f8;font-size:12px;width:100%}
+#quickDiceTool .quick-dice-destination small,#quickDiceTool .quick-dice-availability{display:block;font-size:10px;line-height:1.4;color:#a68bb8;margin:6px 0 0}
+#quickDiceTool #quickDiceHistoryFeedback{margin:9px 0;font-size:11px;color:#c2a6d2;overflow-wrap:anywhere}
+#quickDiceTool .btn.secondary{min-height:30px;padding:5px 8px;border:1px solid #77548c;background:#1b172b;color:#d3bade;font:11px Spectral,Georgia,serif;border-radius:0}
+#quickDiceTool #quickDiceHistoryToggle{width:100%;margin-top:9px;min-height:34px;text-align:left}
+#quickDiceTool #quickDiceHistorySection{padding-top:9px}
+#quickDiceTool .roll-history-help{font-size:10px;color:#a98bb9;margin:0 0 8px}
+#quickDiceTool .roll-history-list{list-style:none;margin:0;padding:0;max-height:230px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#77548c #121423}
+#quickDiceTool .arcane-history-row{padding:10px 2px;border-bottom:1px solid #86619547}
+#quickDiceTool .arcane-history-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+#quickDiceTool .arcane-history-heading strong{font-size:14px;font-weight:500;color:#e6d3f2;overflow-wrap:anywhere}
+#quickDiceTool .arcane-history-heading .roll-history-total{font:500 24px/1 Cinzel,Georgia,serif;color:#dcaffb;font-variant-numeric:tabular-nums}
+#quickDiceTool .arcane-history-dice{font-size:11px;color:#ba9fca;margin:4px 0;overflow-wrap:anywhere}
+#quickDiceTool details{font-size:10px;color:#aa8fbb}
+#quickDiceTool details summary{cursor:pointer;width:fit-content}
+#quickDiceTool .roll-history-detail{font-size:11px;overflow-wrap:anywhere;margin:6px 0}
+#quickDiceTool .roll-history-controls{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 0}
+#quickDiceTool .roll-history-status{font-size:11px;color:#b59bc7;margin:5px 0}
+#quickDiceTool button:disabled{opacity:.55;cursor:wait}
+body[data-screen="sheet"] .stage{padding-bottom:84px}
+@media(max-width:600px){#quickDiceTool{right:max(12px,env(safe-area-inset-right));bottom:var(--qd-bottom,12px)}#quickDiceTool .quick-dice-panel{width:calc(100vw - 24px);padding:17px;bottom:60px}#quickDiceTool .quick-dice-header h2{font-size:18px}#quickDiceTool .quick-dice-total output{font-size:38px}#quickDiceTool .quick-dice-emblem{font-size:30px}}
+@media(prefers-reduced-motion:no-preference){#quickDiceTool .quick-dice-result.is-revealing{animation:quick-arcane-reveal .32s ease-out}@keyframes quick-arcane-reveal{from{opacity:.4;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}}
+
+#quickDiceTool .quick-dice-header{position:sticky;top:0;z-index:2;background:linear-gradient(125deg,#1b172bf7,#111322fc)}

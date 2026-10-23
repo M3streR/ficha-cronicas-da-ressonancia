@@ -30,22 +30,29 @@ jobs:
         run: node --test tests/coyote-eyes.test.cjs
       - name: Instalar navegador de teste
         run: npm install --no-save playwright@1.62.1 && npx playwright install --with-deps chromium
+      - name: Disponibilizar dependências compartilhadas nos testes isolados do motor
+        run: ln -s ../account-auth engine/account-auth && ln -s ../official-storage-backup.js engine/official-storage-backup.js
       - name: Executar fluxos reais por HTTP
         env:
           CHROME_PATH: ''
         run: |
-          node tests/character-storage.test.cjs
-          node tests/enchantments-ui.test.cjs
-          node tests/gold-generation-ui.test.cjs
-          node tests/coyote-eyes-ui.test.cjs
-          node tests/chronicles-v6.test.cjs
-          node tests/combates-flow.test.cjs
-          node tests/free-rolls.test.cjs
-          node tests/ux-stabilization.cjs
-          node tests/skills-progression.test.cjs
-          node tests/critical-states.test.cjs
-          node tests/conflict-resolution-ui.test.cjs
-          node tests/multi-tab-edit-authority.test.cjs
-          node tests/visual-audit.cjs
-          node tests/dynamic-layout-audit.cjs
-          node tests/layering-audit.cjs
+          node engine/tests/character-storage.test.cjs
+          node engine/tests/enchantments-ui.test.cjs
+          node engine/tests/gold-generation-ui.test.cjs
+          node engine/tests/coyote-eyes-ui.test.cjs
+          node engine/tests/chronicles-v6.test.cjs
+          node engine/tests/combates-flow.test.cjs
+          node engine/tests/free-rolls.test.cjs
+          node engine/tests/ux-stabilization.cjs
+          node engine/tests/skills-progression.test.cjs
+          node engine/tests/critical-states.test.cjs
+          node engine/tests/conflict-resolution-ui.test.cjs
+          node engine/tests/multi-tab-edit-authority.test.cjs
+          node engine/tests/visual-audit.cjs
+          node engine/tests/dynamic-layout-audit.cjs
+          node engine/tests/layering-audit.cjs
+      - name: Validar a interface 2.0 e a migração de acesso
+        env:
+          CANDIDATE_DIR: .
+          OFFICIAL_SOURCE_ROOT: .
+        run: node --test release-tests/*.test.cjs

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark"><title>Crônicas da Ressonância · Ficha 2.0 — protótipo</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="ficha.css?v=2026-10-16-full-page"><script src="rules.js" defer></script><script src="runtime.js" defer></script><script src="storage.js" defer></script><script src="integration.js?v=2026-10-14-four-controls" defer></script><script src="ficha.js" defer></script>
+  <link rel="stylesheet" href="quick-dice.css"><script src="quick-dice-portal.js" defer></script><link rel="stylesheet" href="portrait-obs/panel.css"><script src="portrait-obs/sync.js" defer></script><script src="portrait-obs/panel.js" defer></script>
+  <link rel="stylesheet" href="mobile.css"><script src="mobile.js" defer></script>
+  <link rel="stylesheet" href="general-mobile.css"><script src="general-mobile.js" defer></script>
+  <link rel="stylesheet" href="secret-codes.css"><script src="secret-codes.js" defer></script>
+  <link rel="stylesheet" href="gold-theme.css">
+  <link rel="stylesheet" href="general-refinement.css">
+  <link rel="stylesheet" href="navigation-effects.css"><script src="navigation-effects.js" defer></script>
+</head>
+<body data-screen="sheet">
+  <svg class="symbol-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-resonance" viewBox="0 0 32 32"><path d="M16 1Q18 12 29 16Q18 20 16 31Q14 20 3 16Q14 12 16 1Z"/><path d="M16 10L22 16 16 22 10 16Z"/></symbol>
+      <symbol id="i-flame" viewBox="0 0 32 32"><path d="M18 2C20 11 9 10 13 20C5 17 6 9 6 9C-2 22 9 32 20 28C30 24 26 15 23 10C24 19 17 20 18 2Z"/><path d="M17 17C12 23 13 28 18 28C24 26 20 21 17 17Z"/></symbol>
+      <symbol id="i-swords" viewBox="0 0 32 32"><path d="M5 3L11 5 25 23 22 26 6 10ZM27 3L21 5 7 23 10 26 26 10ZM4 21L12 28M20 28L28 21M4 29L8 25M28 29L24 25"/></symbol>
+      <symbol id="i-bag" viewBox="0 0 32 32"><path d="M9 9L7 28H25L23 9ZM12 9V4H20V9M8 16H24M12 16V22H20V16M15 12H17"/></symbol>
+      <symbol id="i-notes" viewBox="0 0 32 32"><path d="M9 3H25V27H9ZM9 7H5V30H21V27M13 9H21M13 14H21M13 19H19"/></symbol>
+      <symbol id="i-force" viewBox="0 0 32 32"><path d="M9 29V22L4 15V9L7 8 10 14V5L13 4V12L14 3H18V12L20 5H23V15L25 9H28L27 21 23 26V29Z"/><path d="M10 16H22M13 20H23"/></symbol>
+      <symbol id="i-wing" viewBox="0 0 32 32"><path d="M3 9Q16 16 29 3Q30 16 21 21L26 22Q22 27 17 24L20 28Q8 27 3 9Z"/><path d="M7 14Q17 21 25 13M10 21L17 23"/></symbol>
+      <symbol id="i-book" viewBox="0 0 32 32"><path d="M3 5Q11 3 16 7Q21 3 29 5V26Q21 24 16 28Q11 24 3 26ZM16 7V28M7 9L12 10M7 14L12 15M20 10L25 9M20 15L25 14"/></symbol>
+      <symbol id="i-will" viewBox="0 0 32 32"><path d="M16 3Q23 14 16 28Q9 14 16 3ZM7 9Q-1 21 12 29Q12 17 7 9ZM25 9Q33 21 20 29Q20 17 25 9Z"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 32 32"><path d="M16 28L5 17C-3 7 8-2 16 8C24-2 35 7 27 17Z"/><path d="M6 15H11L14 10 18 21 21 15H27"/></symbol>
+      <symbol id="i-spiral" viewBox="0 0 32 32"><path d="M18 16C21 13 17 9 13 12C7 16 12 24 19 22C30 20 27 4 16 4C0 4-1 27 13 29C25 32 31 22 30 16"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 32 32"><path d="M2 16Q16 1 30 16Q16 31 2 16Z"/><circle cx="16" cy="16" r="5"/><circle cx="16" cy="16" r="1"/></symbol>
+      <symbol id="i-target" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="7"/><circle cx="16" cy="16" r="2"/></symbol>
+      <symbol id="i-search" viewBox="0 0 32 32"><circle cx="19" cy="12" r="9"/><path d="M12 19L3 29"/></symbol>
+      <symbol id="i-mask" viewBox="0 0 32 32"><path d="M4 7Q16 11 28 7L26 23Q16 35 6 23ZM8 15L13 17M19 17L24 15M12 24Q16 21 20 24"/></symbol>
+      <symbol id="i-snow" viewBox="0 0 32 32"><path d="M16 1V31M3 8L29 24M3 24L29 8M11 4L16 8 21 4M11 28L16 24 21 28M4 13L10 13 10 6M22 26V19H28M4 19H10V26M22 6V13H28"/></symbol>
+      <symbol id="i-gem" viewBox="0 0 32 32"><path d="M16 2L29 16 16 30 3 16ZM16 9L22 16 16 23 10 16ZM16 2V9M3 16H10M22 16H29M16 23V30"/></symbol>
+      <symbol id="i-seal" viewBox="0 0 100 100"><circle cx="50" cy="50" r="43"/><circle cx="50" cy="50" r="34"/><path d="M50 2V98M2 50H98M15 15L85 85M15 85L85 15M50 12L80 70 16 45 84 45 20 70ZM50 31L69 50 50 69 31 50Z"/></symbol>
+    </defs>
+  </svg>
+  <div class="stage" hidden>
+    <header class="masthead">
+      <div class="crest" aria-hidden="true"><svg><use href="#i-resonance"/></svg></div>
+      <h1>Crônicas da Ressonância</h1>
+    </header>
+    <nav id="global-tools" class="global-tools" aria-label="Ferramentas globais"><a id="back-characters" role="button" href="index.html" data-action="manager">Voltar aos Personagens</a><output id="navigation-status" role="status" aria-live="polite"></output></nav>
+    <div class="folio">
+      <nav class="tabs" aria-label="Seções da ficha" role="tablist">
+        <button id="tab-geral" class="tab active" role="tab" aria-selected="true" aria-controls="view-geral" tabindex="0" data-tab="geral"><svg><use href="#i-resonance"/></svg><span>Geral</span></button>
+        <button id="tab-manifestacoes" class="tab" role="tab" aria-selected="false" aria-controls="view-pending" tabindex="-1" data-tab="manifestacoes"><svg><use href="#i-flame"/></svg><span>Manifestações</span></button>
+        <button id="tab-habilidades" class="tab" role="tab" aria-selected="false" aria-controls="view-pending" tabindex="-1" data-tab="habilidades"><svg><use href="#i-swords"/></svg><span>Habilidades de Classe</span></button>
+        <button id="tab-equipamentos" class="tab" role="tab" aria-selected="false" aria-controls="view-pending" tabindex="-1" data-tab="equipamentos"><svg><use href="#i-bag"/></svg><span>Equipamentos</span></button>
+        <button id="tab-encantamentos" class="tab" role="tab" aria-selected="false" aria-controls="view-pending" tabindex="-1" data-tab="encantamentos"><svg><use href="#i-resonance"/></svg><span>Encantamentos</span></button>
+        <button id="tab-anotacoes" class="tab" role="tab" aria-selected="false" aria-controls="view-pending" tabindex="-1" data-tab="anotacoes"><svg><use href="#i-notes"/></svg><span>Anotações</span></button>
+      </nav>
+      <main id="view-geral" class="general" role="tabpanel" aria-labelledby="tab-geral">
+        <aside class="character-column">
+          <section class="panel character" aria-label="Retrato e apresentação do personagem">
+            <div class="portrait-frame"><img src="assets/portrait.svg" alt="Placeholder de retrato: um emblema de Ressonância violeta entre arcos e fragmentos de pedra"><span class="portrait-caption">Retrato do personagem</span><span class="portrait-crown" aria-hidden="true">◇</span></div>
+            <div class="character-caption"><h2 id="character-name">Yuri Lima</h2><div class="ornamental-divider" aria-hidden="true"><i></i></div><p><span id="character-class">Vanguarda</span><b aria-hidden="true">✧</b><span id="character-signature">Gelo</span></p><div class="ornamental-divider small" aria-hidden="true"><i></i></div><output class="mobile-level" id="mobile-level"></output></div>
+          </section>
+          <section class="panel threshold" aria-labelledby="threshold-title"><div class="threshold-seal" aria-hidden="true"><svg><use href="#i-resonance"/></svg></div><div><h2 id="threshold-title">Limiar de Ressonância</h2><div class="ornamental-divider" aria-hidden="true"><i></i></div><output aria-label="Limiar demonstrativo">18</output></div></section>
+        </aside>
+        <div class="details-column">
+          <section class="panel attributes" aria-labelledby="attributes-title"><h2 class="section-title" id="attributes-title"><svg><use href="#i-resonance"/></svg><span>Atributos</span><i aria-hidden="true"></i></h2><div class="attributes-grid" id="attributes"></div><p class="rule-summary" id="attribute-status"></p></section>
+          <section class="panel resources" aria-labelledby="resources-title"><h2 class="section-title" id="resources-title"><svg><use href="#i-gem"/></svg><span>Vida e Recursos</span><i aria-hidden="true"></i></h2><div class="resources-grid" id="resources"></div></section>
+          <div class="lower-grid">
+            <section class="panel identity" aria-labelledby="identity-title"><h2 class="section-title" id="identity-title"><svg><use href="#i-resonance"/></svg><span>Identidade do Personagem</span><i aria-hidden="true"></i></h2>
+              <form class="identity-grid" autocomplete="off" onsubmit="return false">
+                <label class="field wide field-name"><svg aria-hidden="true"><use href="#i-resonance"/></svg><span>Nome</span><input id="name" value="Yuri Lima" aria-label="Nome"></label>
+                <label class="field field-class"><svg aria-hidden="true"><use href="#i-gem"/></svg><span>Classe</span><select id="class" aria-label="Classe"><option value="">Selecione</option><option>Vanguarda</option><option>Atirador</option><option>Arcano</option><option value="Guardião" hidden disabled>Guardião</option><option>Guardião Bastião</option><option>Guardião Regente</option></select></label>
+                <label class="field field-level"><span>Nível</span><input type="number" min="1" max="11" value="3" aria-label="Nível"><svg class="level-seal" aria-hidden="true"><use href="#i-seal"/></svg></label>
+                <label class="field field-signature"><svg aria-hidden="true"><use href="#i-snow"/></svg><span>Assinatura</span><input id="signature" value="Gelo" aria-label="Assinatura"></label>
+                <label class="field field-nexus"><svg aria-hidden="true"><use href="#i-spiral"/></svg><span>Tipo de Nexo</span><select aria-label="Tipo de Nexo"><option value="">Selecione</option><option>Nexo Comum</option><option>Nexo Defeituoso</option><option>Nexo Amaldiçoado</option><option>Nexo Abençoado</option></select></label>
+                <label class="field"><span>Patente</span><input placeholder="—" aria-label="Patente"></label><label class="field"><span>Idade</span><input type="number" min="0" placeholder="—" aria-label="Idade"></label>
+                <label class="field field-origin"><span>Origem</span><input data-field="origem" aria-label="Origem"></label>
+                <label class="field field-affiliation"><span>Afiliação</span><input data-field="afiliacao" aria-label="Afiliação"></label>
+                <label class="field wide field-casting"><svg aria-hidden="true"><use href="#i-resonance"/></svg><span>Forma de Conjuração</span><input placeholder="Como o poder se manifesta" aria-label="Forma de Conjuração"></label>
+              </form>
+            </section>
+            <section class="panel skills" aria-labelledby="skills-title"><h2 class="section-title" id="skills-title"><svg><use href="#i-swords"/></svg><span>Perícias</span><i aria-hidden="true"></i></h2><div class="skills-tools"><input id="skill-search" type="search" placeholder="Buscar perícia" aria-label="Buscar perícia"><button id="skill-clear" type="button" aria-label="Limpar busca de perícias" disabled>×</button><select id="skill-filter" aria-label="Filtrar perícias"><option value="all">Todas</option><option value="trained">Com domínio</option></select><select id="skill-attribute-filter" aria-label="Filtrar perícias por atributo"><option value="all">Todos os atributos</option><option>Força</option><option>Vigor</option><option>Agilidade</option><option>Intelecto</option><option>Presença</option></select></div><p class="rule-summary" id="skill-filter-count"></p><p class="rule-summary" id="skill-status"></p><div class="skill-heading" aria-hidden="true"><span>Perícia</span><span>Graus</span><span>Bônus</span></div><output id="skill-roll-result" class="rule-summary skill-roll-result" role="status" aria-live="polite" hidden></output><div id="skills" class="skill-list"></div></section>
+          </div>
+        </div>
+      </main>
+      <section id="view-pending" class="pending panel" role="tabpanel" aria-labelledby="tab-manifestacoes" hidden><svg aria-hidden="true"><use href="#i-resonance"/></svg><p class="eyebrow">Ficha 2.0 · ambiente experimental</p><h2 id="pending-title">Manifestações</h2><p>Não foi possível carregar os controles desta seção. Volte à Geral e verifique a mensagem de erro.</p><button class="return-button" type="button">Voltar à aba Geral</button></section>
+    </div>
+    <div class="test-toolbar" hidden aria-hidden="true"><span>Ficha 2.0 · Ambiente isolado</span><button id="save-test" type="button">Salvar teste</button><button id="new-test" type="button">Novo teste</button><button id="load-test" type="button">Carregar salvo</button><button id="backup-test" type="button">Último backup</button><label class="file-control">Importar JSON<input id="import-test" type="file" accept=".json,application/json"></label><button id="export-test" type="button">Exportar JSON</button><output id="save-status" role="status">Carregando armazenamento experimental…</output></div>
+    <p id="feedback" class="test-feedback" role="status" aria-live="polite"></p>
+    <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
+  </div>
+</body>
+</html>
