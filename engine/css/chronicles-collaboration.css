@@ -1,0 +1,88 @@
+.online-participant-row,
+.online-cast-member {
+  position: relative;
+}
+
+.online-cast-owner {
+  display: block;
+  margin-top: .28rem;
+  color: var(--color-text-muted);
+  font-size: .72rem;
+  letter-spacing: .04em;
+}
+
+.online-cast-member-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  padding-left: 1rem;
+}
+
+.online-cast-member-actions .btn {
+  white-space: nowrap;
+}
+
+.online-cast-publish-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .9rem;
+  cursor: default;
+}
+
+.online-cast-publish-option[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 16%, transparent), var(--color-surface-elevated));
+}
+
+.online-cast-publish-state {
+  display: block;
+  margin-top: .28rem;
+  color: var(--color-text-muted);
+  font-size: .7rem;
+}
+
+.online-cast-publish-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.online-cast-publish-actions .btn {
+  white-space: nowrap;
+}
+
+.chronicle-participants-feedback:not(:empty),
+.chronicle-cast-feedback:not(:empty) {
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .online-cast-member {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+
+  .online-cast-member-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding-left: 0;
+  }
+
+  .online-cast-member-actions .btn {
+    width: 100%;
+  }
+
+  .online-cast-publish-option {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .online-cast-publish-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .online-cast-publish-actions .btn {
+    width: 100%;
+  }
+}

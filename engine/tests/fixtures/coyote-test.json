@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "0.3-pre-alpha",
+  "fields": {
+    "nome": "Personagem sintético de teste",
+    "classe": "Atirador",
+    "nivel": "3",
+    "assinatura": "Fantasmagoria",
+    "formaConjuracao": "Olho Direito",
+    "pvAtual": "20",
+    "pvMax": "20",
+    "pvTemporarios": "0",
+    "pnAtual": "20",
+    "pnMax": "20",
+    "psAtual": "20",
+    "psMax": "20",
+    "forca": "1",
+    "vigor": "1",
+    "agilidade": "1",
+    "intelecto": "1",
+    "presenca": "1",
+    "bonusDefesaEquipamento": "0",
+    "protecaoPrincipal": ""
+  },
+  "skills": {},
+  "equipment": [],
+  "enchantments": [],
+  "abilities": [],
+  "manifestations": [
+    {
+      "nome": "PRECISÃO FANTASMAGÓRICA",
+      "custo": "2",
+      "acao": "movimento",
+      "alcance": "curto",
+      "alvo": "Uma criatura",
+      "duracao": "Instantâneo",
+      "teste": "",
+      "tipo": "Ofensiva",
+      "descricao": "",
+      "efeito": "caso erre um tiro eu posso rerolar o teste",
+      "limitacoes": ""
+    },
+    {
+      "nome": "MEMORIA  FANTASMAGÓRICA",
+      "custo": "2",
+      "acao": "Padrão",
+      "alcance": "Próprio",
+      "alvo": "criatura",
+      "duracao": "Instantâneo",
+      "teste": "",
+      "tipo": "Defensiva",
+      "descricao": "O alvo encara o olho direito de Coyote, relembrando os fantasmas que ainda o atormentam.",
+      "efeito": "O alvo realiza: Vontade contra o Limiar de Ressonância de Coyote.\nEm caso de falha: Assustado por 1d4 rodadas.",
+      "limitacoes": ""
+    },
+    {
+      "nome": "SOLIDÃO FANTASMAGÓRICA",
+      "custo": "02",
+      "acao": "Livre",
+      "alcance": "",
+      "alvo": "Pessoal",
+      "duracao": "1d4 rodadas",
+      "teste": "",
+      "tipo": "",
+      "descricao": "Coyote permite que o próprio medo tome conta de sua percepção. Durante o efeito, seus aliados passam a\nparecer figuras fantasmagóricas, ameaçadoras e hostis aos olhos dele. Coyote sabe racionalmente quem eles\nsão, mas sua percepção insiste em tratá-los como algo assustador.",
+      "efeito": "Enquanto ativa:\n• Coyote fica Abalado (sofre -1d20 em testes de Vontade); \n• recebe +2 em Pontaria.\nDepois de ativada, a habilidade não pode ser encerrada voluntariamente antes do fim da duração.\nSolidão Fantasmagórica não recebe benefício adicional do Aprimoramento.\nNão transforme +2 Pontaria em +4.",
+      "limitacoes": ""
+    }
+  ],
+  "notes": [],
+  "activeEffects": [],
+  "criticalStates": {
+    "dyingRounds": 0,
+    "losingMindRounds": 0,
+    "resonantRecoveryDefensePenalty": false
+  },
+  "photo": ""
+}

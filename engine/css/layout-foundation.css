@@ -1,0 +1,117 @@
+/*
+ * Structural authority for the application frame.
+ *
+ * Earlier stylesheets keep the visual treatment and component-specific rules.
+ * Width, shrinking, primary layout mode and horizontal containment for the
+ * manager and character sheet are finalized here so later density changes do
+ * not need to redefine their containers.
+ */
+
+html,
+body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body {
+  /* Decorative layers intentionally reach the viewport edge. `clip` contains
+     their paint without turning the page into a horizontal scroll container. */
+  overflow-x: clip;
+}
+
+.character-manager,
+.character-sheet-view,
+.manager-app-shell,
+.manager-workspace,
+.manager-content,
+.manager-environment-stage,
+.manager-environment,
+.manager-section,
+.sheet-layout {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.character-manager,
+.character-sheet-view,
+.manager-app-shell,
+.manager-workspace,
+.manager-content,
+.manager-environment-stage,
+.manager-environment,
+.sheet-layout {
+  width: 100%;
+}
+
+.character-manager {
+  /* `hidden` made this root a scroll container and trapped the sticky sidebar.
+     `clip` preserves decorative paint containment without capturing scrolling. */
+  overflow: clip;
+}
+
+.manager-app-shell {
+  margin-inline: auto;
+}
+
+.manager-workspace {
+  display: grid;
+  min-height: calc(100dvh - 64px);
+  grid-template-columns: minmax(184px, 12vw) minmax(0, 1fr);
+}
+
+.manager-sidebar,
+.manager-navigation,
+.manager-content,
+.manager-environment-stage,
+.manager-environment,
+.manager-section,
+.character-gallery {
+  min-width: 0;
+}
+
+.manager-content,
+.manager-environment-stage,
+.manager-environment,
+.manager-section,
+.character-gallery {
+  max-width: 100%;
+}
+
+.sheet-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(270px, 0.56fr) minmax(520px, 1.35fr);
+}
+
+.sheet-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 1279px) {
+  .sheet-layout {
+    display: block;
+  }
+}
+
+@media (max-width: 1180px) {
+  .sheet-layout {
+    grid-template-columns: minmax(330px, 0.9fr) minmax(250px, 0.55fr) minmax(430px, 1.15fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .manager-workspace {
+    grid-template-columns: 176px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .manager-workspace {
+    display: block;
+  }
+
+  .manager-navigation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

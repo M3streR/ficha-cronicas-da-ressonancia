@@ -1,0 +1,76 @@
+@font-face{font-family:Cinzel;src:url('assets/fonts/Cinzel.ttf')}@font-face{font-family:Spectral;src:url('assets/fonts/Spectral-Regular.ttf')}
+body{background:transparent!important;font-family:Spectral,Georgia,serif!important;--color-bg-primary:#080e1a;--color-bg-secondary:#101426;--color-surface-primary:#14152a;--color-accent:#be94e5;--color-text-primary:#f4e7fc}
+body.v2-embedded:not(.manager-view-open) .site-header,body.v2-embedded .mobile-section-nav,body.v2-embedded .mobile-resource-bar,body.v2-embedded .content-tab-nav,body.v2-embedded .site-watermark,body.v2-embedded .sheet-mobile-menu{display:none!important}
+/* Outer 2.0 navigation replaces the duplicate brand/mobile navigation only.
+   Keep the original character actions and their import/delete confirmations. */
+body.v2-embedded #sheetBrand,body.v2-embedded .mobile-nav{display:none!important}
+body.v2-embedded .app-header{justify-content:flex-end!important;padding:8px 12px!important;min-height:0!important}
+.container,.app-shell,.app-workspace,.character-sheet-view{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+.panel,.content-panel,.editable-card,.app-modal,.note-card,.active-effects,.character-utilities{border-radius:0!important;border-color:#997bab!important;background:linear-gradient(130deg,#15162be8,#090f1af5)!important;box-shadow:inset 0 0 0 3px #0b101a,inset 0 0 0 4px #73568a55!important}
+.panel,.content-panel,.app-modal{position:relative}.panel:before,.content-panel:before,.app-modal:before{content:'';position:absolute;inset:3px;pointer-events:none;background:url('assets/corner.svg') left top/35px no-repeat,url('assets/corner-mirrored.svg') right top/35px no-repeat;z-index:0}
+h1,h2,h3,.section-kicker,.card-title{font-family:Cinzel,Georgia,serif!important;color:#dec3ee}.btn,.icon-button{border-radius:0!important}.sheet-layout{display:block!important}
+body[data-v2-section] .character-panel,body[data-v2-section] .skills-panel{display:none!important}
+body[data-v2-section] .content-column{display:block!important;grid-column:auto!important;width:100%!important}
+body[data-v2-section] .content-subsection{display:none!important}
+body[data-v2-section="manifestacoes"] #contentPanelManifestacoes,body[data-v2-section="habilidades"] #contentPanelHabilidades,body[data-v2-section="equipamentos"] #contentPanelEquipamentos{display:block!important}
+body[data-v2-section="geral"] .character-panel{display:block!important}body[data-v2-section="geral"] .skills-panel,body[data-v2-section="geral"] .content-column{display:none!important}
+body[data-v2-section="anotacoes"] .sheet-layout{display:none!important}
+body[data-v2-section="encantamentos"] .sheet-layout{display:none!important}
+.modal-overlay{position:fixed!important;inset:0!important}.enchantments-modal{width:min(100%,960px)!important}
+.manager-sidebar{position:static!important}.character-manager-layout{min-height:0!important}
+.character-sheet-view[data-character-mode="gold"] .content-panel,.app-modal[data-character-mode="gold"]{border-color:#d2b060!important;background:radial-gradient(ellipse at top right,#58432c35,transparent 60%),linear-gradient(135deg,#211727,#0e1120)!important;box-shadow:inset 0 0 0 3px #17121e,inset 0 0 0 4px #c6a85677,0 0 18px #bb853525!important}
+.character-sheet-view[data-character-mode="gold"] .section-kicker,.character-sheet-view[data-character-mode="gold"] h2{color:#edd399}
+#characterSheetView #contentPanelManifestacoes[data-coyote-eye="left"]{border-color:#9565d9!important;background:radial-gradient(ellipse at top right,#773faf35,transparent),#111026!important}
+@media(max-width:760px){.mobile-section{display:block!important}body[data-v2-section] .skills-panel{display:none!important}.notes-view{padding:8px!important}}
+
+/* Character state controls use the original behavior in a dedicated General panel. */
+body[data-v2-section="tools"] .sheet-layout{display:none!important}
+body[data-v2-section="tools"] .identity-section,body[data-v2-section="tools"] .attributes-layout,body[data-v2-section="tools"] .attributes-title-row,body[data-v2-section="tools"] .attribute-points-help,body[data-v2-section="tools"] .character-photo{display:none!important}
+body.v2-embedded .content-panel,body.v2-embedded .notes-view{min-height:0!important;padding:24px!important}
+body.v2-embedded .content-panel .panel-title-row{border-bottom:1px solid #795688;padding-bottom:16px;margin-bottom:18px}
+body.v2-embedded .editable-card,body.v2-embedded .note-card{border:1px solid #896c9e!important;margin-block:12px!important;background:linear-gradient(125deg,#241b3780,#0d1221e6)!important}
+body.v2-embedded .editable-card summary{padding:12px!important;min-height:54px;align-items:center}
+body.v2-embedded .card-title{font-size:18px!important;line-height:1.35!important;overflow-wrap:anywhere}
+body.v2-embedded .btn,body.v2-embedded .icon-button{min-height:44px;border-color:#9873b2;background-image:linear-gradient(135deg,#3d285344,transparent)}
+body.v2-embedded input:focus-visible,body.v2-embedded textarea:focus-visible,body.v2-embedded select:focus-visible{outline:2px solid #caabeb;outline-offset:2px}
+body.v2-embedded .manager-topbar{background:transparent!important;border-color:#795688}
+body.v2-embedded .manager-nav-item{font-family:Cinzel,serif!important}
+@media(max-width:760px){body.v2-embedded .content-panel,body.v2-embedded .notes-view{padding:12px!important}body.v2-embedded .btn,body.v2-embedded .icon-button{min-height:44px}body.v2-embedded .card-title{font-size:16px!important}}
+
+body[data-v2-section="dice"] .sheet-layout,body[data-v2-section="dice"] .notes-view{display:none!important}
+body[data-v2-section="dice"] .quick-dice-tool{position:static!important;width:100%;padding:24px}
+body[data-v2-section="dice"] .quick-dice-panel{position:static!important;width:min(100%,720px)!important;max-width:100%!important;max-height:none!important;margin:0 auto;border:1px solid #9572ac!important;border-radius:0!important;background:linear-gradient(135deg,#21182f,#0d1221)!important}
+body[data-v2-section="dice"] .quick-dice-toggle{display:none!important}
+
+body.v2-embedded .app-header{display:none!important}
+
+/* Normal panels grow with their content; only actual dialogs own a viewport. */
+html:has(body.v2-embedded){height:auto}
+body.v2-embedded{min-height:0;padding-bottom:0}
+body.v2-embedded .character-sheet-view{min-height:0}
+body.v2-embedded .v2-state-tools,body.v2-embedded .v2-enchantments{padding:24px;min-width:0}
+body.v2-embedded .v2-state-tools>h2,body.v2-embedded .v2-enchantments>h2{border-bottom:1px solid #795688;padding-bottom:16px}
+body.v2-embedded .notes-panel{width:100%;max-width:100%;box-sizing:border-box}
+body.v2-embedded .enchantment-form>*{min-width:0}
+body.v2-embedded[data-v2-modal] #characterSheetView,body.v2-embedded[data-v2-modal] #notesView{visibility:hidden}
+body.v2-embedded[data-v2-modal] .modal-overlay{z-index:100;box-sizing:border-box}
+body.v2-embedded[data-v2-modal] .app-modal{box-sizing:border-box;max-height:calc(100dvh - 32px);max-width:calc(100vw - 32px)}
+body.v2-embedded .enchantment-description{white-space:pre-wrap;overflow-wrap:anywhere}
+
+body.v2-embedded .v2-state-tools .adjuster-resource-picker{display:grid}
+
+/* The existing add action belongs to the ornamental tab heading. */
+body.v2-embedded .v2-enchantments-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:1px solid #795688;padding-bottom:18px;margin-bottom:20px}
+body.v2-embedded .v2-enchantments-heading h2{margin:0}
+body.v2-embedded .v2-enchantment-add{padding:11px 20px;min-height:44px;border:1px solid #ba94d4;color:#f3e6ff;background:linear-gradient(125deg,#4b305d,#211a33);box-shadow:inset 0 0 0 3px #130f2180,0 0 12px #ad72d51a;font-family:Cinzel,Georgia,serif;letter-spacing:.035em;transition:border-color .18s,box-shadow .18s,background-color .18s}
+body.v2-embedded .v2-enchantment-add:hover:not(:disabled){border-color:#e0bcf6;box-shadow:inset 0 0 0 3px #130f2160,0 0 16px #ad72d53a}
+body.v2-embedded .v2-enchantment-add:focus-visible{outline:2px solid #d7b5f1;outline-offset:4px}
+body.v2-embedded .v2-enchantment-add:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:540px){body.v2-embedded .v2-enchantments-actions{width:100%}body.v2-embedded .v2-enchantment-add{width:100%}}
+
+/* Keep the live Enchantments tab in its original place behind its editor. */
+body.v2-embedded[data-v2-enchantment-modal] #characterSheetView{visibility:visible;position:fixed;left:var(--v2-backdrop-x);top:var(--v2-backdrop-y);width:var(--v2-backdrop-width)!important;pointer-events:none}
+body.v2-embedded[data-v2-enchantment-modal] .modal-overlay{background:rgba(5,4,9,.48);backdrop-filter:blur(2px)}
+
+html:has(body[data-v2-enchantment-modal]){color-scheme:light;background:transparent}
+body.v2-embedded[data-v2-enchantment-modal] .app-modal{color-scheme:dark}

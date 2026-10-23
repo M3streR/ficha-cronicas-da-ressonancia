@@ -1,0 +1,9 @@
+/* A short arcane dissolve shared by the manager and sheet, without layout movement. */
+.resonance-journey{--journey-light:#d4b1f1;position:fixed;inset:0;z-index:100000;display:grid;place-items:center;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,#3c2549a8,transparent 58%),#100e1bf5;contain:strict}
+.resonance-journey[data-gold=true],body[data-gold=true] .resonance-journey{--journey-light:#e6ca8c;background:radial-gradient(ellipse at center,#70503644,transparent 58%),#15101cf5}
+.resonance-journey-seal{width:128px;height:128px;position:relative;color:var(--journey-light);filter:drop-shadow(0 0 14px #a171ca55)}
+.resonance-journey-seal:before,.resonance-journey-seal:after{content:'';position:absolute;top:50%;width:min(22vw,280px);height:1px;background:linear-gradient(90deg,transparent,currentColor);opacity:.2;right:calc(100% + 24px)}
+.resonance-journey-seal:after{left:calc(100% + 24px);right:auto;transform:rotate(180deg)}
+.resonance-journey-seal svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:.8}
+@media(max-width:760px){.resonance-journey-seal{width:96px;height:96px}}
+@media(prefers-reduced-motion:reduce){.resonance-journey{display:none}}

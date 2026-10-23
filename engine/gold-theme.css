@@ -1,0 +1,25 @@
+html:has(body.v2-embedded[data-v2-gold]){background:transparent;color-scheme:light}
+/* Applied only to the experimental engine while the original Gold state is active. */
+body.v2-embedded[data-v2-gold]{color-scheme:dark;--v2-heading:#f1d38d;--color-bg-secondary:#21182c;--color-surface-primary:#241a2e;--color-surface-input:#191220;--color-text-muted:#baa477;--color-accent:#e5bc64;color:#f5e6c7}
+body.v2-embedded[data-v2-gold] :is(#characterSheetView,.notes-view,.sheet-layout){background:transparent}
+body.v2-embedded[data-v2-gold] :is(.panel,.content-panel,.note-card,.editable-card,.app-modal,.enchantment-card):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"],#contentPanelManifestacoes[data-coyote-eye="left"] *)){--v2-surface:linear-gradient(135deg,#30243a,#17111f);--v2-edge:#b5914e88;--v2-shadow:inset 0 0 0 3px #1b1323,inset 0 0 0 4px #ad894a44}
+body.v2-embedded[data-v2-gold] :is(.btn,.icon-button,input,textarea,select,.card-summary,.automatic-badge,.note-preview,.section-kicker):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){border-color:#aa874c88;background-color:#281d32;color:#ead4a5}
+body.v2-embedded[data-v2-gold] :is(.btn,.icon-button):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){background:linear-gradient(140deg,#604822,#342611);color:#ffebbb;box-shadow:none}
+body.v2-embedded[data-v2-gold] :is(input,textarea,select):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){background:#1c1426;color:#f5e6c7}
+body.v2-embedded[data-v2-gold] :is(.card-title,.note-title-input,.class-reference-title):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){color:#f1d390}
+body.v2-embedded[data-v2-gold] :is(.class-reference,.class-reference-stats>div,.favorite-filter,.gold-enhancement-config,.note-dates,.favorite-empty-state,.notes-empty-state):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){border-color:#ad894544;background:#38264055;color:#cbb181}
+body.v2-embedded[data-v2-gold] :is(.class-reference-stat-label,.class-reference-description,.class-reference-progression,.notes-title-block,.rule-summary):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){color:#ccb78f}
+body.v2-embedded[data-v2-gold] .favorite-filter button.active:not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){background:#9d743940;color:#ffdf95}
+body.v2-embedded[data-v2-gold] :is(.content-panel,.notes-panel,.app-modal):not(#contentPanelManifestacoes[data-coyote-eye="left"]):before{filter:sepia(1) saturate(1.8)}
+body.v2-embedded[data-v2-gold] #contentPanelManifestacoes[data-coyote-eye="left"]{--v2-heading:#dfc0ff;--color-accent:#b992fb;--v2-surface:linear-gradient(145deg,#30203b66,#19141f);--v2-edge:#a274d2;--v2-shadow:none}
+body.v2-embedded[data-v2-gold] #contentPanelManifestacoes[data-coyote-eye="left"] .editable-card{--v2-surface:linear-gradient(145deg,#30203b66,#19141f);--v2-edge:#a274d2;--v2-heading:#dfc0ff}
+@media(max-width:1024px){
+ body.v2-embedded[data-v2-gold][data-v2-mobile] :is(.content-panel,.notes-panel,#v2-enchantments){--v2-surface:transparent;--v2-shadow:none;--v2-edge:transparent}
+ body.v2-embedded[data-v2-gold][data-v2-mobile] :is(.editable-card,.note-card,.enchantment-card):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){--v2-surface:linear-gradient(140deg,#44304e70,#251b30);--v2-shadow:none;--v2-edge:#b9944b40}
+ body.v2-embedded[data-v2-gold][data-v2-mobile] .notes-title-block:before{background:#d7ad5e}
+}
+
+body.v2-embedded[data-v2-gold] #characterSheetView :is(h2,.section-kicker):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){color:#efd18c}
+body.v2-embedded[data-v2-gold] #characterSheetView :is(.btn,.icon-button):not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){background:linear-gradient(140deg,#604822,#342611);border-color:#b7924d;color:#ffebbb;box-shadow:none}
+body.v2-embedded[data-v2-gold] #characterSheetView .editable-card>summary:not(:where(#contentPanelManifestacoes[data-coyote-eye="left"] *)){background:linear-gradient(110deg,#b5872520,transparent);border-color:#98753a66}
+body.v2-embedded[data-v2-gold] #notesView .notes-title-block h2,body.v2-embedded[data-v2-gold] #v2-enchantments h2{color:#efd18c}
