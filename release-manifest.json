@@ -23,7 +23,7 @@
     },
     {
       "file": "account-auth/config.js",
-      "sha256": "36e0c7c0dca37eb955832dfaec69e7d88083f84018093556860d5a31dc3aed1d"
+      "sha256": "ecae5dc1c117161546ec576933bb0e7064b97875f989b27ecd44d03c4ff1b34c"
     },
     {
       "file": "account-auth/runtime.js",
@@ -283,7 +283,7 @@
     },
     {
       "file": "ficha.html",
-      "sha256": "62b4185187857a898199ae9c9a963b931361b39007bbf98aa3b8b482c1f59026"
+      "sha256": "a62ee7df2e7648c14fea2f628d754e2b0d2f712a4105384f57ec460529b89d9d"
     },
     {
       "file": "ficha.js",
@@ -366,16 +366,36 @@
       "sha256": "18fe8faf804bacd5aedd1d48155a449d37dfdc1ee95bbc0ce7b07d11a58749d1"
     },
     {
+      "file": "portrait-obs/cloud-sync.js",
+      "sha256": "6ab2d3a869e28a2290ea33366980433f3cb77cb2b392fa5caf704369439d9cd8"
+    },
+    {
+      "file": "portrait-obs/cloud-view.js",
+      "sha256": "af077331acc3aa08d8817ed6e5cfeeb6f9112c877892fd6508419a5b1337e109"
+    },
+    {
+      "file": "portrait-obs/overlay.css",
+      "sha256": "b11259bdf138077c66bca787db67f25fc4a2cf732b4c51dacdab86c05fedbc40"
+    },
+    {
+      "file": "portrait-obs/overlay.js",
+      "sha256": "626b2747e56ac78a8aef1e58ef618163e1a6308ab1feb2c944f54f5cca4494d0"
+    },
+    {
       "file": "portrait-obs/panel.css",
       "sha256": "64c0c377c409d67900438bd4f1f8861feaa53785ef3a3e410c6a5698c4574871"
     },
     {
       "file": "portrait-obs/panel.js",
-      "sha256": "52b38a7e0864f79897588390c92b245df46cd28b6a62a1bd95c96863c07cee20"
+      "sha256": "e4f542f1f80ec993aa5c25b367677be3eca8c30276dc155464da89e5290831fd"
+    },
+    {
+      "file": "portrait-obs/remote.html",
+      "sha256": "863dc26f7c1b34e09b6e7ce285bb0640ace12b944e78a214caea4b26f3db6d9b"
     },
     {
       "file": "portrait-obs/sync.js",
-      "sha256": "d2c3d487db61da9a64bd776f2fdc0ba9dae9c182d826016404e5bd2755133090"
+      "sha256": "57028c3cc4ce606e5fd92a95bd1cd306a56952e5f9562b1cfde9f435dba8006f"
     },
     {
       "file": "quick-dice-portal.js",
@@ -411,7 +431,7 @@
     },
     {
       "file": "portrait-obs/portrait-servidor-local.zip",
-      "sha256": "d082648deb554dd6d4050eaac84bbb71934a36aea853377049f2fa4ab856386e"
+      "sha256": "5a1c2727f9d4238e7b5bf868a684da2d75b8006b34b40efbd0a8ff9e07bc69eb"
     }
   ]
 }

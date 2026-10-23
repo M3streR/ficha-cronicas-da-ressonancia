@@ -2,6 +2,7 @@
 window.FichaV2AccountConfig=Object.freeze({
   "environment": "production",
   "dataSyncEnabled": true,
+  "portraitCloudEnabled": true,
   "redirectsConfirmed": false,
   "projectRef": "gejpqmrystvzezscmmkg",
   "url": "https://gejpqmrystvzezscmmkg.supabase.co",
