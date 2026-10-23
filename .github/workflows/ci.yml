@@ -28,8 +28,12 @@ jobs:
         run: node --test tests/gold-generation.test.cjs
       - name: Validar modelo dos dois olhos
         run: node --test tests/coyote-eyes.test.cjs
+      - name: Instalar ferramenta de testes
+        timeout-minutes: 3
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.62.1
       - name: Instalar navegador de teste
-        run: npm install --no-save playwright@1.62.1 && npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install --with-deps --only-shell chromium
       - name: Disponibilizar dependências compartilhadas nos testes isolados do motor
         run: ln -s ../account-auth engine/account-auth && ln -s ../official-storage-backup.js engine/official-storage-backup.js
       - name: Executar fluxos reais por HTTP
