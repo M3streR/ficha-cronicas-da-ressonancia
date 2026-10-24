@@ -209,3 +209,5 @@ body.manager-v2 .chronicle-detail-tabs{min-width:0;flex:1}
  body.manager-v2 .manager-sidebar-art{margin-top:34px;gap:18px}
  body.manager-v2 .manager-arcane-line{height:clamp(70px,22dvh,230px);flex-shrink:0}
 }
+body.manager-v2 .manager-import-file-list{max-height:280px;overflow-y:auto;padding:0 0 0 22px;margin:16px 0;overflow-wrap:anywhere;line-height:1.65;font:13px/1.65 system-ui}
+body.manager-v2 .manager-import-file-list li{padding:9px 4px;border-bottom:1px solid #b48bd42b}
