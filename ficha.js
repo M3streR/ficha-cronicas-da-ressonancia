@@ -14,6 +14,34 @@ $('.resources').insertAdjacentHTML('beforeend','<div class="resources-summary"><
 for(const [selector,id] of Object.entries(identity))document.getElementById(selector).dataset.field=id;
 for(const [label,id] of [['Nível','nivel'],['Tipo de Nexo','tipoNexo'],['Patente','patente'],['Idade','idade'],['Forma de Conjuração','formaConjuracao']])document.querySelector(`[aria-label="${label}"]`).dataset.field=id;
 let skillRollBusy=false;
+let skillResultAnimation;
+// Presentation only: use the existing roller's selected value, modifier and total.
+function presentSkillResult(output,name,result){
+ const make=(tag,className,text)=>{const node=document.createElement(tag);node.className=className;if(text!==undefined)node.textContent=String(text);return node;};
+ const identity=make('span','skill-result-identity');
+ identity.append(make('span','skill-result-caption','Última rolagem'),make('span','skill-result-name',name));
+ const total=make('span','skill-result-total');
+ total.append(make('span','skill-result-caption','Total'),make('strong','skill-result-number',result.total));
+ const details=make('span','skill-result-details');
+ const rolls=result.rolls;
+ const selectedIndex=rolls.indexOf(result.diceTotal);
+ const addDetail=(className,label,value)=>{const detail=make('span','skill-result-detail '+className);detail.append(make('span','',label+': '),make('strong','',value));details.append(detail);};
+ addDetail(rolls.length>1?'is-used':'is-single',rolls.length>1?'Maior dado':'Dado',result.diceTotal);
+ addDetail('is-bonus','Bônus',result.modifier>=0?'+'+result.modifier:String(result.modifier));
+ if(rolls.length>1){
+  // In a tie only one occurrence is used; equal remaining dice are still discarded.
+  const discarded=rolls.filter((_,index)=>index!==selectedIndex);
+  addDetail('is-discarded',discarded.length===1?'Descartado':'Descartados',discarded.join(', '));
+ }
+ output.classList.remove('is-error');
+ output.replaceChildren(identity,total,details);
+ output.hidden=false;output.dataset.skill=name;output.dataset.total=result.total;
+ const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ skillResultAnimation?.cancel();
+ if(!reduced)skillResultAnimation=output.animate?.([{opacity:.55,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:220,easing:'ease-out'});
+ const bounds=output.getBoundingClientRect();
+ if(bounds.top<0||bounds.bottom>innerHeight)output.scrollIntoView({block:'nearest',behavior:reduced?'auto':'smooth'});
+}
 async function rollSkill(name){
  if(skillRollBusy||replacing)return;
  skillRollBusy=true;
@@ -24,11 +52,9 @@ async function rollSkill(name){
   const rolled=await window.FichaV2Bridge.rollSkill(name);
   if(!rolled)throw Error('Rolagem não realizada. Confira o destino no Rolador rápido em Estados, efeitos e ferramentas.');
   const {result,attribute,degree}=rolled;
-  output.hidden=false;output.dataset.skill=name;output.dataset.total=result.total;
-  const dice=result.resolution==='highest'?`maior de ${result.rolls.join(', ')} = ${result.diceTotal}`:result.rolls.join(', ');
-  output.textContent=`${name}: ${result.total} · ${dice}${result.modifier?` + ${result.modifier}`:''}`;
+  presentSkillResult(output,name,result);
   output.title=`${attribute} · ${degree} · ${result.expression}. ${state.activeEffects?.length?'Efeitos descritivos devem ser conferidos conforme o contexto do teste.':''}`;
- }catch(error){output.hidden=false;output.textContent=error.message;feedback(error.message);}finally{skillRollBusy=false;}
+ }catch(error){skillResultAnimation?.cancel();output.hidden=false;output.classList.add('is-error');delete output.dataset.skill;delete output.dataset.total;output.removeAttribute('title');output.textContent=error.message;feedback(error.message);}finally{skillRollBusy=false;}
 }
 const attributeAbbreviations=Object.freeze({'Força':'FOR','Vigor':'VIG','Agilidade':'AGI','Intelecto':'INT','Presença':'PRE'});
 function renderSkills(){
