@@ -279,15 +279,15 @@
     },
     {
       "file": "ficha.css",
-      "sha256": "fb8abc99139fe92e746901c8b654920848330c8cae5a9b274da9aa84651cfd30"
+      "sha256": "e1ff63c330cb95ef6675c89c4581fefbe0139bf464af00301250967fb50941cd"
     },
     {
       "file": "ficha.html",
-      "sha256": "a62ee7df2e7648c14fea2f628d754e2b0d2f712a4105384f57ec460529b89d9d"
+      "sha256": "d4c700e63ffcb4cea374ec1e19101b81389ac4b1488f2d9f27f446fe447dff37"
     },
     {
       "file": "ficha.js",
-      "sha256": "e8079724e3c6e5057a610c0dfb4bd10a88ec579814fef75db0fd2175f85de4bf"
+      "sha256": "7d9f92105acce646e8f3ad094437ef204574df21e388b4928088c40e7a3b38d7"
     },
     {
       "file": "general-mobile.css",
