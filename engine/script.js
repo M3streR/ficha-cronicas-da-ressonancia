@@ -3697,6 +3697,28 @@ function bindChronicles() {
     readCharacter: id => activeChronicleRecord?.storage === 'online'
       ? window.ChroniclesOnlineCombat?.readCharacter(id)
       : readStoredCharacter(id),
+    selectionHelp: () => activeChronicleRecord?.storage === 'online'
+      ? 'Selecione suas fichas ou personagens do Elenco. Ao salvar, fichas locais escolhidas serão publicadas e vinculadas à Crônica.'
+      : 'Selecione suas fichas para o Confronto. Os escolhidos entram no Elenco; removê-los do Confronto não exclui o personagem.',
+    selectionDirectory: async () => {
+      if (activeChronicleRecord?.storage !== 'online') return getChronicleCharacterDirectory();
+      const entries = await window.ChroniclesCollaboration.listConfrontationCandidates(activeChronicleRecord);
+      const cast = window.ChroniclesOnlineCombat.directory();
+      const byId = new Map(cast.byId);
+      entries.forEach(entry => { if (!byId.has(entry.id)) byId.set(entry.id, entry); });
+      return { entries: [...byId.values()], byId, unavailable: false };
+    },
+    resolveSelection: async (ids, { expected = [] } = {}) => {
+      if (activeChronicleRecord?.storage !== 'online') {
+        const current = getChronicleCharacterDirectory();
+        if (current.unavailable || ids.some(id => !expected.includes(id) && !current.byId.has(id))) throw new Error('CHARACTER_UNAVAILABLE');
+        return ids;
+      }
+      const chronicle = activeChronicleRecord;
+      const resolved = await window.ChroniclesCollaboration.includeConfrontationCharacters(ids, chronicle);
+      await window.ChroniclesOnlineCombat.storage.listChronicleCastIds(chronicle.id);
+      return resolved;
+    },
     portrait: createChronicleCastPortrait,
     confirm: openModal,
     notify: showNotification,
