@@ -410,7 +410,7 @@
                 <main class="confrontation-combatants" aria-labelledby="combatantsTitle">
                   <header class="confrontation-combatants-heading"><span class="chronicles-kicker">Frentes da batalha</span><h3 id="combatantsTitle">Combatentes</h3></header>
                   <section class="confrontation-characters" aria-labelledby="confrontationCharactersTitle">
-                    <header class="confrontation-section-heading"><h4 id="confrontationCharactersTitle">Personagens do Confronto</h4><button class="btn secondary" id="selectConfrontationCharacters" type="button">Selecionar personagens</button></header>
+                    <header class="confrontation-section-heading"><h4 id="confrontationCharactersTitle">Personagens do grupo</h4><button class="btn secondary" id="selectConfrontationCharacters" type="button">Selecionar personagens</button></header>
                     <form id="confrontationSelectionForm" class="confrontation-editor" aria-labelledby="confrontationSelectionTitle" hidden>
                       <h5 id="confrontationSelectionTitle">Selecionar personagens</h5>
                       <p id="confrontationSelectionHelp" class="confrontation-help">Selecione suas fichas para o Confronto. Remover da seleção não exclui o personagem.</p>
@@ -426,13 +426,18 @@
                     <header class="confrontation-section-heading"><h4 id="confrontationAdversariesTitle">Adversários</h4><button class="btn secondary" id="addConfrontationAdversary" type="button">Adicionar adversário</button></header>
                     <form id="confrontationAdversaryForm" class="confrontation-editor" aria-labelledby="confrontationAdversaryFormTitle" novalidate hidden>
                       <h5 id="confrontationAdversaryFormTitle">Adicionar adversário</h5>
+                      <div id="confrontationAdversarySource">
+                        <label for="confrontationAdversaryCharacter">Usar um personagem salvo</label>
+                        <select id="confrontationAdversaryCharacter"><option value="">Escolher uma ficha…</option></select>
+                        <p class="confrontation-help">Preenche nome, PV e DEF pela ficha escolhida. O adversário tem PV próprios neste Confronto; a ficha original permanece preservada.</p>
+                      </div>
                       <label for="confrontationAdversaryName">Nome <span class="confrontation-help">obrigatório · até 120 caracteres</span></label><input id="confrontationAdversaryName" required maxlength="120" autocomplete="off" aria-describedby="confrontationAdversaryFeedback">
                       <div class="confrontation-numeric-fields">
                         <label>PV atual<input id="confrontationAdversaryPVCurrent" type="number" min="0" step="1" inputmode="numeric" aria-describedby="confrontationPVHelp confrontationAdversaryFeedback"></label>
                         <label>PV máximo<input id="confrontationAdversaryPVMax" type="number" min="1" step="1" inputmode="numeric" aria-describedby="confrontationPVHelp confrontationAdversaryFeedback"></label>
                         <label>DEF<input id="confrontationAdversaryDefense" type="number" step="1" inputmode="numeric" aria-describedby="confrontationAdversaryFeedback"></label>
                       </div>
-                      <p id="confrontationPVHelp" class="confrontation-help">PV e DEF são opcionais. Informe os dois valores de PV ou deixe ambos vazios. Edição manual, sem automações.</p>
+                      <p id="confrontationPVHelp" class="confrontation-help">PV e DEF podem ser ajustados para este Confronto. Informe os dois valores de PV ou deixe ambos vazios.</p>
                       <p id="confrontationAdversaryFeedback" class="confrontation-feedback" role="status" aria-live="polite"></p>
                       <div class="confrontation-form-actions"><button class="btn secondary" id="cancelConfrontationAdversary" type="button">Cancelar</button><button class="btn" type="submit">Salvar adversário</button></div>
                     </form>
@@ -1229,11 +1234,11 @@
   <script src="js/chronicles-online-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-free-rolls.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online-combat.js?v=2026-09-11-stable"></script>
-  <script src="js/confrontations.js?v=2026-10-24-confrontation-selection"></script>
+  <script src="js/confrontations.js?v=2026-10-24-adversary-picker"></script>
   <script src="js/master-access.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history.js?v=2026-09-11-stable"></script>
   <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-10-24-confrontation-selection"></script>
+  <script src="script.js?v=2026-10-24-adversary-picker"></script>
 <script src="engine-adapter.js?v=2026-10-14-four-controls"></script><script src="phone-panels.js"></script></body>
 </html>

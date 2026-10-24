@@ -175,7 +175,7 @@
     },
     {
       "file": "engine/index.html",
-      "sha256": "ac09f06dc1fcaa36e15c741064255b8d79dee990f9fcd9bebf6b9b789c28bc36"
+      "sha256": "dfe8428503299c7a296eb3363810e19c8368609e54d8c8abff6356c1fc28f0b7"
     },
     {
       "file": "engine/js/character-edit-authority.js",
@@ -219,7 +219,7 @@
     },
     {
       "file": "engine/js/confrontations.js",
-      "sha256": "94c00450d05ce05c84781abb213fe78e0c80060a6616a9ccf70ddb0c2b872c5c"
+      "sha256": "361a57b9b9df23e264393f8b01fc47338cdd4528aa16e2fe5fb33afcd84a7bc6"
     },
     {
       "file": "engine/js/coyote-eyes.js",
@@ -271,7 +271,7 @@
     },
     {
       "file": "engine/script.js",
-      "sha256": "a85d099c74762a3b2ffce7ad88fbc48bccd0aa4a75e2e6c3b5a0f564d319f897"
+      "sha256": "5fe625f8985aee1f6fd64d6dab890c18fd04849d5cab8051ab9154427352c368"
     },
     {
       "file": "engine/style.css",
@@ -307,7 +307,7 @@
     },
     {
       "file": "index.html",
-      "sha256": "6de66c7b39b6f5a9aefa21cfab385ce1de37608eef958bd3578144517fa08909"
+      "sha256": "e648df34a17ccecfd2bbdc009dd5183059b9ebe24c9fe68dacb99c28b521c44f"
     },
     {
       "file": "integration.js",
