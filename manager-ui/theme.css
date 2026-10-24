@@ -201,3 +201,11 @@ body.manager-v2 .chronicle-actions-list :is(.btn,.chronicle-context-action){widt
 body.manager-v2 .chronicle-actions-panel:before{display:none}
 body.manager-v2 .chronicle-detail-tabs{min-width:0;flex:1}
 @media(min-width:1101px) and (max-width:1250px){body.manager-v2 .chronicle-actions-panel{width:100%;border-left:1px solid #a77bca35}}
+
+/* Keep navigation and ornamentation in one sticky column while the page scrolls. */
+@media(min-width:761px){
+ body.manager-v2 .manager-sidebar{position:sticky;top:0;align-self:start;height:100dvh;overflow-y:auto;scrollbar-width:thin}
+ body.manager-v2 .manager-navigation{position:static}
+ body.manager-v2 .manager-sidebar-art{margin-top:34px;gap:18px}
+ body.manager-v2 .manager-arcane-line{height:clamp(70px,22dvh,230px);flex-shrink:0}
+}
