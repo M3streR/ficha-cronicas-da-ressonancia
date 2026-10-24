@@ -175,7 +175,7 @@
     },
     {
       "file": "engine/index.html",
-      "sha256": "3d0cdbaa1d7e23afdfdeaeb50dfe0f97c7fd1da9270316c0c74947368b7bcda8"
+      "sha256": "ac09f06dc1fcaa36e15c741064255b8d79dee990f9fcd9bebf6b9b789c28bc36"
     },
     {
       "file": "engine/js/character-edit-authority.js",
@@ -191,7 +191,7 @@
     },
     {
       "file": "engine/js/chronicles-collaboration.js",
-      "sha256": "97fdee15e5617ea42972a37fe8f16aea7a4a20830512052d424f7f5c18b6da1f"
+      "sha256": "0b35f3c900b103896f59a5727e7d46fa3bb331d11a6a3b0dc7e5da98e5c45442"
     },
     {
       "file": "engine/js/chronicles-free-rolls.js",
@@ -215,11 +215,11 @@
     },
     {
       "file": "engine/js/chronicles-storage.js",
-      "sha256": "5a66b04881d01d5bf487de42ba72aad8ae70c16bccbea34fab2e206694494886"
+      "sha256": "cd9f0b601efccea401b9a00bb65870b5b3f9c496fa595022d165526174320977"
     },
     {
       "file": "engine/js/confrontations.js",
-      "sha256": "abb80a2e7b7e960df05257910c153454475cddbe097ffe6b2cc8c477fd4aa08d"
+      "sha256": "94c00450d05ce05c84781abb213fe78e0c80060a6616a9ccf70ddb0c2b872c5c"
     },
     {
       "file": "engine/js/coyote-eyes.js",
@@ -271,7 +271,7 @@
     },
     {
       "file": "engine/script.js",
-      "sha256": "2e31e0ae24c32569d5d2889a960fd15b31902aa0c7da558a8a1123842e273451"
+      "sha256": "a85d099c74762a3b2ffce7ad88fbc48bccd0aa4a75e2e6c3b5a0f564d319f897"
     },
     {
       "file": "engine/style.css",
@@ -307,7 +307,7 @@
     },
     {
       "file": "index.html",
-      "sha256": "fabb2d2fda692af2d3b191b82fda176c6c8877eaa8fda96bdb47f5557c4735a3"
+      "sha256": "6de66c7b39b6f5a9aefa21cfab385ce1de37608eef958bd3578144517fa08909"
     },
     {
       "file": "integration.js",

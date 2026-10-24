@@ -40,6 +40,10 @@
       ADVERSARY_UPDATE_CONFLICT: 'Este adversário foi alterado em outra aba. Nenhuma sobrescrita foi feita. Reabra sua edição para conferir a versão atual.',
       CHARACTER_NOT_IN_CAST: 'Um personagem selecionado não pertence mais ao Elenco. Sua seleção foi mantida para revisão.',
       CHARACTER_UNAVAILABLE: 'Um personagem selecionado não está mais disponível. Sua seleção foi mantida.',
+      ONLINE_CHARACTER_CONFLICT: 'Há uma diferença entre a ficha local e a online. Resolva a sincronização em Personagens antes de incluir esta ficha.',
+      CHARACTER_EDIT_LOCKED_IN_ANOTHER_TAB: 'Este personagem está sendo editado em outra aba. Assuma a edição antes de incluí-lo.',
+      CHARACTER_EDIT_NOT_AUTHORIZED: 'Assuma a edição deste personagem antes de incluí-lo.',
+      ONLINE_OPERATION_PENDING: 'Outra operação está em andamento. Aguarde e tente novamente.',
       CHRONICLE_NOT_FOUND: 'A Crônica não está mais disponível. Nenhum registro foi recriado.',
       CONFRONTATION_NOT_FOUND: 'O Confronto não está mais disponível. Nenhum registro foi recriado.',
       ADVERSARY_NOT_FOUND: 'O adversário não está mais disponível. Nenhum registro foi recriado.',
@@ -158,7 +162,7 @@
     const current = preparation, live = services.directory();
     if (characterIds.length && (live.unavailable || characterIds.some(id => !live.byId.has(id)))) { feedback(errorText(new Error('CHARACTER_UNAVAILABLE'))); return; }
     const input = { name: el('confrontationName').value, description: el('confrontationDescriptionInput').value };
-    const composition = { characterIds: [...characterIds], adversaries: adversaries.map(item => ({ ...item })) };
+    const composition = { characterIds: [...characterIds], adversaries: adversaries.map(item => ({ ...item })), includeInCast: true };
     const goBack = returnTo;
     void execute(() => storage().createConfrontation(current.chronicleId, input, composition), async result => {
       preparation = null; clearDraft();
@@ -264,7 +268,7 @@
     identity.append(node('strong', '', entry?.name || 'Personagem indisponível'));
     if (entry) {
       identity.append(node('span', 'confrontation-help', [entry.className, `Nível ${entry.level}`].filter(Boolean).join(' · ')));
-      if (!castIds.has(id)) identity.append(node('span', 'confrontation-reference-warning', 'Fora do Elenco'));
+      if (!castIds.has(id)) identity.append(node('span', 'confrontation-reference-warning', draft?.kind === 'selection' ? 'Será incluído no Elenco' : 'Fora do Elenco'));
     } else identity.append(node('span', 'confrontation-reference-warning', 'A referência foi preservada.'));
     return identity;
   }
@@ -377,14 +381,17 @@
     const token = ++formToken, id = record?.id;
     draft = { kind: 'selection', form: 'confrontationSelectionForm', feedback: 'confrontationSelectionFeedback', loading: true, ids: new Set(), trigger: el('selectConfrontationCharacters') };
     el('confrontationSelectionForm').hidden = false; el('confrontationCharacterSearch').value = ''; el('confrontationSelectionList').replaceChildren();
+    el('confrontationSelectionHelp').textContent = services.selectionHelp?.() || 'Selecione suas fichas para o Confronto. Remover da seleção não exclui o personagem.';
     feedback('Carregando personagens…', '', draft.feedback); syncBusy();
     try {
       const [ids, cast] = await Promise.all([preparation ? Promise.resolve(characterIds) : storage().listConfrontationCharacterIds(id), storage().listChronicleCastIds(preparation?.chronicleId || record.chronicleId)]);
       if (token !== formToken) return;
-      directory = services.directory(); if (directory.unavailable) throw new Error('CHARACTER_UNAVAILABLE');
+      directory = services.selectionDirectory ? await services.selectionDirectory() : services.directory();
+      if (token !== formToken) return;
+      if (directory.unavailable) throw new Error('CHARACTER_UNAVAILABLE');
       castIds = new Set(cast);
       draft.ids = new Set(ids); draft.expected = [...ids]; draft.loading = false;
-      draft.available = orderedCharacters(new Set([...ids, ...cast.filter(value => directory.byId.has(value))]));
+      draft.available = orderedCharacters(new Set([...ids, ...directory.byId.keys()]));
       draft.original = formValue(); renderSelection(); feedback('', '', draft.feedback); syncBusy(); el('confrontationCharacterSearch').focus();
     } catch (error) { if (token === formToken) feedback(errorText(error), 'error', draft.feedback); }
   }
@@ -401,21 +408,27 @@
       });
       label.append(input, characterIdentity(id)); list.append(label);
     });
-    if (!list.children.length) list.append(node('p', 'confrontation-empty', query ? 'Nenhum personagem corresponde à busca.' : 'Nenhum personagem disponível no Elenco.'));
+    if (!list.children.length) list.append(node('p', 'confrontation-empty', query ? 'Nenhum personagem corresponde à busca.' : 'Nenhum personagem salvo disponível.'));
     el('confrontationSelectionCount').textContent = `${draft.ids.size} selecionados`; syncBusy();
   }
   function saveSelection(event) {
     event.preventDefault(); if (draft?.kind !== 'selection' || draft.loading || busy) return;
-    const current = draft, selected = [...current.ids], liveDirectory = services.directory();
+    const current = draft, selected = [...current.ids], liveDirectory = directory;
     if (liveDirectory.unavailable || selected.some(id => !current.expected.includes(id) && !liveDirectory.byId.has(id))) {
       feedback(errorText(new Error('CHARACTER_UNAVAILABLE')), 'error', current.feedback); return;
     }
-    if (preparation) {
-      if (!services.canPrepare()) return;
-      characterIds = selected; clearDraft(true); renderCharacters(); return;
-    }
-    void execute(() => storage().replaceConfrontationCharacters(record.id, selected, { expectedCharacterIds: current.expected }), async () => {
-      clearDraft(true); await refresh(); services.notify('Seleção de combatentes salva.');
+    void execute(async () => {
+      const resolved = services.resolveSelection ? await services.resolveSelection(selected, { expected: current.expected }) : selected;
+      if (!preparation) await storage().replaceConfrontationCharacters(record.id, resolved, { expectedCharacterIds: current.expected, includeInCast: true });
+      return resolved;
+    }, async resolved => {
+      directory = services.directory();
+      castIds = new Set(await storage().listChronicleCastIds(preparation?.chronicleId || record.chronicleId));
+      if (preparation) {
+        characterIds = resolved; clearDraft(true); renderCharacters();
+      } else {
+        clearDraft(true); await refresh(); services.notify('Seleção de combatentes salva.');
+      }
     }, current.feedback);
   }
   async function openAdversary(id = null) {

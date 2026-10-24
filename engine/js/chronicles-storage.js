@@ -736,7 +736,10 @@
       const chronicle = normalizeStoredChronicle(await requestAsPromise(tx.objectStore(CHRONICLES_STORE).get(chronicleId)));
       if (!chronicle) throw new Error('CHRONICLE_NOT_FOUND');
       for (const characterId of selected) {
-        if (!await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([chronicleId, characterId]))) throw new Error('CHARACTER_NOT_IN_CAST');
+        if (!await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([chronicleId, characterId]))) {
+          if (!composition?.includeInCast) throw new Error('CHARACTER_NOT_IN_CAST');
+          tx.objectStore(CAST_LINKS_STORE).add({ chronicleId, characterId });
+        }
       }
       const timestamp = nextConfrontationTimestamp(chronicle);
       const record = { id: createChronicleId(), chronicleId, ...fields, active: false, createdAt: timestamp, updatedAt: timestamp };
@@ -786,7 +789,7 @@
     });
   }
 
-  async function replaceConfrontationCharacters(id, characterIds, { expectedCharacterIds } = {}) {
+  async function replaceConfrontationCharacters(id, characterIds, { expectedCharacterIds, includeInCast = false } = {}) {
     const selected = normalizeCharacterIds(characterIds);
     const expected = normalizeCharacterIds(expectedCharacterIds);
     const sameSet = (a, b) => a.length === b.length && a.every(value => b.includes(value));
@@ -798,7 +801,10 @@
       if (!sameSet(previous, expected)) throw new Error('COMBAT_SELECTION_CONFLICT');
       for (const characterId of selected.filter(value => !previous.includes(value))) {
         const member = await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([context.chronicle.id, characterId]));
-        if (!member) throw new Error('CHARACTER_NOT_IN_CAST');
+        if (!member) {
+          if (!includeInCast) throw new Error('CHARACTER_NOT_IN_CAST');
+          tx.objectStore(CAST_LINKS_STORE).add({ chronicleId: context.chronicle.id, characterId });
+        }
       }
       if (sameSet(previous, selected)) return context.confrontation;
       keys.filter(key => !selected.includes(key[1])).forEach(key => links.delete(key));
