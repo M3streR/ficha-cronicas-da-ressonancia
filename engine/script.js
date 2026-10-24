@@ -16,7 +16,7 @@ const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 const pericias = [
   ['Acrobacia', 'Vigor'], ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
   ['Carisma', 'Presença'], ['Ciências', 'Intelecto'], ['Combate', 'Força'],
-  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'],
+  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'], ['Enganação', 'Presença'],
   ['Fortitude', 'Vigor'], ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
   ['Intuição', 'Presença'], ['Investigação', 'Intelecto'], ['Medicina', 'Intelecto'],
   ['Percepção', 'Presença'], ['Pilotagem', 'Agilidade'], ['Pontaria', 'Agilidade'],
@@ -25,9 +25,7 @@ const pericias = [
   ['Vontade', 'Presença']
 ];
 
-const legacyPericias = [
-  ['Enganação', 'Presença']
-];
+const legacyPericias = [];
 
 const graus = {
   'Sem Domínio': 0,
@@ -1134,11 +1132,18 @@ function createCharacterCard(id, summary) {
   const characterName = summary.name || 'Novo personagem';
   card.setAttribute('aria-label', `Abrir ${characterName}, nível ${summary.level}`);
 
+  // The gallery can reuse the stored original without rewriting the compact index.
+  let storedCharacter = null;
+  try { storedCharacter = readStoredCharacter(id); } catch (_) { /* Keep the summary fallback. */ }
+  const fullPhoto = typeof storedCharacter?.photo === 'string' && storedCharacter.photo.startsWith('data:image/')
+    ? storedCharacter.photo : '';
   const portrait = document.createElement('span');
   portrait.className = 'character-card-portrait';
-  if (summary.thumbnail) {
+  if (fullPhoto || summary.thumbnail) {
     const image = document.createElement('img');
-    image.src = summary.thumbnail;
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.src = fullPhoto || summary.thumbnail;
     image.alt = '';
     portrait.appendChild(image);
   } else {
@@ -1161,7 +1166,6 @@ function createCharacterCard(id, summary) {
   info.append(name, level);
 
   try {
-    const storedCharacter = readStoredCharacter(id);
     const storedFields = isPlainObject(storedCharacter?.fields) ? storedCharacter.fields : {};
     const className = String(storedFields.classe || '').trim();
     const signature = String(storedFields.assinatura || '').trim();

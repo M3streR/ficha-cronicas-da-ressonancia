@@ -4,7 +4,7 @@ const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 const pericias = [
   ['Acrobacia', 'Vigor'], ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
   ['Carisma', 'Presença'], ['Ciências', 'Intelecto'], ['Combate', 'Força'],
-  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'],
+  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'], ['Enganação', 'Presença'],
   ['Fortitude', 'Vigor'], ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
   ['Intuição', 'Presença'], ['Investigação', 'Intelecto'], ['Medicina', 'Intelecto'],
   ['Percepção', 'Presença'], ['Pilotagem', 'Agilidade'], ['Pontaria', 'Agilidade'],
@@ -12,9 +12,7 @@ const pericias = [
   ['Sobrevivência', 'Intelecto'], ['Tática', 'Intelecto'], ['Tecnologia', 'Intelecto'],
   ['Vontade', 'Presença']
 ];
-const legacyPericias = [
-  ['Enganação', 'Presença']
-];
+const legacyPericias = [];
 const graus = {
   'Sem Domínio': 0,
   'Praticante': 3,
@@ -322,7 +320,7 @@ function getAttributeLabel(id) {
   return labels[id] || id;
 }
 function canChangeSkill(state,name,nextDegree){
- const rowFor=name=>({dataset:{skill:name,skillLegacy:name==='Enganação'?'true':'false'},querySelector:()=>({value:state.skills[name]||'Sem Domínio',dataset:{previousDegree:state.skills[name]||'Sem Domínio'}})});
+ const rowFor=name=>({dataset:{skill:name,skillLegacy:String(legacyPericias.some(([label])=>label===name))},querySelector:()=>({value:state.skills[name]||'Sem Domínio',dataset:{previousDegree:state.skills[name]||'Sem Domínio'}})});
  const document={getElementById:()=>({value:state.fields.nivel}),querySelectorAll:()=>pericias.map(([name])=>rowFor(name))};
  function getOfficialSkillDegrees() {
   return Object.fromEntries([...document.querySelectorAll('#listaPericias .skill-row')].map(row => [

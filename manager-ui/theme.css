@@ -110,3 +110,94 @@ body.manager-v2 #globalNotification{top:auto;bottom:18px;right:18px;left:auto;tr
 @media(max-width:760px){body.manager-v2 .chronicle-record{grid-template-columns:80px minmax(0,1fr) 36px;align-items:stretch}body.manager-v2 .chronicle-record-cover{grid-column:1;grid-row:1}body.manager-v2 .chronicle-record-copy{grid-column:2;grid-row:1;padding:12px 10px}body.manager-v2 .chronicle-record-open{grid-column:3;grid-row:1;min-width:36px;width:36px;height:auto;align-self:stretch;margin:0;border:0;border-left:1px solid #a170bf44;border-radius:0;background:#36204166;padding:5px}body.manager-v2 #globalNotification{bottom:12px;right:12px;max-width:calc(100vw - 24px)}}
 body.manager-v2 .manager-directory-heading{min-width:0;max-width:100%}body.manager-v2 .manager-directory-heading h2,body.manager-v2 .manager-lists button,body.manager-v2 .chronicle-record-name{overflow-wrap:anywhere}body.manager-v2 .manager-lists button{max-width:100%;min-width:0}.manager-list-dialog{overflow-wrap:anywhere}.manager-list-dialog .list-member span{min-width:0;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){body.manager-v2 :is(.manager-scene,.character-card-shell,.chronicle-create-view,.chronicle-detail-view,.create-character-card,.character-card,.chronicle-record,.btn,.manager-nav-item,.create-character-symbol,.manager-list-dialog,.view-leaving){animation:none;transition:none;scroll-behavior:auto}}
+
+/* Gallery refinement: independent image and information areas, never squeezed text. */
+body.manager-v2{--color-warning:#c5a0ed}
+body.manager-v2 .character-gallery{grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:28px;align-items:stretch}
+body.manager-v2 .character-card-shell{display:flex;max-width:440px;min-width:0}
+body.manager-v2 :is(.character-card,.create-character-card){height:auto;min-height:490px;border-radius:10px;background:linear-gradient(145deg,#241b35f5,#100e20f5);box-shadow:inset 0 0 0 4px #0d0c19,inset 0 0 0 5px #b28bdf38,0 15px 36px #03040d66}
+body.manager-v2 .character-card{display:flex;flex-direction:column;justify-content:flex-start;align-self:stretch;overflow:hidden}
+body.manager-v2 .character-card-portrait{height:auto;min-height:0;aspect-ratio:6/5;flex:0 0 auto;margin:5px 5px 0;width:calc(100% - 10px);border-radius:5px 5px 0 0}
+body.manager-v2 .character-card-portrait img{display:block;object-position:center 25%;image-rendering:auto}
+body.manager-v2 .character-card-portrait:after{background:linear-gradient(0deg,#171226 0%,#17122600 30%)}
+body.manager-v2 .character-card-info{display:flex;flex:1 0 auto;height:auto;min-height:170px;max-height:none;gap:9px;padding:17px 23px 24px;overflow:visible;background:linear-gradient(#171226,#121020);border-top:1px solid #b48bdb24}
+body.manager-v2 .character-card-info>*{flex:0 0 auto;min-height:0;height:auto;max-height:none;overflow:visible;white-space:normal;overflow-wrap:anywhere;-webkit-line-clamp:unset}
+body.manager-v2 .character-card-name{display:block;font:500 clamp(21px,1.5vw,26px)/1.35 Cinzel,serif;letter-spacing:.015em;color:#f7edff;text-overflow:clip;margin:0}
+body.manager-v2 .character-card-level{font:600 12px/1.5 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#cfa9f5}
+body.manager-v2 .character-card-detail{font:13px/1.6 system-ui;color:#c9bddb}
+body.manager-v2 .character-online-state{align-self:flex-start;font:500 11px/1.5 system-ui;padding:3px 9px;border:1px solid #ae88d23d;border-radius:20px;background:#b28bdf0c;color:#cfc1df}
+body.manager-v2 .character-list-badge{font:12px/1.5 system-ui;color:#d4b5ed;margin-top:2px}
+body.manager-v2 .character-options-button{width:44px;min-height:44px;top:16px;right:16px;background:#151023e8;border-color:#c69fe070;box-shadow:0 4px 14px #0005}
+body.manager-v2 .character-options-popover{top:66px;right:16px}
+body.manager-v2 .create-character-card{max-width:440px;gap:23px;padding:36px 26px;background:radial-gradient(ellipse at 50% 35%,#62418135,transparent 65%),linear-gradient(145deg,#21182fe8,#100e20f5)}
+body.manager-v2 .create-character-card:before{border-radius:7px;background-size:44px}
+body.manager-v2 .create-character-symbol{width:100px;height:100px;font-size:58px;margin:22px 0 30px}
+body.manager-v2 .create-character-card strong{font:500 23px/1.4 Spectral,serif}
+body.manager-v2 .create-character-card>span:last-child{font-size:13px;line-height:1.8}
+body.manager-v2 .character-card:focus-visible{outline:2px solid #e6caff;outline-offset:5px}
+
+/* Narrative archive: larger covers and a workspace that uses the available page. */
+body.manager-v2 .new-chronicle-copy small{color:#cba6ec}
+body.manager-v2 .chronicles-record-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:26px;margin-top:12px}
+body.manager-v2 .chronicle-record.chronicle-record-real{display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:0;padding:6px;max-width:520px;min-height:0;border:1px solid #a983cc7d;border-radius:10px;background:linear-gradient(145deg,#271c37f5,#100f20f5);box-shadow:0 14px 35px #05030c55}
+body.manager-v2 .chronicle-record-cover{grid-column:1/-1;grid-row:1;height:auto;min-height:0;aspect-ratio:16/9;border-radius:5px;overflow:hidden}
+body.manager-v2 .chronicle-record-cover img{width:100%;height:100%;object-fit:cover}
+body.manager-v2 .chronicle-record-real .chronicle-record-copy{grid-column:1;grid-row:2;padding:22px 18px;gap:12px;min-width:0}
+body.manager-v2 .chronicle-record-real .chronicle-record-copy h4{font:500 25px/1.35 Cinzel,serif;white-space:normal;overflow-wrap:anywhere;margin:0}
+body.manager-v2 .chronicle-record-metadata{gap:9px;flex-wrap:wrap;color:#c8a4ec}
+body.manager-v2 .chronicle-record-synopsis{font-size:13px;line-height:1.7}
+body.manager-v2 .chronicle-record-open{grid-column:2;grid-row:2;align-self:center;justify-self:center;width:42px;min-width:42px;min-height:48px;height:auto;margin:0;border:1px solid #b38ad35c;border-radius:6px;background:#8e58bf17;color:#dfbdff}
+body.manager-v2 :is(.chronicle-detail-view,.chronicle-create-view){width:100%;max-width:none;padding:clamp(20px,2.4vw,38px);border-radius:12px;background:linear-gradient(135deg,#181324f5,#0f0f20f5);border-color:#a17ac85c}
+body.manager-v2 .chronicle-detail-masthead{grid-template-columns:minmax(240px,.75fr) minmax(0,1.6fr);min-height:270px;border-color:#aa83cf66}
+body.manager-v2 .chronicle-detail-identity{padding:28px 34px}
+body.manager-v2 .chronicle-detail-identity h2{font-family:Cinzel,serif;font-size:clamp(28px,2.8vw,48px);line-height:1.3;overflow-wrap:anywhere}
+body.manager-v2 .chronicle-detail-workspace{grid-template-columns:minmax(0,1fr) 250px;gap:28px;margin-top:28px}
+body.manager-v2 .chronicle-detail-navigation-row{min-width:0}
+body.manager-v2 .chronicle-detail-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:0;margin:0 0 24px;padding:4px;border:1px solid #ac87cf3d;border-radius:8px;background:#100e1f;scrollbar-width:thin}
+body.manager-v2 .chronicle-detail-tabs [role=tab]{flex:1 0 auto;width:auto;grid-column:auto;grid-row:auto;min-height:56px;padding:14px 17px;border:0;border-radius:5px;font:600 12px/1.4 system-ui;letter-spacing:.025em;white-space:nowrap;color:#bdb0cf}
+body.manager-v2 .chronicle-detail-tabs [role=tab][aria-selected=true]{color:#f6eaff;background:linear-gradient(135deg,#63448366,#37244744);box-shadow:inset 0 -2px #c69aef}
+body.manager-v2 .chronicle-detail-tabs [role=tab]:after{display:none}
+body.manager-v2 .chronicle-detail-tabs [role=tab] span{color:#b68bdd;margin-right:6px}
+body.manager-v2 #managerChroniclesPanel .chronicle-detail-panel{padding:25px;border:1px solid #a77bca35;border-radius:9px;background:#20182c50}
+body.manager-v2 .chronicle-overview-heading{align-items:center;flex-wrap:wrap;gap:12px}
+body.manager-v2 .chronicle-overview-metadata{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:24px}
+body.manager-v2 .chronicle-overview-metadata dd{overflow-wrap:anywhere;font-size:15px;line-height:1.65}
+body.manager-v2 .chronicle-actions-panel{padding:20px;border:1px solid #a77bca35;border-radius:9px;background:#251a3440;min-width:0}
+body.manager-v2 .chronicle-actions-panel h3{font:500 21px/1.4 Spectral,serif;margin:0 0 18px}
+body.manager-v2 .chronicle-actions-list{gap:12px}
+body.manager-v2 .chronicle-actions-list :is(.btn,.chronicle-context-action){width:100%;text-align:left;padding:14px;min-height:48px;border-radius:6px}
+@media(max-width:1250px){
+ body.manager-v2 .chronicle-detail-workspace{grid-template-columns:minmax(0,1fr)}
+ body.manager-v2 .chronicle-actions-panel{grid-row:1;padding:16px}
+ body.manager-v2 .chronicle-actions-list{display:flex;flex-wrap:wrap;gap:10px}
+ body.manager-v2 .chronicle-actions-list :is(.btn,.chronicle-context-action){width:auto;flex:1 1 180px}
+}
+@media(max-width:760px){
+ body.manager-v2 .character-gallery{grid-template-columns:minmax(0,1fr);justify-items:center;gap:24px}
+ body.manager-v2 .character-card-shell,body.manager-v2 .create-character-card{width:100%;max-width:440px}
+ body.manager-v2 :is(.character-card,.create-character-card){min-height:420px;height:auto}
+ body.manager-v2 .character-card-portrait{aspect-ratio:4/3}
+ body.manager-v2 .character-card-info{padding:17px 20px 22px;min-height:170px}
+ body.manager-v2 .character-card-name{font-size:23px}
+ body.manager-v2 .create-character-card strong{font-size:23px}
+ body.manager-v2 .create-character-symbol{width:86px;height:86px;font-size:50px}
+ body.manager-v2 .character-options-popover{position:fixed;top:auto;bottom:14px;left:14px;right:14px}
+ body.manager-v2 .chronicles-record-grid{grid-template-columns:minmax(0,1fr);justify-items:center}
+ body.manager-v2 .chronicle-record.chronicle-record-real{width:100%;max-width:520px}
+ body.manager-v2 :is(.chronicle-detail-view,.chronicle-create-view){padding:16px}
+ body.manager-v2 .chronicle-detail-masthead{grid-template-columns:minmax(0,1fr);min-height:0}
+ body.manager-v2 .chronicle-detail-cover{min-height:0;aspect-ratio:16/9}
+ body.manager-v2 .chronicle-detail-identity{padding:23px 4px}
+ body.manager-v2 .chronicle-detail-identity h2{font-size:29px}
+ body.manager-v2 .chronicle-detail-workspace{gap:18px;margin-top:18px}
+ body.manager-v2 .chronicle-detail-tabs{max-width:100%;margin-bottom:18px}
+ body.manager-v2 .chronicle-detail-tabs [role=tab]{padding:13px;min-height:50px}
+ body.manager-v2 #managerChroniclesPanel .chronicle-detail-panel{padding:18px}
+ body.manager-v2 .chronicle-overview-metadata{grid-template-columns:minmax(0,1fr);margin-top:18px}
+ body.manager-v2 .chronicle-overview-metadata>div{padding:14px 0}
+ body.manager-v2 .chronicle-overview-metadata>div+div:before{display:none}
+ body.manager-v2 .chronicle-actions-list :is(.btn,.chronicle-context-action){flex-basis:100%}
+}
+body.manager-v2 .chronicle-actions-panel:before{display:none}
+body.manager-v2 .chronicle-detail-tabs{min-width:0;flex:1}
+@media(min-width:1101px) and (max-width:1250px){body.manager-v2 .chronicle-actions-panel{width:100%;border-left:1px solid #a77bca35}}

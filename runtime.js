@@ -45,7 +45,7 @@ function setField(state,id,value){
  else return {allowed:false,message:'Campo não disponível na aba Geral.'};
  critical(state);return {allowed:true};
 }
-function setSkill(state,name,next){if(!R.pericias.some(([key])=>key===name)&&!(name==='Enganação'&&Object.hasOwn(state.skills,name)))return {allowed:false,message:'Perícia não disponível nesta ficha.'};const result=R.canChangeSkill(state,name,next);if(result.allowed)state.skills[name]=next;return result;}
+function setSkill(state,name,next){if(!R.pericias.some(([key])=>key===name))return {allowed:false,message:'Perícia não disponível nesta ficha.'};const result=R.canChangeSkill(state,name,next);if(result.allowed)state.skills[name]=next;return result;}
 function delta(state,id,amount){
  const f=state.fields,current=number(f[id]),max=number(f[id.replace('Atual','Max')]);
  if(id==='pvAtual'&&amount<0){const temp=number(f.pvTemporarios),absorbed=Math.min(temp,-amount);f.pvTemporarios=String(temp-absorbed);f[id]=String(Math.max(0,current+amount+absorbed));}

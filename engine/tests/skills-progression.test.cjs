@@ -20,7 +20,7 @@ const server = http.createServer(async (request, response) => {
 
 const officialSkills = [
   'Acrobacia', 'Artes', 'Atletismo', 'Atualidades', 'Carisma', 'Ciências', 'Combate', 'Crime',
-  'Diplomacia', 'Fortitude', 'Furtividade', 'História', 'Iniciativa', 'Intuição', 'Investigação',
+  'Diplomacia', 'Enganação', 'Fortitude', 'Furtividade', 'História', 'Iniciativa', 'Intuição', 'Investigação',
   'Medicina', 'Percepção', 'Pilotagem', 'Pontaria', 'Profissão', 'Reflexos', 'Ressonância',
   'Sobrevivência', 'Tática', 'Tecnologia', 'Vontade'
 ];
@@ -59,10 +59,10 @@ async function forceDegree(select, degree) {
     assert.deepEqual(
       await page.locator('#listaPericias .skill-row').evaluateAll(rows => rows.map(row => row.dataset.skill)),
       officialSkills,
-      'a ficha nova apresenta exatamente as 26 perícias oficiais'
+      'a ficha nova apresenta exatamente as 27 perícias disponíveis'
     );
-    assert.equal(await page.locator('[data-skill="Enganação"]').count(), 0, 'Enganação não aparece em ficha nova');
-    assert.equal(await page.locator('#skillFilterCount').innerText(), 'Exibindo 26 de 26 perícias');
+    assert.equal(await page.locator('[data-skill="Enganação"]').count(), 1, 'Enganação aparece também em ficha nova');
+    assert.equal(await page.locator('#skillFilterCount').innerText(), 'Exibindo 27 de 27 perícias');
     assert.equal(await outputValue(page, '#skillInitialCount'), '0 / 6');
     assert.equal(await outputValue(page, '#skillAdvanceCount'), '0 / 0');
 
@@ -138,9 +138,9 @@ async function forceDegree(select, degree) {
       return JSON.parse(JSON.stringify(state));
     }, officialSkills);
 
-    assert.equal(await page.locator('#listaPericias .skill-row').count(), 26);
-    assert.equal(await skillSelect(page, 'Enganação', true).inputValue(), 'Mestre', 'Enganação legado continua acessível');
-    assert.equal(await page.locator('#legacySkillsSection').isVisible(), true);
+    assert.equal(await page.locator('#listaPericias .skill-row').count(), 27);
+    assert.equal(await skillSelect(page, 'Enganação').inputValue(), 'Mestre', 'Enganação salva continua acessível na lista normal');
+    assert.equal(await page.locator('#legacySkillsSection').isVisible(), false);
     assert.equal(await page.locator('#skillCompatibilityWarning').isVisible(), true);
     assert.equal(legacyFixture.skills.Enganação, 'Mestre', 'carregar e capturar não altera Enganação');
     assert.equal(legacyFixture.skills[officialSkills[0]], 'Experiente', 'carregar e capturar não rebaixa grau oficial incompatível');
@@ -150,9 +150,9 @@ async function forceDegree(select, degree) {
     await skillSelect(page, officialSkills[0]).selectOption('Praticante');
     assert.equal(await page.locator('#skillCompatibilityWarning').isVisible(), true, 'correção parcial preserva o aviso');
     await skillSelect(page, officialSkills[6]).selectOption('Sem Domínio');
-    assert.equal(await page.locator('#skillCompatibilityWarning').isVisible(), false, 'a distribuição pode ser corrigida sem normalização automática');
-    await skillSelect(page, 'Enganação', true).selectOption('Experiente');
-    assert.equal(await skillSelect(page, 'Enganação', true).locator('option', { hasText: 'Mestre' }).isDisabled(), true, 'Enganação pode ser reduzida, mas não aumentada');
+    assert.equal(await page.locator('#skillCompatibilityWarning').isVisible(), true, 'Enganação também respeita os limites de graduação');
+    await skillSelect(page, 'Enganação').selectOption('Experiente');
+    assert.equal(await skillSelect(page, 'Enganação').locator('option', { hasText: 'Mestre' }).isDisabled(), true, 'Mestre permanece bloqueado no nível 1');
 
     const persistence = await page.evaluate(async fixture => {
       const validation = validateImportedSheet(fixture);

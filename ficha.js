@@ -32,14 +32,14 @@ async function rollSkill(name){
 }
 const attributeAbbreviations=Object.freeze({'Força':'FOR','Vigor':'VIG','Agilidade':'AGI','Intelecto':'INT','Presença':'PRE'});
 function renderSkills(){
- const list=[...R.pericias,...(Object.hasOwn(state.skills,'Enganação')?R.legacyPericias:[])];
+ const list=[...R.pericias,...R.legacyPericias.filter(([name])=>Object.hasOwn(state.skills,name))];
  $('#skills').replaceChildren();
  for(const [name,attribute]of list){
   const row=document.createElement('div');row.className='skill-row';row.dataset.name=name;row.dataset.attribute=attribute;
   row.innerHTML=`<div class="skill-name">${icon(attribute==='Força'||attribute==='Vigor'?'force':attribute==='Agilidade'?'wing':attribute==='Intelecto'?'book':'resonance')}<span class="skill-identification"><span class="skill-label"></span> <small class="skill-attribute-short"></small></span><button class="skill-roll" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.25"/><circle cx="16" cy="8" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="8" cy="16" r="1.25"/><circle cx="16" cy="16" r="1.25"/></svg></button></div><div class="grade-wrapper"><div class="degree-diamonds" aria-hidden="true">${Object.entries(R.graus).filter(([,bonus])=>bonus>0).map(([degree,bonus])=>`<span class="degree-step"><i data-degree="${R.skillDegreeSteps[degree]}"></i><small>+${bonus}</small></span>`).join('')}</div><select aria-label="Grau de ${name}">${Object.keys(R.graus).map(degree=>`<option>${degree}</option>`).join('')}</select></div><span class="skill-bonus"></span>`;
-  row.querySelector('.skill-label').textContent=name+(name==='Enganação'?' · legado':'');
+  row.querySelector('.skill-label').textContent=name;
   row.querySelector('.skill-attribute-short').textContent=`(${attributeAbbreviations[attribute]})`;
-  row.querySelector('.skill-name').title=`${attribute}${name==='Enganação'?' · conteúdo legado fora da contagem oficial':''}`;
+  row.querySelector('.skill-name').title=attribute;
   const diceButton=row.querySelector('.skill-roll');diceButton.setAttribute('aria-label',`Rolar ${name}`);diceButton.title=`Rolar ${name} · ${attribute}`;diceButton.addEventListener('click',()=>rollSkill(name));
   row.querySelector('select').addEventListener('change',event=>{
    if(replacing||!state||window.FichaV2Bridge?.isNavigating?.()||window.FichaV2Bridge&&!window.FichaV2Bridge.getEngine()?.canEdit())return;
