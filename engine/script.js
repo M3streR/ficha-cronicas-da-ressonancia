@@ -1714,6 +1714,113 @@ function importCharacterFromMenu(file) {
   reader.readAsText(file);
 }
 
+// Multi-file import is exclusive to the character manager; sheet replacement stays single-file.
+async function importCharactersFromMenu(files) {
+  if (isImportingCharacterFromMenu || !files.length) return;
+  if (files.length === 1) return importCharacterFromMenu(files[0]);
+  isImportingCharacterFromMenu = true;
+  const importButton = document.getElementById('managerImportCharacter');
+  importButton.disabled = true;
+  importButton.setAttribute('aria-busy', 'true');
+  const entries = [];
+  const seen = new Set();
+  try {
+    for (const file of files) {
+      const entry = { fileName: file.name };
+      try {
+        if (!file.name.toLocaleLowerCase('pt-BR').endsWith('.json')) throw new Error('Escolha um arquivo JSON exportado pela ficha.');
+        if (file.size > 12 * 1024 * 1024) throw new Error('O arquivo ultrapassa o limite de 12 MB por ficha.');
+        let raw;
+        try { raw = JSON.parse(await file.text()); }
+        catch (_) { throw new Error('Não foi possível ler um JSON válido.'); }
+        let validation;
+        try { validation = validateImportedSheet(raw); }
+        catch (_) { throw new Error('A ficha contém dados inválidos.'); }
+        if (!validation.valid) throw new Error(validation.message || 'Ficha inválida.');
+        const identity = normalizeFilterText(validation.summary.name.trim()) + ':' + validation.summary.level;
+        entry.duplicate = Boolean(findImportedCharacterDuplicate(validation)) || seen.has(identity);
+        seen.add(identity);
+        entry.validation = validation;
+      } catch (error) { entry.error = error.message; }
+      entries.push(entry);
+    }
+  } finally {
+    isImportingCharacterFromMenu = false;
+    importButton.disabled = false;
+    importButton.removeAttribute('aria-busy');
+  }
+  const valid = entries.filter(entry => entry.validation);
+  const content = document.createElement('div');
+  const intro = document.createElement('p');
+  intro.textContent = `${valid.length} de ${files.length} arquivos prontos para importar. Cada ficha será adicionada como um novo personagem, sem substituir os existentes.`;
+  content.appendChild(intro);
+  const list = document.createElement('ul');
+  list.className = 'manager-import-file-list';
+  for (const entry of entries) {
+    const item = document.createElement('li');
+    item.textContent = entry.error
+      ? `${entry.fileName} — Não será importado: ${entry.error}`
+      : `${entry.fileName} — ${entry.validation.summary.name}, nível ${entry.validation.summary.level}${entry.duplicate ? ' · Possível repetido: será adicionado como cópia' : ''}${entry.validation.corrections.length ? ` · ${entry.validation.corrections.length} correção(ões) da validação existente` : ''}`;
+    list.appendChild(item);
+  }
+  content.appendChild(list);
+  const progress = document.createElement('p');
+  progress.setAttribute('role', 'status');
+  progress.setAttribute('aria-live', 'polite');
+  content.appendChild(progress);
+  openModal({
+    owner: 'manager-batch-import',
+    title: 'Importar personagens',
+    content,
+    beforeClose: () => !isImportingCharacterFromMenu,
+    actions: [
+      ...(valid.length ? [{
+        label: `Importar ${valid.length} ${valid.length === 1 ? 'personagem' : 'personagens'}`,
+        close: false,
+        onClick: async () => {
+          if (isImportingCharacterFromMenu) return;
+          isImportingCharacterFromMenu = true;
+          importButton.disabled = true;
+          importButton.setAttribute('aria-busy', 'true');
+          document.querySelectorAll('#modalActions button').forEach(button => { button.disabled = true; });
+          let imported = 0;
+          let lastId = null;
+          const failures = entries.filter(entry => entry.error).map(entry => `${entry.fileName} — ${entry.error}`);
+          try {
+            for (const [index, entry] of valid.entries()) {
+              progress.textContent = `Importando ${index + 1} de ${valid.length}: ${entry.validation.summary.name}`;
+              try {
+                lastId = await storeImportedCharacterAsNew(entry.validation.normalized);
+                imported++;
+              } catch (error) {
+                failures.push(`${entry.fileName} — ${window.CharacterStorage.message(error)}`);
+              }
+            }
+            showCharacterManagerView(lastId);
+          } finally {
+            isImportingCharacterFromMenu = false;
+            importButton.disabled = false;
+            importButton.removeAttribute('aria-busy');
+          }
+          const result = createModalContent(`${imported} ${imported === 1 ? 'personagem importado' : 'personagens importados'}.`, 'Os personagens anteriores foram preservados.');
+          if (failures.length) {
+            const failedList = document.createElement('ul');
+            failedList.className = 'manager-import-file-list';
+            for (const failure of failures) {
+              const item = document.createElement('li');
+              item.textContent = failure;
+              failedList.appendChild(item);
+            }
+            result.appendChild(failedList);
+          }
+          openModal({ owner: 'manager-batch-import', title: 'Importação concluída', content: result, actions: [{ label: 'Concluir', spanAll: true }] });
+        }
+      }] : []),
+      { label: valid.length ? 'Cancelar' : 'Fechar', className: 'secondary' }
+    ]
+  });
+}
+
 const CHRONICLE_COVER_LIMITS = Object.freeze({
   sourceBytes: 12 * 1024 * 1024,
   sourcePixels: 60_000_000,
@@ -3881,9 +3988,9 @@ function bindCharacterManager() {
   const menuImportInput = document.getElementById('managerImportFile');
   document.getElementById('managerImportCharacter').addEventListener('click', () => menuImportInput.click());
   menuImportInput.addEventListener('change', event => {
-    const file = event.target.files?.[0];
-    if (file) importCharacterFromMenu(file);
+    const files = Array.from(event.target.files || []);
     event.target.value = '';
+    if (files.length) void importCharactersFromMenu(files);
   });
   document.getElementById('voltarPersonagens').addEventListener('click', returnToCharacterManager);
   document.addEventListener('click', event => {

@@ -175,7 +175,7 @@
     },
     {
       "file": "engine/index.html",
-      "sha256": "dfe8428503299c7a296eb3363810e19c8368609e54d8c8abff6356c1fc28f0b7"
+      "sha256": "93ce786c8ca2067dfa17db83c80d99709d183e8b342998e2a3212c39ed49af39"
     },
     {
       "file": "engine/js/character-edit-authority.js",
@@ -271,7 +271,7 @@
     },
     {
       "file": "engine/script.js",
-      "sha256": "5fe625f8985aee1f6fd64d6dab890c18fd04849d5cab8051ab9154427352c368"
+      "sha256": "e50d048b0c895eeb8d61a9ed247288843eae49b6bb8f1f02daa4ac558d007e89"
     },
     {
       "file": "engine/style.css",
@@ -307,7 +307,7 @@
     },
     {
       "file": "index.html",
-      "sha256": "e648df34a17ccecfd2bbdc009dd5183059b9ebe24c9fe68dacb99c28b521c44f"
+      "sha256": "2a515ea2f66787e7f83cedbe3a7895b2ba6c2a035cc0c388c1b57c2785fd2fd1"
     },
     {
       "file": "integration.js",
@@ -343,7 +343,7 @@
     },
     {
       "file": "manager-ui/theme.css",
-      "sha256": "2141f1c3ef9042d2450366c50ca03b0506ab1a817b15699a4bb145f28aacf9d3"
+      "sha256": "bade74088d8a735885ef71fa8160f8eb3456afa1c36e0337b18fcfa92058147c"
     },
     {
       "file": "mobile.css",
