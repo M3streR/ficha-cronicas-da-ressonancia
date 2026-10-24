@@ -271,7 +271,7 @@
     },
     {
       "file": "engine/script.js",
-      "sha256": "9362a9802d86b02157a995a3d510e87df730b0cc4d37dc364a2438a4d463b722"
+      "sha256": "2e31e0ae24c32569d5d2889a960fd15b31902aa0c7da558a8a1123842e273451"
     },
     {
       "file": "engine/style.css",
@@ -287,7 +287,7 @@
     },
     {
       "file": "ficha.js",
-      "sha256": "18adcd56c12e7da63c38413c2f2e3c04dc637351f28292f510f322f8b7880c3c"
+      "sha256": "e8079724e3c6e5057a610c0dfb4bd10a88ec579814fef75db0fd2175f85de4bf"
     },
     {
       "file": "general-mobile.css",
@@ -343,7 +343,7 @@
     },
     {
       "file": "manager-ui/theme.css",
-      "sha256": "87c3655db8510ab32e50e4c0ae2cb2f6b0c668d968652367546f5d29b296b10a"
+      "sha256": "2e50ced4cb1ef79749e4aa402a44c39feb6d63805fd113b25d32045c6c48790a"
     },
     {
       "file": "mobile.css",
@@ -407,11 +407,11 @@
     },
     {
       "file": "rules.js",
-      "sha256": "42adbca41a31b6613e83b21ff63e2c8a53abf0592bad3aebe01fa8921fc9df20"
+      "sha256": "3cb531d6e9cfe292b6781a99f71d399b99407937a896e2cb016e48fb0e439be3"
     },
     {
       "file": "runtime.js",
-      "sha256": "b7e8157ab7738bfa6c8a93c307aa79930cc23523779f2079c8989a9acaacfef7"
+      "sha256": "7aa614ab9931d452a68d9fb7a6b30a9a17d499e00f3e48c3434a3992beb9e8c1"
     },
     {
       "file": "secret-codes.css",
