@@ -55,7 +55,7 @@
   function syncBusy() {
     ['confrontationView', 'chroniclePanelEncounters', 'confrontationForm', 'masterCombatsOverview'].forEach(id => {
       el(id).setAttribute('aria-busy', String(busy));
-      el(id).querySelectorAll('button,input,textarea').forEach(input => { input.disabled = busy; });
+      el(id).querySelectorAll('button,input,textarea,select').forEach(input => { input.disabled = busy; });
     });
     el('editConfrontation').hidden = Boolean(preparation);
     el('startConfrontation').hidden = !managing || !record || record.active;
@@ -65,7 +65,7 @@
     el('confrontationMetadataActions').hidden = Boolean(preparation);
     if (draft?.loading) {
       const form = el(draft.form);
-      form.querySelectorAll('input,textarea,button[type="submit"]').forEach(input => { input.disabled = true; });
+      form.querySelectorAll('input,textarea,select,button[type="submit"]').forEach(input => { input.disabled = true; });
     }
   }
   function focusIfVisible(target) {
@@ -436,7 +436,17 @@
     const token = ++formToken;
     draft = { kind: 'adversary', form: 'confrontationAdversaryForm', feedback: 'confrontationAdversaryFeedback', id, loading: !!id, trigger: document.activeElement };
     el('confrontationAdversaryForm').reset(); el('confrontationAdversaryForm').hidden = false;
-    el('confrontationAdversaryFormTitle').textContent = id ? 'Editar adversário' : 'Adicionar adversário'; syncBusy();
+    el('confrontationAdversaryFormTitle').textContent = id ? 'Editar adversário' : 'Adicionar adversário';
+    const picker = el('confrontationAdversaryCharacter'); picker.replaceChildren(new Option('Escolher uma ficha…', ''));
+    el('confrontationAdversarySource').hidden = Boolean(id);
+    if (!id) {
+      try {
+        draft.characters = new Map((services.savedAdversaryCharacters?.() || []).map(entry => [entry.id, entry]));
+        draft.characters.forEach(entry => picker.add(new Option(`${entry.name} · Nível ${entry.level}`, entry.id)));
+        if (!draft.characters.size) picker.options[0].textContent = 'Nenhuma ficha salva neste navegador';
+      } catch (_) { feedback('Não foi possível carregar as fichas salvas. Você ainda pode preencher os dados abaixo.', 'error', draft.feedback); }
+    }
+    syncBusy();
     try {
       if (id) {
         const rows = preparation ? adversaries : await storage().listConfrontationAdversaries(record.id);
@@ -449,6 +459,20 @@
       if (token !== formToken) return;
       draft.loading = false; draft.original = formValue(); syncBusy(); el('confrontationAdversaryName').focus();
     } catch (error) { if (token === formToken) feedback(errorText(error), 'error', draft.feedback); }
+  }
+  function useSavedAdversary() {
+    if (draft?.kind !== 'adversary' || draft.loading || busy) return;
+    const entry = draft.characters?.get(el('confrontationAdversaryCharacter').value);
+    if (!entry) return;
+    try {
+      const values = services.savedAdversaryValues(entry.id);
+      if (!values) throw new Error('CHARACTER_UNAVAILABLE');
+      el('confrontationAdversaryName').value = values.name;
+      el('confrontationAdversaryPVCurrent').value = values.pvCurrent ?? '';
+      el('confrontationAdversaryPVMax').value = values.pvMax ?? '';
+      el('confrontationAdversaryDefense').value = values.defense ?? '';
+      feedback(`Ficha de ${values.name} selecionada como adversário. Confira os dados e salve.`, '', draft.feedback);
+    } catch (_) { feedback('Esta ficha não está mais disponível. Escolha outra ou preencha os dados manualmente.', 'error', draft.feedback); }
   }
   function saveAdversary(event) {
     event.preventDefault(); if (draft?.kind !== 'adversary' || draft.loading || busy) return;
@@ -525,6 +549,7 @@
     el('confrontationForm').addEventListener('submit', saveMetadata);
     el('confrontationSelectionForm').addEventListener('submit', saveSelection);
     el('confrontationAdversaryForm').addEventListener('submit', saveAdversary);
+    el('confrontationAdversaryCharacter').addEventListener('change', useSavedAdversary);
     ['cancelConfrontationForm','cancelConfrontationSelection','cancelConfrontationAdversary'].forEach(id => el(id).addEventListener('click', () => { if (!busy) clearDraft(true); }));
     el('editConfrontation').addEventListener('click', () => void openMetadata(true));
     el('backFromConfrontation').addEventListener('click', () => void back());

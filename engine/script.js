@@ -3697,6 +3697,20 @@ function bindChronicles() {
     readCharacter: id => activeChronicleRecord?.storage === 'online'
       ? window.ChroniclesOnlineCombat?.readCharacter(id)
       : readStoredCharacter(id),
+    savedAdversaryCharacters: () => getChronicleCharacterDirectory().entries,
+    savedAdversaryValues: id => {
+      const character = readStoredCharacter(id);
+      if (!character) return null;
+      const fields = character.fields || {};
+      const current = Number(fields.pvAtual), maximum = Number(fields.pvMax);
+      const hasPV = String(fields.pvAtual ?? '').trim() !== '' && String(fields.pvMax ?? '').trim() !== ''
+        && Number.isSafeInteger(current) && current >= 0 && Number.isSafeInteger(maximum) && maximum > 0;
+      return {
+        name: String(fields.nome || '').trim() || 'Novo personagem',
+        ...(hasPV ? { pvCurrent: current, pvMax: maximum } : {}),
+        defense: calculateCharacterDefense(character)
+      };
+    },
     selectionHelp: () => activeChronicleRecord?.storage === 'online'
       ? 'Selecione suas fichas ou personagens do Elenco. Ao salvar, fichas locais escolhidas serão publicadas e vinculadas à Crônica.'
       : 'Selecione suas fichas para o Confronto. Os escolhidos entram no Elenco; removê-los do Confronto não exclui o personagem.',
@@ -5664,12 +5678,18 @@ function getReflexDefenseBonus() {
   return Math.min(graus[row.querySelector('select').value] || 0, 3);
 }
 
+function calculateCharacterDefense(character, reflexBonus = Math.min(graus[character.skills?.Reflexos] || 0, 3)) {
+  const fields = character.fields || {};
+  const criticalStates = normalizeCriticalStates(character.criticalStates);
+  return 10 + Number(fields.agilidade || 0) + reflexBonus + Number(fields.bonusDefesaEquipamento || 0)
+    + (criticalStates.resonantRecoveryDefensePenalty ? -3 : 0);
+}
+
 function recalculateDefense() {
-  const agilidade = Number(document.getElementById('agilidade').value || 0);
-  const equipamento = Number(document.getElementById('bonusDefesaEquipamento').value || 0);
-  const criticalStates = normalizeCriticalStates(state.criticalStates);
-  const resonantRecoveryPenalty = criticalStates.resonantRecoveryDefensePenalty ? -3 : 0;
-  const defense = 10 + agilidade + getReflexDefenseBonus() + equipamento + resonantRecoveryPenalty;
+  const defense = calculateCharacterDefense({
+    fields: { agilidade: document.getElementById('agilidade').value, bonusDefesaEquipamento: document.getElementById('bonusDefesaEquipamento').value },
+    criticalStates: state.criticalStates
+  }, getReflexDefenseBonus());
   document.getElementById('defesaTotal').textContent = defense;
   const mobileDefense = document.getElementById('mobileDefesa');
   if (mobileDefense) mobileDefense.textContent = defense;
