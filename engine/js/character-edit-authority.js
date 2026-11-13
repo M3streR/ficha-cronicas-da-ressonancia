@@ -330,6 +330,11 @@
     let settleAcquisition;
     const acquisition = new Promise(resolve => { settleAcquisition = resolve; });
     const options = wait ? {} : { ifAvailable: true };
+    const timeout = abortController && global.setTimeout(() => {
+      if (state.mode !== 'waiting') return;
+      state.lastError = 'TAKEOVER_TIMEOUT';
+      abortController.abort();
+    }, 5000);
     if (abortController) options.signal = abortController.signal;
 
     const request = global.navigator.locks.request(lockName(localId), options, async lock => {
@@ -355,6 +360,7 @@
       settleAcquisition({ acquired: false, guaranteed: true, mode: state.mode, error });
       emitState(localId);
     }).finally(() => {
+      if (timeout) global.clearTimeout(timeout);
       state.lockRequest = null;
       state.abortController = null;
       state.releaseHold = null;

@@ -50,7 +50,37 @@ document.addEventListener('DOMContentLoaded',()=>{
  const upload=document.createElement('input');upload.type='file';upload.accept='image/*';upload.id='portrait-upload';upload.setAttribute('aria-label','Alterar retrato');
  upload.addEventListener('change',async()=>{const file=upload.files[0];if(!file)return;try{await ready;if(!engine.canEdit())throw Error('Assuma a edição para alterar o retrato.');if(window.FichaV2.hasPendingChanges()&&!await window.FichaV2.save())return;await engine.photo(file,upload);}catch(e){document.querySelector('#feedback').textContent=e.message;}finally{upload.value='';}});photo.append(upload);document.querySelector('.portrait-frame').append(photo);
  const theme=document.createElement('button');theme.id='v2-gold-toggle';theme.hidden=true;theme.textContent='Alternar aparência';theme.type='button';theme.addEventListener('click',()=>frame.contentWindow.document.getElementById('goldGenerationToggle').click());global.append(theme);
- const takeover=document.createElement('button');takeover.id='v2-takeover';takeover.hidden=true;takeover.textContent='Assumir edição nesta aba';takeover.type='button';takeover.addEventListener('click',()=>frame.contentWindow.document.getElementById('takeOverCharacterEditing').click());global.append(takeover);
+ const takeover = document.createElement('button');
+ takeover.id = 'v2-takeover';
+ takeover.hidden = true;
+ takeover.textContent = 'Assumir edição nesta aba';
+ takeover.type = 'button';
+ const editStatus = document.createElement('output');
+ editStatus.className = 'global-status';
+ editStatus.setAttribute('role', 'status');
+ takeover.addEventListener('click', () => {
+   const control = frame.contentDocument.getElementById('takeOverCharacterEditing');
+   if (control && !control.disabled && !control.hidden) control.click();
+ });
+ function renderEditStatus(detail) {
+   if (detail?.localId !== engine.getId()) return;
+   takeover.disabled = ['waiting', 'reconciling', 'yielding'].includes(detail.mode);
+   const messages = {
+     waiting: 'Aguardando a outra aba salvar e liberar a edição…',
+     reconciling: 'Verificando a ficha antes de liberar a edição…',
+     restricted: 'Há um conflito online. Confira as versões da ficha antes de editar.',
+     observer: detail.lastError === 'EDITOR_HAS_UNSAVED_DIALOG'
+       ? 'Conclua ou feche a janela de edição na outra aba e tente novamente.'
+       : detail.lastError === 'TAKEOVER_TIMEOUT'
+         ? 'A outra aba não respondeu. Feche a outra ficha e clique em Assumir edição nesta aba novamente.'
+         : 'A edição está em outra aba deste navegador. Feche a outra ficha ou assuma a edição aqui.'
+   };
+   editStatus.textContent = messages[detail.mode] || '';
+   takeover.hidden = !['observer', 'waiting'].includes(detail.mode);
+ }
+ frame.contentWindow.addEventListener('cronicas:character-edit-authority', event => renderEditStatus(event.detail));
+ renderEditStatus(frame.contentWindow.CharacterEditAuthority?.getState(engine.getId()));
+ global.append(takeover, editStatus);
  const saved=document.createElement('output');saved.id='engine-save-status';saved.className='global-status';saved.setAttribute('aria-live','polite');global.append(saved);
  toolbar.setAttribute('aria-label','Salvamento, backups e arquivos do personagem experimental');
 });
@@ -59,7 +89,7 @@ ready.then(()=>{poll=setInterval(async()=>{if(!window.fichaV2Ready||changedByEng
 if(modalOpen&&!hadModal){forcedModal=frame.hidden;const background=frame.getBoundingClientRect();if(!forcedModal){placeholder.style.height=background.height+'px';placeholder.hidden=false;}const childBody=frame.contentDocument.body;childBody.style.setProperty('--v2-backdrop-x',(background.left+1)+'px');childBody.style.setProperty('--v2-backdrop-y',(background.top+1)+'px');childBody.style.setProperty('--v2-backdrop-width',Math.max(0,background.width-2)+'px');frame.hidden=false;frame.contentDocument.body.dataset.v2Modal='true';document.body.classList.add('v2-modal-open');sizeFrame();}
 else if(!modalOpen&&hadModal){document.body.classList.remove('v2-modal-open');delete frame.contentDocument.body.dataset.v2Modal;delete frame.contentDocument.body.dataset.v2EnchantmentModal;frame.style.removeProperty('color-scheme');placeholder.hidden=true;if(forcedModal){frame.hidden=true;forcedModal=false;}sizeFrame();}
 if(modalOpen){const enchantmentModal=frame.contentDocument.querySelector('#appModal')?.classList.contains('enchantments-modal');frame.contentDocument.body.toggleAttribute('data-v2-enchantment-modal',enchantmentModal);frame.style.colorScheme=enchantmentModal?'light':'';}
-const current=engine.getState(),serialized=JSON.stringify(current);window.FichaV2PortraitSync?.observe(engine.getId(),current,engine.canEdit());const originalStatus=frame.contentWindow.document.getElementById('autosaveStatus');document.querySelector('#engine-save-status').textContent=window.FichaV2.hasPendingChanges()?(/Falha/.test(document.querySelector('#save-status').textContent)?'Falha ao salvar':'Salvando…'):(originalStatus?.textContent||'');const summary=document.querySelector('#character-state-summary');const labels=[`${current.activeEffects?.length||0} efeito(s) ativo(s)`];const doc=frame.contentWindow.document;for(const id of ['dyingStatePanel','losingMindStatePanel','resonantRecoveryPanel']){const panel=doc.getElementById(id);if(panel&&!panel.hidden)labels.push(panel.querySelector('h4')?.textContent);}summary.textContent=labels.join(' · ');document.body.dataset.gold=current.goldGeneration?.active&&!frame.contentWindow.document.body.classList.contains('manager-view-open')?'true':'false';document.querySelector('#v2-gold-toggle').hidden=!current.goldGeneration?.unlocked;document.querySelector('#v2-gold-toggle').textContent=current.goldGeneration?.active?'Aparência Alpha':'Geração de Ouro';document.querySelector('#v2-takeover').hidden=engine.canEdit();const goldId=engine.getId(),unlocked=!!current.goldGeneration?.unlocked;if(goldSeen.has(goldId)&&!goldSeen.get(goldId)&&unlocked&&frame.hidden&&frame.contentWindow.document.querySelector('.gold-unlock-reveal')){const reveal=document.createElement('div');reveal.className='v2-awakening';reveal.setAttribute('role','status');reveal.textContent='Geração de Ouro';document.querySelector('.general').append(reveal);setTimeout(()=>reveal.remove(),1500);}goldSeen.set(goldId,unlocked);document.querySelector('#view-geral').inert=actionBusy||!engine.canEdit();if(serialized===lastSerialized)return;changedByEngine=true;try{if(await window.FichaV2.refreshFromEngine?.(current))lastSerialized=serialized;const active=engine.getId();if(active)sessionStorage.setItem('cronicasRessonanciaActiveV2',active);}finally{changedByEngine=false;}},500);});
+const current=engine.getState(),serialized=JSON.stringify(current);window.FichaV2PortraitSync?.observe(engine.getId(),current,engine.canEdit());const originalStatus=frame.contentWindow.document.getElementById('autosaveStatus');document.querySelector('#engine-save-status').textContent=window.FichaV2.hasPendingChanges()?(/Falha/.test(document.querySelector('#save-status').textContent)?'Falha ao salvar':'Salvando…'):(originalStatus?.textContent||'');const summary=document.querySelector('#character-state-summary');const labels=[`${current.activeEffects?.length||0} efeito(s) ativo(s)`];const doc=frame.contentWindow.document;for(const id of ['dyingStatePanel','losingMindStatePanel','resonantRecoveryPanel']){const panel=doc.getElementById(id);if(panel&&!panel.hidden)labels.push(panel.querySelector('h4')?.textContent);}summary.textContent=labels.join(' · ');document.body.dataset.gold=current.goldGeneration?.active&&!frame.contentWindow.document.body.classList.contains('manager-view-open')?'true':'false';document.querySelector('#v2-gold-toggle').hidden=!current.goldGeneration?.unlocked;document.querySelector('#v2-gold-toggle').textContent=current.goldGeneration?.active?'Aparência Alpha':'Geração de Ouro';const editMode=frame.contentDocument.getElementById('characterSheetView')?.dataset.editAuthority;document.querySelector('#v2-takeover').hidden=!['observer','waiting'].includes(editMode);const goldId=engine.getId(),unlocked=!!current.goldGeneration?.unlocked;if(goldSeen.has(goldId)&&!goldSeen.get(goldId)&&unlocked&&frame.hidden&&frame.contentWindow.document.querySelector('.gold-unlock-reveal')){const reveal=document.createElement('div');reveal.className='v2-awakening';reveal.setAttribute('role','status');reveal.textContent='Geração de Ouro';document.querySelector('.general').append(reveal);setTimeout(()=>reveal.remove(),1500);}goldSeen.set(goldId,unlocked);document.querySelector('#view-geral').inert=actionBusy||!engine.canEdit();if(serialized===lastSerialized)return;changedByEngine=true;try{if(await window.FichaV2.refreshFromEngine?.(current))lastSerialized=serialized;const active=engine.getId();if(active)sessionStorage.setItem('cronicasRessonanciaActiveV2',active);}finally{changedByEngine=false;}},500);});
 })();
 
 
