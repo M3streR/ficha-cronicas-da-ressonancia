@@ -39,10 +39,8 @@ bindCharacterEditAuthority=function(){originalBindAuthority();characterEditAutho
 function canEdit(){return Boolean(activeCharacterId&&characterEditAuthority()?.canMutate(activeCharacterId));}
 window.FichaV2Engine=Object.freeze({ready,getId:()=>activeCharacterId,getRevision:()=>revision,canEdit,getState:()=>{captureState();return cloneCharacterState(state);},
  async current(requested){await ready;const manager=readCharacterManager();if(requested&&(!isValidCharacterId(requested)||!Object.hasOwn(manager?.characters||{},requested)))return null;let id=requested||activeCharacterId||sessionStorage.getItem('cronicasRessonanciaActiveV2');if(!id||!manager?.characters?.[id])id=Object.keys(manager?.characters||{})[0];if(id){await openCharacter(id);if(separateSheet){
- const authority = characterEditAuthority();
  const takeoverControl = document.getElementById('takeOverCharacterEditing');
  if (takeoverControl) takeoverControl.style.display = 'none';
- if (authority?.getState(id).mode === 'observer') await authority.requestTakeover(id);
  sheetOpened=true;for(const id of ['abrirEncantamentos','abrirAnotacoes','voltarDaAnotacoes','adicionarHabilidade'])document.getElementById(id)?.remove();document.getElementById('characterManagerView')?.remove();document.querySelector('#sheetBrand h1')?.remove();
 const sheet=document.getElementById('characterSheetView');
 if(!document.getElementById('v2-state-tools')){const tools=document.createElement('section');tools.id='v2-state-tools';tools.className='panel v2-state-tools';tools.hidden=true;const heading=document.createElement('h2');heading.textContent='Estados, efeitos e ferramentas';tools.append(heading);for(const id of ['activeEffectsSection','characterUtilitySection','criticalStatesSection'])tools.append(document.getElementById(id));sheet.append(tools);}

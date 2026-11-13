@@ -1,7 +1,7 @@
 /* Same-origin, isolated-document bridge. The original engine owns mutations. */
 (function(){'use strict';
 const selectedId=new URL(location.href).searchParams.get('character');if(!selectedId){location.replace('index.html');return;}
-const frame=document.createElement('iframe');frame.id='complete-engine';frame.title='Controles completos da ficha experimental';frame.src='engine/index.html';frame.hidden=true;document.querySelector('.folio').append(frame);
+const frame=document.createElement('iframe');frame.id='complete-engine';frame.title='Controles completos da ficha experimental';frame.src='engine/index.html?v=2026-11-13-edicao-local';frame.hidden=true;document.querySelector('.folio').append(frame);
 frame.setAttribute('role','tabpanel');frame.tabIndex=0;document.querySelectorAll('.tab:not([data-tab="geral"])').forEach(tab=>tab.setAttribute('aria-controls','complete-engine'));
 let layoutObserver,layoutQueued=false;
 const placeholder=document.createElement('div');placeholder.hidden=true;placeholder.setAttribute('aria-hidden','true');frame.before(placeholder);
@@ -50,26 +50,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  const upload=document.createElement('input');upload.type='file';upload.accept='image/*';upload.id='portrait-upload';upload.setAttribute('aria-label','Alterar retrato');
  upload.addEventListener('change',async()=>{const file=upload.files[0];if(!file)return;try{await ready;if(!engine.canEdit())throw Error('Assuma a edição para alterar o retrato.');if(window.FichaV2.hasPendingChanges()&&!await window.FichaV2.save())return;await engine.photo(file,upload);}catch(e){document.querySelector('#feedback').textContent=e.message;}finally{upload.value='';}});photo.append(upload);document.querySelector('.portrait-frame').append(photo);
  const theme=document.createElement('button');theme.id='v2-gold-toggle';theme.hidden=true;theme.textContent='Alternar aparência';theme.type='button';theme.addEventListener('click',()=>frame.contentWindow.document.getElementById('goldGenerationToggle').click());global.append(theme);
- const editStatus = document.createElement('output');
- editStatus.className = 'global-status';
- editStatus.setAttribute('role', 'status');
- function renderEditStatus(detail) {
-   if (detail?.localId !== engine.getId()) return;
-   const messages = {
-     waiting: 'Aguardando a outra aba salvar e liberar a edição…',
-     reconciling: 'Verificando a ficha antes de liberar a edição…',
-     restricted: 'Há um conflito online. Confira as versões da ficha antes de editar.',
-     observer: detail.lastError === 'EDITOR_HAS_UNSAVED_DIALOG'
-       ? 'Conclua a edição na outra aba e recarregue esta página.'
-       : detail.lastError === 'TAKEOVER_TIMEOUT'
-         ? 'A outra aba não respondeu. Feche a outra ficha e recarregue esta página.'
-         : 'A edição está em outra aba deste navegador. Feche a outra ficha e recarregue esta página.'
-   };
-   editStatus.textContent = messages[detail.mode] || '';
- }
- frame.contentWindow.addEventListener('cronicas:character-edit-authority', event => renderEditStatus(event.detail));
- renderEditStatus(frame.contentWindow.CharacterEditAuthority?.getState(engine.getId()));
- global.append(editStatus);
  const saved=document.createElement('output');saved.id='engine-save-status';saved.className='global-status';saved.setAttribute('aria-live','polite');global.append(saved);
  toolbar.setAttribute('aria-label','Salvamento, backups e arquivos do personagem experimental');
 });

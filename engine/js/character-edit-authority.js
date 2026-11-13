@@ -37,7 +37,17 @@
     try { global.sessionStorage?.setItem(TAB_SESSION_KEY, value); } catch (_) { /* Identidade em memória permanece válida. */ }
   }
 
+  const isMainSheet = (() => {
+    try {
+      return global.frameElement?.id === 'complete-engine'
+        && global.parent.document.body.dataset.screen === 'sheet';
+    } catch (_) {
+      return false;
+    }
+  })();
+
   function supportsWebLocks() {
+    if (isMainSheet) return false;
     return typeof global.navigator?.locks?.request === 'function';
   }
 
@@ -382,7 +392,7 @@
   function activate(localId, options = {}) {
     const state = ensureState(localId);
     if (supportsWebLocks() && !['reconciling', 'restricted', 'editor'].includes(state.mode)) return false;
-    state.mode = options.restricted === true ? 'restricted' : (supportsWebLocks() ? 'editor' : 'consultative');
+    state.mode = options.restricted === true && !isMainSheet ? 'restricted' : (supportsWebLocks() ? 'editor' : 'consultative');
     emitState(localId);
     post('edit-lease-acquired', localId, {
       mode: state.mode,
