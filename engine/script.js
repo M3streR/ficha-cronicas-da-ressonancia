@@ -1200,8 +1200,12 @@ function createCharacterCard(id, summary) {
     beginViewTransition(card, document.getElementById('characterManagerView'));
     card.disabled = true;
     try {
-      await openCharacter(id);
-      await completeMenuToSheetTransition(card);
+      if (window.openExistingCharacterFromManager) {
+        await window.openExistingCharacterFromManager(id);
+      } else {
+        await openCharacter(id);
+        await completeMenuToSheetTransition(card);
+      }
     } catch (error) {
       cancelViewTransition(card, document.getElementById('characterManagerView'));
       console.error('Não foi possível abrir o personagem:', error);
@@ -3890,7 +3894,7 @@ function bindChronicles() {
   });
   document.querySelectorAll('[data-chronicle-detail-tab]').forEach(tab => {
     tab.addEventListener('click', () => {
-      setChronicleDetailSection(tab.dataset.chronicleDetailTab);
+      if (tab.getAttribute('aria-selected') !== 'true') setChronicleDetailSection(tab.dataset.chronicleDetailTab);
     });
     tab.addEventListener('keydown', event => {
       const tabs = [...document.querySelectorAll('[data-chronicle-detail-tab]')];

@@ -506,7 +506,7 @@
       const card=node('article','online-combat-enemy-control');
       card.append(node('p','combat-defense',enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'DEF não informada'));
       if(enemy.pvMax !== undefined){
-        const current=Number(enemy.pvCurrent ?? 0), max=Number(enemy.pvMax);
+        let current=Number(enemy.pvCurrent ?? 0); const max=Number(enemy.pvMax);
         const resources=node('div','combat-summary-resources combat-manual-resources');
         const pv=node('div');pv.dataset.resource='pv';
         pv.append(node('small','','PV'),node('strong','',`${current} / ${max}`));
@@ -519,7 +519,18 @@
         function syncPV(){for(const [button,step] of buttons)button.disabled=pending||input.value!==String(current)||(step<0?current<=0:current>=max);}
         async function savePV(next){
           if(pending)return;pending=true;save.disabled=true;input.disabled=true;syncPV();
-          try{await combatStorage().updateConfrontationAdversary(full.record.id,enemy.id,{name:enemy.name,pvCurrent:next,pvMax:enemy.pvMax,...(enemy.defense !== undefined?{defense:enemy.defense}:{})},{expectedUpdatedAt:enemy.updatedAt});input.dataset.dirty='';await render(currentChronicle);}
+          try {
+            const saved = await combatStorage().updateConfrontationAdversary(full.record.id, enemy.id,
+              {...enemy, pvCurrent: next}, {expectedUpdatedAt: enemy.updatedAt});
+            Object.assign(enemy, saved);
+            current = Number(saved.pvCurrent);
+            input.value = String(current);
+            delete input.dataset.dirty;
+            pv.querySelector('strong').textContent = `${current} / ${max}`;
+            bar.value = current;
+            bar.setAttribute('aria-label', `PV: ${current} de ${max}`);
+            updateAdversaryInitiativeLabel(enemy);
+          }
           catch(_){global.showNotification?.('PV não salvo. Outra tela pode ter atualizado este adversário. Atualize e confira os valores.','error');}
           finally{pending=false;save.disabled=false;input.disabled=false;syncPV();syncCommands();}
         }
@@ -548,7 +559,8 @@
           const saved=await combatStorage().updateConfrontationAdversary(full.record.id,enemy.id,{...enemy,pvCurrent:Number(changes.pvAtual),pvMax:Number(changes.pvMax),defense,snapshot:updated},{expectedUpdatedAt:expectedUpdatedAt || enemy.updatedAt});
           Object.assign(enemy,saved);Object.assign(snapshot.fields,changes);
           try{full.record=await combatStorage().getConfrontation(full.record.id);}catch(_){/* Refresh will retry the parent version without rewriting acknowledged resources. */}
-          scheduleRefresh();return {updatedAt:saved.updatedAt};
+          updateAdversaryInitiativeLabel(enemy);
+          return {updatedAt:saved.updatedAt};
         },onRoll:(expression,label)=>rollEnemy(full,enemy,expression,label)}));
       }).catch(()=>{if(projection.isConnected)projection.textContent='Ficha temporariamente indisponível. Use Atualizar.';});
     } else {
@@ -656,6 +668,18 @@
     } finally { pending = false; syncCommands(); }
   }
 
+  function adversaryResourceLabel(enemy) {
+    const defense = enemy.defense !== undefined ? `DEF ${enemy.defense}` : '';
+    if (enemy.pvMax === undefined) return defense || 'Adversário · recursos reservados';
+    return `PV ${enemy.pvCurrent} / ${enemy.pvMax}${defense ? ' · ' + defense : ''}`;
+  }
+
+  function updateAdversaryInitiativeLabel(enemy) {
+    const row = document.querySelector(`#onlineCombatHost [data-kind="adversary"][data-id="${CSS.escape(enemy.id)}"]`);
+    const label = row?.querySelector('.online-combat-initiative-identity small');
+    if (label) label.textContent = adversaryResourceLabel(enemy);
+  }
+
   function initiativeBoard(full, owner) {
     const board = node('section', 'online-combat-initiative');
     const heading = node('header', 'online-combat-section-heading');
@@ -690,7 +714,7 @@
         identity.append(node('small', '', `PV ${resources.pv}`));
       } else if (owner && target.kind === 'adversary') {
         const enemy = target.adversary;
-        identity.append(node('small', '', owner && enemy.pvMax !== undefined ? `PV ${enemy.pvCurrent} / ${enemy.pvMax}${enemy.defense !== undefined ? ` · DEF ${enemy.defense}` : ''}` : (owner && enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'Adversário · recursos reservados')));
+        identity.append(node('small', '', adversaryResourceLabel(enemy)));
       }
       const score = owner && initiativeEditing ? document.createElement('input') : node('strong', 'online-combat-initiative-score', String(item.initiative || 0));
       if (owner && initiativeEditing) {
@@ -751,7 +775,7 @@
     if (!chronicle) return false;
     currentChronicle = chronicle;
     const existing=document.getElementById('onlineCombatHost');
-    if(existing?.querySelector('[data-dirty="true"]') || initiativeEditing || (existing?.contains(document.activeElement)&&document.activeElement?.matches('input,textarea'))){refreshDeferred=true;updateConnection();return true;}
+    if(activeSheetState()?.saving || existing?.querySelector('[data-dirty="true"]') || initiativeEditing || (existing?.contains(document.activeElement)&&document.activeElement?.matches('input,textarea'))){refreshDeferred=true;updateConnection();return true;}
     refreshDeferred=false;
     const token = ++renderEpoch;
     const host = ensureActiveHost();
@@ -769,6 +793,7 @@
       if(localMode()&&!active.executionId)await global.ChroniclesStorage.setConfrontationActive(active.id,true,{expectedUpdatedAt:active.updatedAt});
       const full = await fetchFullConfrontation(active.id, chronicle.role === 'owner');
       if (token !== renderEpoch || currentChronicle?.id !== chronicle.id) return true;
+      if (activeSheetState()?.saving) { refreshDeferred = true; updateConnection(); return true; }
       renderActiveCombat(full, chronicle, user);
       if(localMode()){if(!localTimer)localTimer=global.setInterval(()=>{if(!document.hidden)scheduleRefresh();},4000);}
       else startRealtime(chronicle);
@@ -830,7 +855,16 @@
       realtimeCombatChannel = client.channel(`online-combat-detail:${active.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_character_links', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversary_roster', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversaries', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'confrontation_adversaries', filter: `confrontation_id=eq.${active.id}` }, event => {
+          const change = event.new;
+          if (event.eventType === 'UPDATE' && change?.id && change.updated_at) {
+            global.setTimeout(() => {
+              if (lastFull?.record.id !== active.id || currentChronicle?.remoteId !== chronicle.remoteId) return;
+              const current = lastFull.adversaries.find(enemy => enemy.id === change.id);
+              if (!current?.updatedAt || Date.parse(change.updated_at) > Date.parse(current.updatedAt)) scheduleRefresh();
+            }, 300);
+          } else scheduleRefresh();
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'online_roll_records', filter: `confrontation_id=eq.${active.id}` }, scheduleRefresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'online_characters' }, payload => {
           const id = payload?.new?.id || payload?.old?.id;
