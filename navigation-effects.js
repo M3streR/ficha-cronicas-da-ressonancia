@@ -18,7 +18,7 @@
   const target=new URL(url,location.href);if(target.origin!==location.origin)throw Error('A transição só atende à prévia local.');
   pending=(async()=>{
    if(!reduced()){
-    try{const node=surface(kind);announce('leaving',kind);await animate(node,[{opacity:0},{opacity:1}],180);node.style.opacity='1';sessionStorage.setItem(key,JSON.stringify({url:target.href,at:Date.now(),kind,gold:document.body.dataset.gold==='true'}));}catch{clear();}
+    try{const node=surface(kind);announce('leaving',kind);await animate(node,[{opacity:0},{opacity:1}],90);node.style.opacity='1';sessionStorage.setItem(key,JSON.stringify({url:target.href,at:Date.now(),kind,gold:document.body.dataset.gold==='true'}));}catch{clear();}
    }
    try{location.assign(target.href);}catch(error){try{sessionStorage.removeItem(key);}catch{}clear();pending=null;throw error;}
   })();return pending;
@@ -31,7 +31,7 @@
    const node=surface(arrival.kind);node.style.opacity='1';node.dataset.gold=String(arrival.gold);announce('arriving',arrival.kind);
    const start=performance.now();function reveal(){
     if(window.fichaV2Ready||window.managerV2Ready||performance.now()-start>2400){
-     announce('revealing',arrival.kind);animate(node,[{opacity:1},{opacity:0}],280).finally(()=>{if(layer===node)clear();announce('finished',arrival.kind);});
+     announce('revealing',arrival.kind);animate(node,[{opacity:1},{opacity:0}],140).finally(()=>{if(layer===node)clear();announce('finished',arrival.kind);});
     }else requestAnimationFrame(reveal);
    }requestAnimationFrame(reveal);
   }catch{clear();}

@@ -3,9 +3,22 @@
 const managerView=document.getElementById('characterManagerView');managerView.inert=true;
 const engine=window.FichaV2Engine;
 let opening=false;
+function sheetDestination(id) {
+ const target = new URL('../ficha.html', document.baseURI);
+ target.searchParams.set('character', id);
+ return target.href;
+}
+function goToSheet(id, kind) {
+ const url = sheetDestination(id);
+ return window.FichaV2NavigationEffects?.navigate(url, kind) ?? location.assign(url);
+}
+window.openExistingCharacterFromManager = async id => {
+ if (activeCharacterId && !await saveActiveCharacter()) throw Error('Salvamento não confirmado.');
+ await goToSheet(id, 'open');
+};
 completeMenuToSheetTransition=async function(trigger){
  if(opening)return;opening=true;
- try{const id=engine.getId();if(!id)throw Error('Escolha um personagem válido.');if(!await saveActiveCharacter())throw Error('Salvamento não confirmado.');await closeCharacter();const target=new URL('../ficha.html',document.baseURI);target.searchParams.set('character',id);if(window.FichaV2NavigationEffects)await window.FichaV2NavigationEffects.navigate(target.href,trigger?.id==='managerCreateCharacter'?'create':'open');else location.assign(target.href);}
+ try{const id=engine.getId();if(!id)throw Error('Escolha um personagem válido.');if(!await saveActiveCharacter())throw Error('Salvamento não confirmado.');await closeCharacter();await goToSheet(id,trigger?.id==='managerCreateCharacter'?'create':'open');}
  catch(error){opening=false;clearViewTransitionState(trigger,managerView,document.getElementById('characterSheetView'));throw error;}
 };
 (async()=>{try{

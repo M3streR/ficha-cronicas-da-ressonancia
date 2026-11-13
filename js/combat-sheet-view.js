@@ -76,9 +76,33 @@
         const quick = [];
         const feedback = node('p','combat-resource-status'); feedback.setAttribute('role','status');
         const keys = ['pv','pn','ps'];
+        let pendingSteps = [];
+        let savingSteps = false;
+        const resourceValues = new Map();
+        function displayFields(values) {
+          for (const [prefix, card] of resourceValues) {
+            const current = values[prefix+'Atual'], max = values[prefix+'Max'];
+            card.querySelector('strong').textContent = `${current ?? '—'} / ${max ?? '—'}`;
+            const bar = card.querySelector('progress');
+            if (bar) {
+              bar.value = Number(current);
+              bar.setAttribute('aria-label', `${prefix.toUpperCase()}: ${current} de ${max}`);
+            }
+          }
+        }
+        const applySteps = (values, steps) => {
+          const next = {...values};
+          for (const {key,maxKey,step} of steps) {
+            const current = Number(next[key]), max = Number(next[maxKey]);
+            if (step < 0) next[key] = String(Math.max(0,current+step));
+            else if (current < max) next[key] = String(Math.min(max,current+step));
+          }
+          return next;
+        };
         const syncQuick = () => quick.forEach(({button,key,maxKey,step}) => {
-          const current = Number(fields[key]), max = Number(fields[maxKey]);
-          button.disabled = !!(state.saving || state.resourceDraft) || (step < 0 ? current <= 0 : current >= max);
+          const displayed = applySteps(fields,pendingSteps);
+          const current = Number(displayed[key]), max = Number(displayed[maxKey]);
+          button.disabled = !!((state.saving && !savingSteps) || state.resourceDraft) || (step < 0 ? current <= 0 : current >= max);
         });
         for (const [prefix,title] of [['pv','PV'],['pn','PN'],['ps','PS']]) {
           const card = node('div'); card.dataset.resource = prefix;
@@ -97,17 +121,16 @@
               button.setAttribute('aria-label',`${step < 0 ? 'Diminuir' : 'Recuperar'} ${Math.abs(step)} ${title}`);
               quick.push({button,key,maxKey,step}); controls.append(button);
               button.addEventListener('click', () => {
-                const current = Number(fields[key]), max = Number(fields[maxKey]);
-                const next = step < 0 ? Math.max(0,current+step) : Math.min(max,current+step);
-                if (button.disabled || next === current) return;
-                const changes = Object.fromEntries(keys.flatMap(k => ['Atual','Max'].map(suffix => [k+suffix,String(fields[k+suffix] ?? (k === 'pv' && suffix === 'Max' ? 1 : 0))])));
-                changes[key] = String(next);
-                void saveResources(changes, resourceVersion, Number(defense ?? 0), button.dataset.focusKey, `${title}: ${next} de ${max}.`);
+                if (button.disabled) return;
+                pendingSteps.push({key,maxKey,step});
+                displayFields(applySteps(fields,pendingSteps));
+                syncQuick();
+                void flushSteps();
               });
             }
             card.append(controls);
           }
-          resources.append(card);
+          resourceValues.set(prefix,card); resources.append(card);
         }
         const defense = defenseValue ?? global.CronicasCombatRules?.defense?.(snapshot), def = node('div');
         def.append(node('small','','DEF'),node('strong','',Number.isFinite(defense)?defense:'—')); resources.append(def); body.append(resources);
@@ -169,6 +192,42 @@
           });
         }
         syncQuick();
+        async function flushSteps() {
+          if (savingSteps || state.saving) return;
+          savingSteps = state.saving = true;
+          const controls = [...body.querySelectorAll('form input, form button'),...nav.querySelectorAll('button')];
+          controls.forEach(control => control.disabled = true);
+          feedback.textContent = 'Salvando…';
+          onDraftChange();
+          try {
+            while (pendingSteps.length) {
+              const count = pendingSteps.length;
+              const next = applySteps(fields,pendingSteps.slice(0,count));
+              const changes = Object.fromEntries(keys.flatMap(key => ['Atual','Max'].map(suffix => {
+                const field = key+suffix;
+                return [field,String(next[field] ?? (field === 'pvMax' ? 1 : 0))];
+              })));
+              const receipt = await onResources(changes,resourceVersion,Number(defense ?? 0));
+              if (receipt?.updatedAt) resourceVersion = receipt.updatedAt;
+              Object.assign(fields,changes);
+              pendingSteps = pendingSteps.slice(count);
+            }
+            for (const input of body.querySelectorAll('form input')) {
+              if (fields[input.name] !== undefined) input.value = fields[input.name];
+            }
+            state.resourceFeedback = 'Recursos salvos.';
+          } catch (_) {
+            pendingSteps = [];
+            state.resourceFeedback = 'Não foi possível salvar. O cartão voltou ao último valor confirmado.';
+          } finally {
+            savingSteps = state.saving = false;
+            displayFields(fields);
+            syncQuick();
+            controls.forEach(control => control.disabled = false);
+            feedback.textContent = state.resourceFeedback;
+            onDraftChange();
+          }
+        }
         async function saveResources(changes, expected, savedDefense, focusKey, message) {
           if (state.saving) return;
           state.saving = true;

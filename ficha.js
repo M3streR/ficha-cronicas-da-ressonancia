@@ -119,7 +119,42 @@ $('#new-test').addEventListener('click',async()=>{if(!confirm('Criar um novo per
 $('#load-test').addEventListener('click',async()=>{if(dirty&&!confirm('Carregar o último teste salvo? As alterações atuais serão guardadas em backup experimental.'))return;try{clearTimeout(timer);await lastWrite.catch(()=>{});const saved=await S.load();if(saved){await replaceTest(M.restore(saved));feedback('Teste experimental carregado.');}}catch(e){feedback(e.message);}});
 $('#import-test').addEventListener('change',async event=>{const file=event.target.files[0];event.target.value='';if(!file)return;try{let raw;try{raw=JSON.parse(await file.text());}catch{throw Error('Não foi possível ler um JSON válido. O teste atual foi preservado.');}const original=M.validate(raw);if(original.photo){const image=new Image();image.src=original.photo;try{await image.decode();}catch{throw Error('A imagem do JSON não pôde ser decodificada. Importação cancelada.');}}const next=M.restore(original);if(!confirm('Importar somente no ambiente experimental? O teste atual será preservado em backup. Nenhum vínculo Online será utilizado.'))return;await replaceTest(next);feedback('JSON importado no banco experimental. Dados das seis abas preservados.');}catch(e){feedback(e.message);}});
 $('#export-test').addEventListener('click',()=>{const latest=window.FichaV2Bridge?.getEngine()?.getState();const exported=latest?(dirty?{...latest,fields:{...latest.fields,...state.fields},skills:{...latest.skills,...state.skills}}:latest):state;const blob=new Blob([JSON.stringify(exported,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='ficha-v2-teste-cronicas.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);feedback('JSON exportado com os dados completos. O arquivo exportado não cria nem altera vínculos online.');});
-const tabs=[...document.querySelectorAll('[role=tab]')];async function selectTab(tab,focus=false){try{if(dirty&&!await persist())return;if(window.FichaV2Bridge&&await window.FichaV2Bridge.navigate(tab.dataset.tab)===false)return;tabs.forEach(item=>{const active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active));item.tabIndex=active?0:-1;});const general=tab.dataset.tab==='geral';$('#view-geral').hidden=!general;$('#view-pending').hidden=true;if(!window.FichaV2Bridge&&!general){$('#view-pending').hidden=false;$('#view-pending').setAttribute('aria-labelledby',tab.id);$('#pending-title').textContent=tab.textContent.trim();}if(focus)tab.focus();}catch(e){feedback(e.message);}}
+const tabs = [...document.querySelectorAll('[role=tab]')];
+let tabRequest = 0;
+let tabNavigation = Promise.resolve();
+function selectTab(tab, focus = false) {
+  const request = ++tabRequest;
+  const operation = tabNavigation.then(() => request === tabRequest && activateTab(tab, focus));
+  tabNavigation = operation.catch(() => {});
+  return operation;
+}
+async function activateTab(tab, focus) {
+  if (tab.getAttribute('aria-selected') === 'true' && !$('#view-geral').hidden && tab.dataset.tab === 'geral' && !dirty) {
+    if (focus) tab.focus();
+    return;
+  }
+  try {
+    if (dirty && !await persist()) return;
+    if (window.FichaV2Bridge && await window.FichaV2Bridge.navigate(tab.dataset.tab) === false) return;
+    for (const item of tabs) {
+      const active = item === tab;
+      item.classList.toggle('active',active);
+      item.setAttribute('aria-selected',String(active));
+      item.tabIndex = active ? 0 : -1;
+    }
+    const general = tab.dataset.tab === 'geral';
+    $('#view-geral').hidden = !general;
+    $('#view-pending').hidden = true;
+    if (!window.FichaV2Bridge && !general) {
+      $('#view-pending').hidden = false;
+      $('#view-pending').setAttribute('aria-labelledby',tab.id);
+      $('#pending-title').textContent = tab.textContent.trim();
+    }
+    if (focus) tab.focus();
+  } catch (error) {
+    feedback(error.message);
+  }
+}
 for(const [index,tab]of tabs.entries()){tab.addEventListener('click',()=>selectTab(tab));tab.addEventListener('keydown',event=>{let next;if(event.key==='ArrowRight')next=(index+1)%tabs.length;if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;if(event.key==='Home')next=0;if(event.key==='End')next=tabs.length-1;if(next!==undefined){event.preventDefault();selectTab(tabs[next],true);}});}
 $('.return-button').addEventListener('click',()=>selectTab(tabs[0],true));
 window.addEventListener('beforeunload',event=>{if(dirty){persist();event.preventDefault();event.returnValue='';}});
