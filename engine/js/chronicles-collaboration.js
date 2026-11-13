@@ -400,8 +400,10 @@
       .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, snapshot, created_at, updated_at')
       .in('id', ids);
     if (characterError) throw characterError;
-    const byId = new Map((characters || []).map(row => [row.id, row]));
-    const profiles = await fetchProfiles((characters || []).map(row => row.owner_id));
+    const { data: summaries, error: summaryError } = await auth.client.rpc('chronicle_character_summaries', {p_chronicle_id: active.remoteId});
+    if (summaryError) throw summaryError;
+    const byId = new Map([...(summaries || []), ...(characters || [])].map(row => [row.id, row]));
+    const profiles = await fetchProfiles([...byId.values()].map(row => row.owner_id));
     return (links || []).map(link => {
       const row = byId.get(link.character_id);
       if (!row) return null;
@@ -2357,6 +2359,7 @@
     for (const key of event.detail || []) if (key.startsWith(CHARACTER_SYNC_META_PREFIX)) characterSyncVersions.delete(key.slice(CHARACTER_SYNC_META_PREFIX.length));
   });
   global.ChroniclesCollaboration = Object.freeze({
+    sanitizeSnapshot,
     applyDetailMode,
     reset,
     renderParticipants,

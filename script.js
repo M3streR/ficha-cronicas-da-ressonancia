@@ -16,7 +16,7 @@ const ATTRIBUTE_IDS = ['forca', 'vigor', 'agilidade', 'intelecto', 'presenca'];
 const pericias = [
   ['Acrobacia', 'Vigor'], ['Artes', 'Presença'], ['Atletismo', 'Vigor'], ['Atualidades', 'Intelecto'],
   ['Carisma', 'Presença'], ['Ciências', 'Intelecto'], ['Combate', 'Força'],
-  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'],
+  ['Crime', 'Agilidade'], ['Diplomacia', 'Presença'], ['Enganação', 'Presença'],
   ['Fortitude', 'Vigor'], ['Furtividade', 'Agilidade'], ['História', 'Intelecto'], ['Iniciativa', 'Agilidade'],
   ['Intuição', 'Presença'], ['Investigação', 'Intelecto'], ['Medicina', 'Intelecto'],
   ['Percepção', 'Presença'], ['Pilotagem', 'Agilidade'], ['Pontaria', 'Agilidade'],
@@ -25,9 +25,7 @@ const pericias = [
   ['Vontade', 'Presença']
 ];
 
-const legacyPericias = [
-  ['Enganação', 'Presença']
-];
+const legacyPericias = [];
 
 const graus = {
   'Sem Domínio': 0,
@@ -1134,11 +1132,18 @@ function createCharacterCard(id, summary) {
   const characterName = summary.name || 'Novo personagem';
   card.setAttribute('aria-label', `Abrir ${characterName}, nível ${summary.level}`);
 
+  // The gallery can reuse the stored original without rewriting the compact index.
+  let storedCharacter = null;
+  try { storedCharacter = readStoredCharacter(id); } catch (_) { /* Keep the summary fallback. */ }
+  const fullPhoto = typeof storedCharacter?.photo === 'string' && storedCharacter.photo.startsWith('data:image/')
+    ? storedCharacter.photo : '';
   const portrait = document.createElement('span');
   portrait.className = 'character-card-portrait';
-  if (summary.thumbnail) {
+  if (fullPhoto || summary.thumbnail) {
     const image = document.createElement('img');
-    image.src = summary.thumbnail;
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.src = fullPhoto || summary.thumbnail;
     image.alt = '';
     portrait.appendChild(image);
   } else {
@@ -1161,7 +1166,6 @@ function createCharacterCard(id, summary) {
   info.append(name, level);
 
   try {
-    const storedCharacter = readStoredCharacter(id);
     const storedFields = isPlainObject(storedCharacter?.fields) ? storedCharacter.fields : {};
     const className = String(storedFields.classe || '').trim();
     const signature = String(storedFields.assinatura || '').trim();
@@ -1332,7 +1336,7 @@ function showManagerSection(sectionId = 'characters', { focusPanel = false } = {
 function showCharacterSheetView() {
   closeQuickDice({ restoreFocus: false });
   resetNotesViewNavigation();
-  document.getElementById('characterManagerView').hidden = true;
+  const hiddenManagerView=document.getElementById('characterManagerView');if(hiddenManagerView)hiddenManagerView.hidden=true;
   document.getElementById('characterSheetView').hidden = false;
   document.body.classList.remove('manager-view-open');
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1708,6 +1712,113 @@ function importCharacterFromMenu(file) {
     openMenuImportPreview(validation);
   };
   reader.readAsText(file);
+}
+
+// Multi-file import is exclusive to the character manager; sheet replacement stays single-file.
+async function importCharactersFromMenu(files) {
+  if (isImportingCharacterFromMenu || !files.length) return;
+  if (files.length === 1) return importCharacterFromMenu(files[0]);
+  isImportingCharacterFromMenu = true;
+  const importButton = document.getElementById('managerImportCharacter');
+  importButton.disabled = true;
+  importButton.setAttribute('aria-busy', 'true');
+  const entries = [];
+  const seen = new Set();
+  try {
+    for (const file of files) {
+      const entry = { fileName: file.name };
+      try {
+        if (!file.name.toLocaleLowerCase('pt-BR').endsWith('.json')) throw new Error('Escolha um arquivo JSON exportado pela ficha.');
+        if (file.size > 12 * 1024 * 1024) throw new Error('O arquivo ultrapassa o limite de 12 MB por ficha.');
+        let raw;
+        try { raw = JSON.parse(await file.text()); }
+        catch (_) { throw new Error('Não foi possível ler um JSON válido.'); }
+        let validation;
+        try { validation = validateImportedSheet(raw); }
+        catch (_) { throw new Error('A ficha contém dados inválidos.'); }
+        if (!validation.valid) throw new Error(validation.message || 'Ficha inválida.');
+        const identity = normalizeFilterText(validation.summary.name.trim()) + ':' + validation.summary.level;
+        entry.duplicate = Boolean(findImportedCharacterDuplicate(validation)) || seen.has(identity);
+        seen.add(identity);
+        entry.validation = validation;
+      } catch (error) { entry.error = error.message; }
+      entries.push(entry);
+    }
+  } finally {
+    isImportingCharacterFromMenu = false;
+    importButton.disabled = false;
+    importButton.removeAttribute('aria-busy');
+  }
+  const valid = entries.filter(entry => entry.validation);
+  const content = document.createElement('div');
+  const intro = document.createElement('p');
+  intro.textContent = `${valid.length} de ${files.length} arquivos prontos para importar. Cada ficha será adicionada como um novo personagem, sem substituir os existentes.`;
+  content.appendChild(intro);
+  const list = document.createElement('ul');
+  list.className = 'manager-import-file-list';
+  for (const entry of entries) {
+    const item = document.createElement('li');
+    item.textContent = entry.error
+      ? `${entry.fileName} — Não será importado: ${entry.error}`
+      : `${entry.fileName} — ${entry.validation.summary.name}, nível ${entry.validation.summary.level}${entry.duplicate ? ' · Possível repetido: será adicionado como cópia' : ''}${entry.validation.corrections.length ? ` · ${entry.validation.corrections.length} correção(ões) da validação existente` : ''}`;
+    list.appendChild(item);
+  }
+  content.appendChild(list);
+  const progress = document.createElement('p');
+  progress.setAttribute('role', 'status');
+  progress.setAttribute('aria-live', 'polite');
+  content.appendChild(progress);
+  openModal({
+    owner: 'manager-batch-import',
+    title: 'Importar personagens',
+    content,
+    beforeClose: () => !isImportingCharacterFromMenu,
+    actions: [
+      ...(valid.length ? [{
+        label: `Importar ${valid.length} ${valid.length === 1 ? 'personagem' : 'personagens'}`,
+        close: false,
+        onClick: async () => {
+          if (isImportingCharacterFromMenu) return;
+          isImportingCharacterFromMenu = true;
+          importButton.disabled = true;
+          importButton.setAttribute('aria-busy', 'true');
+          document.querySelectorAll('#modalActions button').forEach(button => { button.disabled = true; });
+          let imported = 0;
+          let lastId = null;
+          const failures = entries.filter(entry => entry.error).map(entry => `${entry.fileName} — ${entry.error}`);
+          try {
+            for (const [index, entry] of valid.entries()) {
+              progress.textContent = `Importando ${index + 1} de ${valid.length}: ${entry.validation.summary.name}`;
+              try {
+                lastId = await storeImportedCharacterAsNew(entry.validation.normalized);
+                imported++;
+              } catch (error) {
+                failures.push(`${entry.fileName} — ${window.CharacterStorage.message(error)}`);
+              }
+            }
+            showCharacterManagerView(lastId);
+          } finally {
+            isImportingCharacterFromMenu = false;
+            importButton.disabled = false;
+            importButton.removeAttribute('aria-busy');
+          }
+          const result = createModalContent(`${imported} ${imported === 1 ? 'personagem importado' : 'personagens importados'}.`, 'Os personagens anteriores foram preservados.');
+          if (failures.length) {
+            const failedList = document.createElement('ul');
+            failedList.className = 'manager-import-file-list';
+            for (const failure of failures) {
+              const item = document.createElement('li');
+              item.textContent = failure;
+              failedList.appendChild(item);
+            }
+            result.appendChild(failedList);
+          }
+          openModal({ owner: 'manager-batch-import', title: 'Importação concluída', content: result, actions: [{ label: 'Concluir', spanAll: true }] });
+        }
+      }] : []),
+      { label: valid.length ? 'Cancelar' : 'Fechar', className: 'secondary' }
+    ]
+  });
 }
 
 const CHRONICLE_COVER_LIMITS = Object.freeze({
@@ -3142,8 +3253,7 @@ function setChronicleDetailSection(
   }
   if (activeSection === 'participants') void renderChronicleParticipants();
   if (activeSection === 'encounters') {
-    if (activeChronicleRecord?.storage === 'online') void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
-    else void window.ConfrontationsUI?.renderIndex();
+    void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
   }
   if (activeSection === 'free-rolls') void window.ChronicleFreeRolls?.render(activeChronicleRecord);
 }
@@ -3667,8 +3777,7 @@ function bindChronicles() {
         target.focus({ preventScroll: true });
       }
       if (battleId) {
-        if (activeChronicleRecord?.storage === 'online') await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
-        else await window.ConfrontationsUI.open(battleId);
+        await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
         return;
       }
       try {
@@ -3693,6 +3802,43 @@ function bindChronicles() {
     readCharacter: id => activeChronicleRecord?.storage === 'online'
       ? window.ChroniclesOnlineCombat?.readCharacter(id)
       : readStoredCharacter(id),
+    savedAdversaryCharacters: () => getChronicleCharacterDirectory().entries,
+    savedAdversaryValues: id => {
+      const character = readStoredCharacter(id);
+      if (!character) return null;
+      const fields = character.fields || {};
+      const current = Number(fields.pvAtual), maximum = Number(fields.pvMax);
+      const hasPV = String(fields.pvAtual ?? '').trim() !== '' && String(fields.pvMax ?? '').trim() !== ''
+        && Number.isSafeInteger(current) && current >= 0 && Number.isSafeInteger(maximum) && maximum > 0;
+      return {
+        name: String(fields.nome || '').trim() || 'Novo personagem',
+        ...(hasPV ? { pvCurrent: current, pvMax: maximum } : {}),
+        defense: calculateCharacterDefense(character),
+        sourceLocalId: id, snapshot: window.ChroniclesCollaboration.sanitizeSnapshot(character)
+      };
+    },
+    selectionHelp: () => activeChronicleRecord?.storage === 'online'
+      ? 'Selecione suas fichas ou personagens do Elenco. Ao salvar, fichas locais escolhidas serão publicadas e vinculadas à Crônica.'
+      : 'Selecione suas fichas para o Confronto. Os escolhidos entram no Elenco; removê-los do Confronto não exclui o personagem.',
+    selectionDirectory: async () => {
+      if (activeChronicleRecord?.storage !== 'online') return getChronicleCharacterDirectory();
+      const entries = await window.ChroniclesCollaboration.listConfrontationCandidates(activeChronicleRecord);
+      const cast = window.ChroniclesOnlineCombat.directory();
+      const byId = new Map(cast.byId);
+      entries.forEach(entry => { if (!byId.has(entry.id)) byId.set(entry.id, entry); });
+      return { entries: [...byId.values()], byId, unavailable: false };
+    },
+    resolveSelection: async (ids, { expected = [] } = {}) => {
+      if (activeChronicleRecord?.storage !== 'online') {
+        const current = getChronicleCharacterDirectory();
+        if (current.unavailable || ids.some(id => !expected.includes(id) && !current.byId.has(id))) throw new Error('CHARACTER_UNAVAILABLE');
+        return ids;
+      }
+      const chronicle = activeChronicleRecord;
+      const resolved = await window.ChroniclesCollaboration.includeConfrontationCharacters(ids, chronicle);
+      await window.ChroniclesOnlineCombat.storage.listChronicleCastIds(chronicle.id);
+      return resolved;
+    },
     portrait: createChronicleCastPortrait,
     confirm: openModal,
     notify: showNotification,
@@ -3841,9 +3987,9 @@ function bindCharacterManager() {
   const menuImportInput = document.getElementById('managerImportFile');
   document.getElementById('managerImportCharacter').addEventListener('click', () => menuImportInput.click());
   menuImportInput.addEventListener('change', event => {
-    const file = event.target.files?.[0];
-    if (file) importCharacterFromMenu(file);
+    const files = Array.from(event.target.files || []);
     event.target.value = '';
+    if (files.length) void importCharactersFromMenu(files);
   });
   document.getElementById('voltarPersonagens').addEventListener('click', returnToCharacterManager);
   document.addEventListener('click', event => {
@@ -3876,7 +4022,7 @@ async function startV3CharacterMigration() {
     }
   } catch (error) {
     console.error('Não foi possível preparar a ficha para o gerenciador de personagens:', error);
-    document.getElementById('characterManagerView').hidden = true;
+    const hiddenManagerView=document.getElementById('characterManagerView');if(hiddenManagerView)hiddenManagerView.hidden=true;
     document.getElementById('characterSheetView').hidden = false;
     document.body.classList.remove('manager-view-open');
     showNotification(
@@ -3958,19 +4104,24 @@ function rollDie(faces) {
   return Math.floor(Math.random() * faces) + 1;
 }
 
-function rollDiceExpression(parsedExpression, randomizer = rollDie) {
+function rollDiceExpression(parsedExpression, randomizer = rollDie, { highestD20 = false } = {}) {
   if (!parsedExpression?.valid) throw new TypeError('INVALID_DICE_EXPRESSION');
   const rolls = Array.from(
     { length: parsedExpression.quantity },
     () => randomizer(parsedExpression.faces)
   );
-  const diceTotal = rolls.reduce((total, value) => total + value, 0);
+  // Confirmed rule: a pool of d20 selects one highest die; other dice retain sums.
+  const highest = parsedExpression.faces === 20 && parsedExpression.quantity > 1;
+  const diceTotal = highest ? Math.max(...rolls) : rolls.reduce((total, value) => total + value, 0);
   return {
     expression: parsedExpression.expression,
     quantity: parsedExpression.quantity,
     faces: parsedExpression.faces,
     modifier: parsedExpression.modifier,
     rolls,
+    resolution: highest ? 'highest' : 'sum',
+    natural: parsedExpression.faces === 20 && (highest || rolls.length === 1) ? diceTotal : null,
+    selectedIndex: highest ? rolls.indexOf(diceTotal) : null,
     diceTotal,
     total: diceTotal + parsedExpression.modifier
   };
@@ -3980,7 +4131,7 @@ function formatDiceResult(result) {
   const modifierText = result.modifier === 0
     ? ''
     : `${result.modifier > 0 ? '+' : '−'}${Math.abs(result.modifier)}`;
-  let calculationText = result.rolls.join(' + ');
+  let calculationText = result.resolution === 'highest' ? `Maior(${result.rolls.join(', ')}) = ${result.diceTotal}` : result.rolls.join(' + ');
   if (result.modifier > 0) calculationText += ` + ${result.modifier}`;
   if (result.modifier < 0) calculationText += ` − ${Math.abs(result.modifier)}`;
   return {
@@ -4083,6 +4234,10 @@ window.CronicasDiceEngine = Object.freeze({
   format: formatDiceResult
 });
 
+function getQuickDiceElement(id) {
+  return (window.FichaV2QuickDiceDocument || document).getElementById(id);
+}
+
 function getDiceRollHighlights(rolls) {
   if (!Array.isArray(rolls) || rolls.length <= 1) {
     return { minimum: null, maximum: null };
@@ -4093,38 +4248,41 @@ function getDiceRollHighlights(rolls) {
   return { minimum, maximum };
 }
 
-function renderQuickDiceRollValues(rolls) {
-  const container = document.getElementById('quickDiceRolls');
+function renderQuickDiceRollValues(result) {
+  const container = getQuickDiceElement('quickDiceRolls');
   if (!container) return;
-  const { minimum, maximum } = getDiceRollHighlights(rolls);
-  const fragment = document.createDocumentFragment();
-
+  const rolls = Array.isArray(result) ? result : result.rolls;
+  const selecting = !Array.isArray(result) && result.resolution === 'highest';
+  const selected = selecting ? result.selectedIndex : null;
+  const fragment = container.ownerDocument.createDocumentFragment();
   rolls.forEach((value, index) => {
-    if (index > 0) fragment.appendChild(document.createTextNode(', '));
-    const roll = document.createElement('span');
+    const roll = container.ownerDocument.createElement('span');
     roll.className = 'quick-dice-roll-value';
-    if (value === maximum) roll.classList.add('is-highest');
-    if (value === minimum) roll.classList.add('is-lowest');
-    roll.textContent = String(value);
-    fragment.appendChild(roll);
+    let label = rolls.length === 1 ? 'Dado' : `Dado ${index + 1}`;
+    if (selecting) {
+      if (index === selected) { roll.classList.add('is-highest'); label = rolls.every(v => v === value) ? 'Considerado · empate' : 'Dado maior'; }
+      else { roll.classList.add('is-lowest'); label = value === result.diceTotal ? 'Não usado · empate' : rolls.length === 2 ? 'Dado menor' : 'Não usado'; }
+    }
+    const caption = container.ownerDocument.createElement('small'); caption.textContent = label;
+    const number = container.ownerDocument.createElement('b'); number.textContent = String(value);
+    roll.append(caption, number); fragment.appendChild(roll);
   });
-
   container.replaceChildren(fragment);
 }
 
 function announceQuickDice(message) {
-  const announcement = document.getElementById('quickDiceAnnouncement');
+  const announcement = getQuickDiceElement('quickDiceAnnouncement');
   if (!announcement) return;
   announcement.textContent = '';
-  requestAnimationFrame(() => {
+  (window.FichaV2QuickDiceDocument || document).defaultView.requestAnimationFrame(() => {
     announcement.textContent = message;
   });
 }
 
 function closeQuickDice({ restoreFocus = true } = {}) {
-  const tool = document.getElementById('quickDiceTool');
-  const toggle = document.getElementById('quickDiceToggle');
-  const panel = document.getElementById('quickDicePanel');
+  const tool = getQuickDiceElement('quickDiceTool');
+  const toggle = getQuickDiceElement('quickDiceToggle');
+  const panel = getQuickDiceElement('quickDicePanel');
   if (!tool || !toggle || !panel) return;
 
   const wasOpen = !panel.hidden;
@@ -4136,25 +4294,26 @@ function closeQuickDice({ restoreFocus = true } = {}) {
 }
 
 function openQuickDice() {
-  const tool = document.getElementById('quickDiceTool');
-  const toggle = document.getElementById('quickDiceToggle');
-  const panel = document.getElementById('quickDicePanel');
-  const input = document.getElementById('quickDiceExpression');
+  const tool = getQuickDiceElement('quickDiceTool');
+  const toggle = getQuickDiceElement('quickDiceToggle');
+  const panel = getQuickDiceElement('quickDicePanel');
+  const input = getQuickDiceElement('quickDiceExpression');
   if (!tool || !toggle || !panel || !input) return;
 
   quickDiceReturnFocus = toggle;
+  void window.RollHistory?.refreshDestinations?.();
   panel.hidden = false;
   tool.classList.add('is-open');
   toggle.setAttribute('aria-expanded', 'true');
-  requestAnimationFrame(() => {
+  (window.FichaV2QuickDiceDocument || document).defaultView.requestAnimationFrame(() => {
     input.focus();
     input.select();
   });
 }
 
 function renderQuickDiceError(message) {
-  const error = document.getElementById('quickDiceError');
-  const result = document.getElementById('quickDiceResult');
+  const error = getQuickDiceElement('quickDiceError');
+  const result = getQuickDiceElement('quickDiceResult');
   error.textContent = message;
   error.hidden = false;
   result.hidden = true;
@@ -4162,12 +4321,12 @@ function renderQuickDiceError(message) {
 }
 
 function animateQuickDiceResult() {
-  const toggle = document.getElementById('quickDiceToggle');
-  const result = document.getElementById('quickDiceResult');
+  const toggle = getQuickDiceElement('quickDiceToggle');
+  const result = getQuickDiceElement('quickDiceResult');
   clearTimeout(quickDiceAnimationTimer);
   toggle.classList.remove('is-rolling');
   result.classList.remove('is-revealing');
-  requestAnimationFrame(() => {
+  (window.FichaV2QuickDiceDocument || document).defaultView.requestAnimationFrame(() => {
     toggle.classList.add('is-rolling');
     result.classList.add('is-revealing');
   });
@@ -4177,28 +4336,31 @@ function animateQuickDiceResult() {
   }, 420);
 }
 
-function performQuickDiceRoll() {
+function performQuickDiceRoll(context = {}) {
   if (window.RollHistory && !window.RollHistory.beforeRoll()) return null;
-  const input = document.getElementById('quickDiceExpression');
-  const parsed = parseDiceExpression(input.value);
+  const input = getQuickDiceElement('quickDiceExpression');
+  const parsed = parseDiceExpression(context.expression || input.value);
   if (!parsed.valid) {
     renderQuickDiceError(parsed.message);
     return null;
   }
 
-  const result = rollDiceExpression(parsed);
+  const result = rollDiceExpression(parsed, rollDie, { highestD20: context.skill === true });
   const formatted = formatDiceResult(result);
-  const error = document.getElementById('quickDiceError');
-  const resultContainer = document.getElementById('quickDiceResult');
-  const modifierRow = document.getElementById('quickDiceModifierRow');
+  const error = getQuickDiceElement('quickDiceError');
+  const resultContainer = getQuickDiceElement('quickDiceResult');
+  const modifierRow = getQuickDiceElement('quickDiceModifierRow');
 
   input.value = parsed.expression;
   error.hidden = true;
-  document.getElementById('quickDiceCalculation').textContent = formatted.calculationText;
-  renderQuickDiceRollValues(result.rolls);
-  document.getElementById('quickDiceModifier').textContent = formatted.modifierText;
+  getQuickDiceElement('quickDiceCalculation').textContent = `${result.diceTotal}${result.modifier ? ` ${result.modifier < 0 ? '−' : '+'} ${Math.abs(result.modifier)} de bônus` : ''} = ${result.total}`;
+  getQuickDiceElement('quickDiceResultExpression').textContent = result.expression;
+  const resultName = getQuickDiceElement('quickDiceResultName');
+  resultName.textContent = context.label || ''; resultName.hidden = !context.label;
+  renderQuickDiceRollValues(result);
+  getQuickDiceElement('quickDiceModifier').textContent = formatted.modifierText;
   modifierRow.hidden = result.modifier === 0;
-  document.getElementById('quickDiceTotal').value = formatted.totalText;
+  getQuickDiceElement('quickDiceTotal').value = formatted.totalText;
   resultContainer.hidden = false;
   animateQuickDiceResult();
 
@@ -4208,24 +4370,42 @@ function performQuickDiceRoll() {
   announceQuickDice(
     `Rolagem ${result.expression}. Dados: ${formatted.rollsText}${modifierAnnouncement}. Total: ${formatted.totalText}.`
   );
-  window.RollHistory?.record(result);
+  window.RollHistory?.record(result, context);
   return result;
+}
+
+// Reads the same canonical attribute fields and skill degrees used by the sheet.
+// Descriptive condition/equipment text is not parsed into invented numeric modifiers.
+function performSkillDiceRoll(name) {
+  const skill = [...pericias, ...legacyPericias].find(([label]) => label === name);
+  if (!skill) throw new Error('Perícia não reconhecida.');
+  const attributeId = ATTRIBUTE_IDS.find(id => getAttributeLabel(id) === skill[1]);
+  const row = [...document.querySelectorAll('.skill-row')].find(row => row.dataset.skill === name);
+  const degree = row?.querySelector('select')?.value;
+  const quantity = Number(document.getElementById(attributeId)?.value);
+  const modifier = graus[degree];
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > getAttributeMaximum() || !Number.isFinite(modifier)) {
+    throw new Error('Confira o atributo e o grau desta Perícia antes de rolar.');
+  }
+  const expression = `${quantity}d20${modifier ? `+${modifier}` : ''}`;
+  const result = performQuickDiceRoll({ expression, label: name, skill: true });
+  return result ? { result, name, attribute: skill[1], attributeValue: quantity, degree, modifier } : null;
 }
 
 function bindQuickDice() {
   window.RollHistory?.initialize({ storage: getChroniclesStorage, confirm: openModal, notify: showNotification, createId: createCharacterId,
     name: () => document.getElementById('nome').value || 'Sem nome',
     inSheet: () => !document.getElementById('characterSheetView').hidden });
-  const tool = document.getElementById('quickDiceTool');
-  const toggle = document.getElementById('quickDiceToggle');
-  const panel = document.getElementById('quickDicePanel');
-  const form = document.getElementById('quickDiceForm');
+  const tool = getQuickDiceElement('quickDiceTool');
+  const toggle = getQuickDiceElement('quickDiceToggle');
+  const panel = getQuickDiceElement('quickDicePanel');
+  const form = getQuickDiceElement('quickDiceForm');
 
   toggle.addEventListener('click', () => {
     if (panel.hidden) openQuickDice();
     else closeQuickDice();
   });
-  document.getElementById('quickDiceClose').addEventListener('click', () => closeQuickDice());
+  getQuickDiceElement('quickDiceClose').addEventListener('click', () => closeQuickDice());
   form.addEventListener('submit', event => {
     event.preventDefault();
     performQuickDiceRoll();
@@ -5604,12 +5784,18 @@ function getReflexDefenseBonus() {
   return Math.min(graus[row.querySelector('select').value] || 0, 3);
 }
 
+function calculateCharacterDefense(character, reflexBonus = Math.min(graus[character.skills?.Reflexos] || 0, 3)) {
+  const fields = character.fields || {};
+  const criticalStates = normalizeCriticalStates(character.criticalStates);
+  return 10 + Number(fields.agilidade || 0) + reflexBonus + Number(fields.bonusDefesaEquipamento || 0)
+    + (criticalStates.resonantRecoveryDefensePenalty ? -3 : 0);
+}
+
 function recalculateDefense() {
-  const agilidade = Number(document.getElementById('agilidade').value || 0);
-  const equipamento = Number(document.getElementById('bonusDefesaEquipamento').value || 0);
-  const criticalStates = normalizeCriticalStates(state.criticalStates);
-  const resonantRecoveryPenalty = criticalStates.resonantRecoveryDefensePenalty ? -3 : 0;
-  const defense = 10 + agilidade + getReflexDefenseBonus() + equipamento + resonantRecoveryPenalty;
+  const defense = calculateCharacterDefense({
+    fields: { agilidade: document.getElementById('agilidade').value, bonusDefesaEquipamento: document.getElementById('bonusDefesaEquipamento').value },
+    criticalStates: state.criticalStates
+  }, getReflexDefenseBonus());
   document.getElementById('defesaTotal').textContent = defense;
   const mobileDefense = document.getElementById('mobileDefesa');
   if (mobileDefense) mobileDefense.textContent = defense;
@@ -9474,7 +9660,7 @@ async function init() {
     setStatus('Armazenamento precisa de revisão', 'error');
     showNotification(window.CharacterStorage.message(event.detail), 'error', 12000);
   });
-  window.addEventListener('cronicas:character-storage-refreshed', () => { if (!document.getElementById('characterManagerView').hidden) renderCharacterManager(); });
+  window.addEventListener('cronicas:character-storage-refreshed', () => { const managerView=document.getElementById('characterManagerView');if (managerView && !managerView.hidden) renderCharacterManager(); });
   bindModalSystem();
   bindQuickDice();
   buildSkills();
@@ -9529,3 +9715,41 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+window.CronicasCombatRules = Object.freeze({
+ initiativeOrder: participants => participants.map(({kind, id, snapshot}) => {
+   if (!snapshot && kind === 'adversary') return {kind, id, initiative: 0};
+   const quantity = Number(snapshot?.fields?.agilidade);
+   const modifier = graus[snapshot?.skills?.Iniciativa || 'Sem Domínio'];
+   if (!Number.isInteger(quantity) || quantity < 1 || quantity > getAttributeMaximum(Number(snapshot?.fields?.nivel) || 1) || !Number.isFinite(modifier)) {
+     throw new Error('Confira a Agilidade e o grau de Iniciativa nas fichas dos participantes.');
+   }
+   const parsed = parseDiceExpression(`${quantity}d20${modifier ? '+' + modifier : ''}`);
+   const result = rollDiceExpression(parsed, rollDie, { highestD20: true });
+   return {kind, id, initiative: result.total};
+ }).sort((left, right) => right.initiative - left.initiative),
+ localDirectory: getChronicleCharacterDirectory,
+ readLocal: id => { const character=readStoredCharacter(id);return character ? window.ChroniclesCollaboration.sanitizeSnapshot(character) : null; },
+ skills: () => pericias.map(([name, attribute]) => ({ name, attribute, field: ATTRIBUTE_IDS.find(id => getAttributeLabel(id) === attribute) })),
+ bonus: degree => graus[degree] ?? 0,
+ defense: calculateCharacterDefense,
+ abilities: character => getClassOfficialAbilities(character.fields?.classe).filter(item => Number(item.nivel || 1) <= Number(character.fields?.nivel || 1)),
+ openOwn: async (id, onlineId) => {
+   await window.CharacterStorage.refresh();
+   if (!readStoredCharacter(id)) {
+     const user = await window.CronicasSupabase.getUser();
+     if (!user) throw new Error('Entre na conta proprietária desta ficha.');
+     const response = await window.CronicasSupabase.client.from('online_characters').select('id,owner_id,source_local_id,snapshot,thumbnail').eq('id',onlineId).eq('owner_id',user.id).maybeSingle();
+     if (response.error || !response.data || response.data.source_local_id !== id) throw new Error('Não foi possível recuperar sua ficha online.');
+     const raw = { ...response.data.snapshot, photo: response.data.thumbnail || '', notes: [] };
+     const validation = validateImportedSheet(raw);
+     if (!validation.valid) throw new Error('A ficha online precisa ser revisada antes de abrir.');
+     await characterEditAuthority().runExclusive(id, 'restore-online', async () => {
+       await window.CharacterStorage.refresh();
+       if (!readStoredCharacter(id)) await persistNewCharacter(id, validation.normalized, await createCharacterSummary(validation.normalized));
+     });
+   }
+   await openCharacter(id); await completeMenuToSheetTransition();
+ },
+ localAvailable: id => Boolean(readStoredCharacter(id))
+});

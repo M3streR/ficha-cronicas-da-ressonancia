@@ -40,6 +40,10 @@
       ADVERSARY_UPDATE_CONFLICT: 'Este adversário foi alterado em outra aba. Nenhuma sobrescrita foi feita. Reabra sua edição para conferir a versão atual.',
       CHARACTER_NOT_IN_CAST: 'Um personagem selecionado não pertence mais ao Elenco. Sua seleção foi mantida para revisão.',
       CHARACTER_UNAVAILABLE: 'Um personagem selecionado não está mais disponível. Sua seleção foi mantida.',
+      ONLINE_CHARACTER_CONFLICT: 'Há uma diferença entre a ficha local e a online. Resolva a sincronização em Personagens antes de incluir esta ficha.',
+      CHARACTER_EDIT_LOCKED_IN_ANOTHER_TAB: 'Este personagem está sendo editado em outra aba. Assuma a edição antes de incluí-lo.',
+      CHARACTER_EDIT_NOT_AUTHORIZED: 'Assuma a edição deste personagem antes de incluí-lo.',
+      ONLINE_OPERATION_PENDING: 'Outra operação está em andamento. Aguarde e tente novamente.',
       CHRONICLE_NOT_FOUND: 'A Crônica não está mais disponível. Nenhum registro foi recriado.',
       CONFRONTATION_NOT_FOUND: 'O Confronto não está mais disponível. Nenhum registro foi recriado.',
       ADVERSARY_NOT_FOUND: 'O adversário não está mais disponível. Nenhum registro foi recriado.',
@@ -51,7 +55,7 @@
   function syncBusy() {
     ['confrontationView', 'chroniclePanelEncounters', 'confrontationForm', 'masterCombatsOverview'].forEach(id => {
       el(id).setAttribute('aria-busy', String(busy));
-      el(id).querySelectorAll('button,input,textarea').forEach(input => { input.disabled = busy; });
+      el(id).querySelectorAll('button,input,textarea,select').forEach(input => { input.disabled = busy; });
     });
     el('editConfrontation').hidden = Boolean(preparation);
     el('startConfrontation').hidden = !managing || !record || record.active;
@@ -61,7 +65,7 @@
     el('confrontationMetadataActions').hidden = Boolean(preparation);
     if (draft?.loading) {
       const form = el(draft.form);
-      form.querySelectorAll('input,textarea,button[type="submit"]').forEach(input => { input.disabled = true; });
+      form.querySelectorAll('input,textarea,select,button[type="submit"]').forEach(input => { input.disabled = true; });
     }
   }
   function focusIfVisible(target) {
@@ -71,7 +75,7 @@
     if (!draft) return '';
     if (draft.kind === 'selection') return JSON.stringify(sortIds(draft.ids));
     if (draft.kind === 'metadata') return JSON.stringify([el('confrontationName').value.trim(), el('confrontationDescriptionInput').value.trim()]);
-    return JSON.stringify(['confrontationAdversaryName','confrontationAdversaryPVCurrent','confrontationAdversaryPVMax','confrontationAdversaryDefense'].map(id => el(id).value.trim()));
+    return JSON.stringify([draft.sourceLocalId || '', ...['confrontationAdversaryName','confrontationAdversaryPVCurrent','confrontationAdversaryPVMax','confrontationAdversaryDefense'].map(id => el(id).value.trim())]);
   }
   function clearDraft(restoreFocus = false) {
     const target = draft?.trigger;
@@ -158,7 +162,7 @@
     const current = preparation, live = services.directory();
     if (characterIds.length && (live.unavailable || characterIds.some(id => !live.byId.has(id)))) { feedback(errorText(new Error('CHARACTER_UNAVAILABLE'))); return; }
     const input = { name: el('confrontationName').value, description: el('confrontationDescriptionInput').value };
-    const composition = { characterIds: [...characterIds], adversaries: adversaries.map(item => ({ ...item })) };
+    const composition = { characterIds: [...characterIds], adversaries: adversaries.map(item => ({ ...item })), includeInCast: true };
     const goBack = returnTo;
     void execute(() => storage().createConfrontation(current.chronicleId, input, composition), async result => {
       preparation = null; clearDraft();
@@ -168,9 +172,17 @@
   }
   async function start(item = record) {
     if (!item || !services.canPrepare() || busy || requestDraftExit(() => void start(item))) return;
-    await execute(() => storage().setConfrontationActive(item.id, true, { expectedUpdatedAt: item.updatedAt }), async result => {
+    const begin = async mode => execute(() => storage().setConfrontationActive(item.id, true, { expectedUpdatedAt: item.updatedAt, mode }), async result => {
       await services.executeCombat(result.id);
     }, managing ? 'confrontationFeedback' : 'masterShieldConfrontationsFeedback');
+    if (item.startedAt && !item.active) {
+      services.confirm({title:'Retomar ou iniciar novamente?',content:'Retomar mantém a rodada, a iniciativa e a execução anterior. Uma nova execução reinicia a rodada e a iniciativa, preservando os recursos e o histórico.',actions:[
+        {label:'Cancelar',className:'secondary'},
+        {label:'Retomar Confronto',onClick:()=>void begin('resume')},
+        {label:'Nova execução',className:'secondary',onClick:()=>services.confirm({title:'Iniciar nova execução?',content:'Os recursos dos combatentes não serão recuperados automaticamente. Resultados antigos continuarão no histórico, separados desta nova execução.',actions:[{label:'Cancelar',className:'secondary'},{label:'Iniciar nova execução',onClick:()=>void begin('restart')}]})}
+      ]}); return;
+    }
+    await begin('resume');
   }
   function end() {
     if (!record?.active || busy || requestDraftExit(end)) return;
@@ -232,7 +244,7 @@
       if (next.chronicleId !== chronicleId) throw new Error('CONFRONTATION_NOT_FOUND');
       if (!managing && !next.active) throw new Error('CONFRONTATION_NOT_ACTIVE');
       record = next; returnId = id;
-      el('backFromConfrontation').textContent = returnTo ? '← Voltar para Combates' : '← Voltar para Confrontos';
+      el('backFromConfrontation').textContent = options.returnLabel || (returnTo ? '← Voltar para Combates' : '← Voltar para Confrontos');
       showWork();
       await refresh();
       if (token === epoch) focusIfVisible(el('confrontationTitle'));
@@ -264,11 +276,19 @@
     identity.append(node('strong', '', entry?.name || 'Personagem indisponível'));
     if (entry) {
       identity.append(node('span', 'confrontation-help', [entry.className, `Nível ${entry.level}`].filter(Boolean).join(' · ')));
-      if (!castIds.has(id)) identity.append(node('span', 'confrontation-reference-warning', 'Fora do Elenco'));
+      if (!castIds.has(id)) identity.append(node('span', 'confrontation-reference-warning', draft?.kind === 'selection' ? 'Será incluído no Elenco' : 'Fora do Elenco'));
     } else identity.append(node('span', 'confrontation-reference-warning', 'A referência foi preservada.'));
     return identity;
   }
+  function renderReadiness() {
+    let host=el('confrontationReadiness');
+    if(!host){host=node('aside','combat-preparation-summary');host.id='confrontationReadiness';host.setAttribute('aria-label','Resumo da preparação');el('confrontationEditorHost').after(host);}
+    host.replaceChildren();
+    for(const [value,title] of [[characterIds.length,'Personagens'],[adversaries.length,'Adversários']]){const item=node('div');item.append(node('strong','',String(value)),node('span','',title));host.append(item);}
+    const help=node('p','',preparation?'Identifique o encontro, selecione o grupo e prepare os adversários. Salve a composição antes de iniciar.':record?.active?'Confronto em andamento. Use a aba Confrontos para consultar fichas, rolar e conduzir os turnos.':'Composição salva. Iniciar abre a iniciativa e as fichas na aba Confrontos.');host.append(help);
+  }
   function renderCharacters() {
+    renderReadiness();
     const host = el('confrontationCharacters'); host.replaceChildren();
     if (!characterIds.length) { host.append(node('p', 'confrontation-empty', 'Nenhum personagem selecionado para este Confronto.')); return; }
     orderedCharacters(characterIds).forEach(id => {
@@ -279,12 +299,14 @@
     });
   }
   function renderAdversaries() {
+    renderReadiness();
     const host = el('confrontationAdversaries'); host.replaceChildren();
     if (!adversaries.length) { host.append(node('li', 'confrontation-empty', 'Nenhum adversário adicionado.')); return; }
     adversaries.forEach((adversary, index) => {
       const row = node('li', 'confrontation-adversary'); row.dataset.adversaryId = adversary.id; row.tabIndex = -1;
       const identity = node('div', 'confrontation-adversary-identity');
       identity.append(node('span', 'confrontation-number', String(index + 1).padStart(2, '0')), node('h5', '', adversary.name));
+      if(adversary.snapshot || adversary.hasSheet)identity.append(node('span','combat-preparation-badge','Ficha completa'));
       const stats = node('div', 'confrontation-adversary-stats');
       const pv = adversary.pvCurrent === undefined ? 'PV não informado' : `PV ${adversary.pvCurrent} / ${adversary.pvMax}`;
       const defense = adversary.defense === undefined ? 'DEF não informada' : `DEF ${adversary.defense}`;
@@ -377,14 +399,17 @@
     const token = ++formToken, id = record?.id;
     draft = { kind: 'selection', form: 'confrontationSelectionForm', feedback: 'confrontationSelectionFeedback', loading: true, ids: new Set(), trigger: el('selectConfrontationCharacters') };
     el('confrontationSelectionForm').hidden = false; el('confrontationCharacterSearch').value = ''; el('confrontationSelectionList').replaceChildren();
+    el('confrontationSelectionHelp').textContent = services.selectionHelp?.() || 'Selecione suas fichas para o Confronto. Remover da seleção não exclui o personagem.';
     feedback('Carregando personagens…', '', draft.feedback); syncBusy();
     try {
       const [ids, cast] = await Promise.all([preparation ? Promise.resolve(characterIds) : storage().listConfrontationCharacterIds(id), storage().listChronicleCastIds(preparation?.chronicleId || record.chronicleId)]);
       if (token !== formToken) return;
-      directory = services.directory(); if (directory.unavailable) throw new Error('CHARACTER_UNAVAILABLE');
+      directory = services.selectionDirectory ? await services.selectionDirectory() : services.directory();
+      if (token !== formToken) return;
+      if (directory.unavailable) throw new Error('CHARACTER_UNAVAILABLE');
       castIds = new Set(cast);
       draft.ids = new Set(ids); draft.expected = [...ids]; draft.loading = false;
-      draft.available = orderedCharacters(new Set([...ids, ...cast.filter(value => directory.byId.has(value))]));
+      draft.available = orderedCharacters(new Set([...ids, ...directory.byId.keys()]));
       draft.original = formValue(); renderSelection(); feedback('', '', draft.feedback); syncBusy(); el('confrontationCharacterSearch').focus();
     } catch (error) { if (token === formToken) feedback(errorText(error), 'error', draft.feedback); }
   }
@@ -401,21 +426,27 @@
       });
       label.append(input, characterIdentity(id)); list.append(label);
     });
-    if (!list.children.length) list.append(node('p', 'confrontation-empty', query ? 'Nenhum personagem corresponde à busca.' : 'Nenhum personagem disponível no Elenco.'));
+    if (!list.children.length) list.append(node('p', 'confrontation-empty', query ? 'Nenhum personagem corresponde à busca.' : 'Nenhum personagem salvo disponível.'));
     el('confrontationSelectionCount').textContent = `${draft.ids.size} selecionados`; syncBusy();
   }
   function saveSelection(event) {
     event.preventDefault(); if (draft?.kind !== 'selection' || draft.loading || busy) return;
-    const current = draft, selected = [...current.ids], liveDirectory = services.directory();
+    const current = draft, selected = [...current.ids], liveDirectory = directory;
     if (liveDirectory.unavailable || selected.some(id => !current.expected.includes(id) && !liveDirectory.byId.has(id))) {
       feedback(errorText(new Error('CHARACTER_UNAVAILABLE')), 'error', current.feedback); return;
     }
-    if (preparation) {
-      if (!services.canPrepare()) return;
-      characterIds = selected; clearDraft(true); renderCharacters(); return;
-    }
-    void execute(() => storage().replaceConfrontationCharacters(record.id, selected, { expectedCharacterIds: current.expected }), async () => {
-      clearDraft(true); await refresh(); services.notify('Seleção de combatentes salva.');
+    void execute(async () => {
+      const resolved = services.resolveSelection ? await services.resolveSelection(selected, { expected: current.expected }) : selected;
+      if (!preparation) await storage().replaceConfrontationCharacters(record.id, resolved, { expectedCharacterIds: current.expected, includeInCast: true });
+      return resolved;
+    }, async resolved => {
+      directory = services.directory();
+      castIds = new Set(await storage().listChronicleCastIds(preparation?.chronicleId || record.chronicleId));
+      if (preparation) {
+        characterIds = resolved; clearDraft(true); renderCharacters();
+      } else {
+        clearDraft(true); await refresh(); services.notify('Seleção de combatentes salva.');
+      }
     }, current.feedback);
   }
   async function openAdversary(id = null) {
@@ -423,7 +454,19 @@
     const token = ++formToken;
     draft = { kind: 'adversary', form: 'confrontationAdversaryForm', feedback: 'confrontationAdversaryFeedback', id, loading: !!id, trigger: document.activeElement };
     el('confrontationAdversaryForm').reset(); el('confrontationAdversaryForm').hidden = false;
-    el('confrontationAdversaryFormTitle').textContent = id ? 'Editar adversário' : 'Adicionar adversário'; syncBusy();
+    el('confrontationAdversaryFormTitle').textContent = id ? 'Editar adversário' : 'Adicionar adversário';
+    const picker = el('confrontationAdversaryCharacter'); picker.replaceChildren(new Option('Escolher uma ficha…', ''));
+    el('confrontationAdversarySource').hidden = false;
+    draft.snapshot = null;
+    draft.sourceLocalId = null;
+    {
+      try {
+        draft.characters = new Map((services.savedAdversaryCharacters?.() || []).map(entry => [entry.id, entry]));
+        draft.characters.forEach(entry => picker.add(new Option(`${entry.name} · Nível ${entry.level}`, entry.id)));
+        if (!draft.characters.size) picker.options[0].textContent = 'Nenhuma ficha salva neste navegador';
+      } catch (_) { feedback('Não foi possível carregar as fichas salvas. Você ainda pode preencher os dados abaixo.', 'error', draft.feedback); }
+    }
+    syncBusy();
     try {
       if (id) {
         const rows = preparation ? adversaries : await storage().listConfrontationAdversaries(record.id);
@@ -436,6 +479,21 @@
       if (token !== formToken) return;
       draft.loading = false; draft.original = formValue(); syncBusy(); el('confrontationAdversaryName').focus();
     } catch (error) { if (token === formToken) feedback(errorText(error), 'error', draft.feedback); }
+  }
+  function useSavedAdversary() {
+    if (draft?.kind !== 'adversary' || draft.loading || busy) return;
+    const entry = draft.characters?.get(el('confrontationAdversaryCharacter').value);
+    if (!entry) return;
+    try {
+      const values = services.savedAdversaryValues(entry.id);
+      draft.snapshot = values?.snapshot; draft.sourceLocalId = values?.sourceLocalId;
+      if (!values) throw new Error('CHARACTER_UNAVAILABLE');
+      el('confrontationAdversaryName').value = values.name;
+      el('confrontationAdversaryPVCurrent').value = values.pvCurrent ?? '';
+      el('confrontationAdversaryPVMax').value = values.pvMax ?? '';
+      el('confrontationAdversaryDefense').value = values.defense ?? '';
+      feedback(`Ficha de ${values.name} selecionada como adversário. Confira os dados e salve.`, '', draft.feedback);
+    } catch (_) { feedback('Esta ficha não está mais disponível. Escolha outra ou preencha os dados manualmente.', 'error', draft.feedback); }
   }
   function saveAdversary(event) {
     event.preventDefault(); if (draft?.kind !== 'adversary' || draft.loading || busy) return;
@@ -455,6 +513,7 @@
       el('confrontationAdversaryPVCurrent').setAttribute('aria-invalid','true'); el('confrontationAdversaryPVCurrent').focus();
       feedback(errorText(new Error('INVALID_ADVERSARY_PV')), 'error', current.feedback); return;
     }
+    if (current.snapshot) { input.snapshot = current.snapshot; input.sourceLocalId = current.sourceLocalId; }
     if (preparation) {
       if (!services.canPrepare()) return;
       const item = { ...input, id: current.id || 'draft-enemy-' + (++enemySequence) };
@@ -512,6 +571,7 @@
     el('confrontationForm').addEventListener('submit', saveMetadata);
     el('confrontationSelectionForm').addEventListener('submit', saveSelection);
     el('confrontationAdversaryForm').addEventListener('submit', saveAdversary);
+    el('confrontationAdversaryCharacter').addEventListener('change', useSavedAdversary);
     ['cancelConfrontationForm','cancelConfrontationSelection','cancelConfrontationAdversary'].forEach(id => el(id).addEventListener('click', () => { if (!busy) clearDraft(true); }));
     el('editConfrontation').addEventListener('click', () => void openMetadata(true));
     el('backFromConfrontation').addEventListener('click', () => void back());

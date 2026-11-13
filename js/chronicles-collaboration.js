@@ -400,8 +400,10 @@
       .select('id, owner_id, source_local_id, name, level, class_name, signature, thumbnail, snapshot, created_at, updated_at')
       .in('id', ids);
     if (characterError) throw characterError;
-    const byId = new Map((characters || []).map(row => [row.id, row]));
-    const profiles = await fetchProfiles((characters || []).map(row => row.owner_id));
+    const { data: summaries, error: summaryError } = await auth.client.rpc('chronicle_character_summaries', {p_chronicle_id: active.remoteId});
+    if (summaryError) throw summaryError;
+    const byId = new Map([...(summaries || []), ...(characters || [])].map(row => [row.id, row]));
+    const profiles = await fetchProfiles([...byId.values()].map(row => row.owner_id));
     return (links || []).map(link => {
       const row = byId.get(link.character_id);
       if (!row) return null;
@@ -1779,14 +1781,68 @@
     return row;
   }
 
-  async function fetchOwnedPublishedCharacters() {
-    const { auth, user } = await requireContext();
+  async function fetchOwnedPublishedCharacters(chronicle = currentChronicle) {
+    const { auth, user } = await requireContext(chronicle);
     const { data, error } = await auth.client
       .from('online_characters')
-      .select('id, source_local_id, name, updated_at')
+      .select('id, source_local_id, name, level, class_name, signature, thumbnail, updated_at')
       .eq('owner_id', user.id);
     if (error) throw error;
     return data || [];
+  }
+
+  // Reutiliza publicação, controle de edição e vínculos do Elenco; nenhum snapshot paralelo.
+  async function listConfrontationCandidates(chronicle) {
+    const published = await fetchOwnedPublishedCharacters(chronicle);
+    const byLocalId = new Map(published.map(row => [row.source_local_id, row]));
+    const entries = published.map(row => ({
+      id: row.id, name: text(row.name) || 'Personagem', level: Number(row.level) || 1,
+      className: text(row.class_name), signature: text(row.signature), thumbnail: text(row.thumbnail)
+    }));
+    localCharacters().filter(entry => !byLocalId.has(entry.id)).forEach(entry => {
+      entries.push({ ...entry, id: `local:${entry.id}`, character: undefined });
+    });
+    return entries;
+  }
+
+  async function includeConfrontationCharacters(ids, chronicle) {
+    if (pending) throw new Error('ONLINE_OPERATION_PENDING');
+    pending = true;
+    try {
+      const { auth, user } = await requireContext(chronicle);
+      const owned = new Set((await fetchOwnedPublishedCharacters(chronicle)).map(row => row.id));
+      const { data: cast, error: castError } = await auth.client.from('chronicle_cast_members')
+        .select('character_id').eq('chronicle_id', chronicle.remoteId);
+      if (castError) throw castError;
+      const linked = new Set((cast || []).map(row => row.character_id)), resolved = [];
+      for (const id of ids) {
+        if (!id.startsWith('local:')) {
+          if (!owned.has(id) && !linked.has(id)) throw new Error('CHARACTER_UNAVAILABLE');
+          resolved.push(id); continue;
+        }
+        const localId = id.slice(6);
+        const publish = authorityToken => withCharacterAuthority(localId, 'publish', async () => {
+          const entry = localCharacters().find(item => item.id === localId);
+          if (!entry) throw new Error('CHARACTER_UNAVAILABLE');
+          return createOnlineCharacter(entry, user.id);
+        }, { authorityToken });
+        const authority = editAuthority();
+        const online = authority ? await authority.runExclusive(localId, 'publish', publish) : await publish();
+        if (!online?.id) throw new Error('CHARACTER_EDIT_NOT_AUTHORIZED');
+        resolved.push(online.id);
+      }
+      const latest = await requireUser();
+      if (latest.user.id !== user.id) throw new Error('ONLINE_AUTH_CHANGED');
+      const missing = [...new Set(resolved)].filter(id => !linked.has(id));
+      if (missing.length) {
+        const { error } = await auth.client.from('chronicle_cast_members').upsert(
+          missing.map(characterId => ({ chronicle_id: chronicle.remoteId, character_id: characterId, added_by: user.id })),
+          { onConflict: 'chronicle_id,character_id', ignoreDuplicates: true }
+        );
+        if (error) throw error;
+      }
+      return [...new Set(resolved)];
+    } finally { pending = false; }
   }
 
   async function renderManagerList() {
@@ -2303,10 +2359,13 @@
     for (const key of event.detail || []) if (key.startsWith(CHARACTER_SYNC_META_PREFIX)) characterSyncVersions.delete(key.slice(CHARACTER_SYNC_META_PREFIX.length));
   });
   global.ChroniclesCollaboration = Object.freeze({
+    sanitizeSnapshot,
     applyDetailMode,
     reset,
     renderParticipants,
     renderCast,
+    listConfrontationCandidates,
+    includeConfrontationCharacters,
     openCastManager,
     closeCastManager,
     renderManagerList,

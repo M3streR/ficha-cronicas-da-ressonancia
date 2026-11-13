@@ -75,7 +75,7 @@
     if (!draft) return '';
     if (draft.kind === 'selection') return JSON.stringify(sortIds(draft.ids));
     if (draft.kind === 'metadata') return JSON.stringify([el('confrontationName').value.trim(), el('confrontationDescriptionInput').value.trim()]);
-    return JSON.stringify(['confrontationAdversaryName','confrontationAdversaryPVCurrent','confrontationAdversaryPVMax','confrontationAdversaryDefense'].map(id => el(id).value.trim()));
+    return JSON.stringify([draft.sourceLocalId || '', ...['confrontationAdversaryName','confrontationAdversaryPVCurrent','confrontationAdversaryPVMax','confrontationAdversaryDefense'].map(id => el(id).value.trim())]);
   }
   function clearDraft(restoreFocus = false) {
     const target = draft?.trigger;
@@ -172,9 +172,17 @@
   }
   async function start(item = record) {
     if (!item || !services.canPrepare() || busy || requestDraftExit(() => void start(item))) return;
-    await execute(() => storage().setConfrontationActive(item.id, true, { expectedUpdatedAt: item.updatedAt }), async result => {
+    const begin = async mode => execute(() => storage().setConfrontationActive(item.id, true, { expectedUpdatedAt: item.updatedAt, mode }), async result => {
       await services.executeCombat(result.id);
     }, managing ? 'confrontationFeedback' : 'masterShieldConfrontationsFeedback');
+    if (item.startedAt && !item.active) {
+      services.confirm({title:'Retomar ou iniciar novamente?',content:'Retomar mantém a rodada, a iniciativa e a execução anterior. Uma nova execução reinicia a rodada e a iniciativa, preservando os recursos e o histórico.',actions:[
+        {label:'Cancelar',className:'secondary'},
+        {label:'Retomar Confronto',onClick:()=>void begin('resume')},
+        {label:'Nova execução',className:'secondary',onClick:()=>services.confirm({title:'Iniciar nova execução?',content:'Os recursos dos combatentes não serão recuperados automaticamente. Resultados antigos continuarão no histórico, separados desta nova execução.',actions:[{label:'Cancelar',className:'secondary'},{label:'Iniciar nova execução',onClick:()=>void begin('restart')}]})}
+      ]}); return;
+    }
+    await begin('resume');
   }
   function end() {
     if (!record?.active || busy || requestDraftExit(end)) return;
@@ -236,7 +244,7 @@
       if (next.chronicleId !== chronicleId) throw new Error('CONFRONTATION_NOT_FOUND');
       if (!managing && !next.active) throw new Error('CONFRONTATION_NOT_ACTIVE');
       record = next; returnId = id;
-      el('backFromConfrontation').textContent = returnTo ? '← Voltar para Combates' : '← Voltar para Confrontos';
+      el('backFromConfrontation').textContent = options.returnLabel || (returnTo ? '← Voltar para Combates' : '← Voltar para Confrontos');
       showWork();
       await refresh();
       if (token === epoch) focusIfVisible(el('confrontationTitle'));
@@ -272,7 +280,15 @@
     } else identity.append(node('span', 'confrontation-reference-warning', 'A referência foi preservada.'));
     return identity;
   }
+  function renderReadiness() {
+    let host=el('confrontationReadiness');
+    if(!host){host=node('aside','combat-preparation-summary');host.id='confrontationReadiness';host.setAttribute('aria-label','Resumo da preparação');el('confrontationEditorHost').after(host);}
+    host.replaceChildren();
+    for(const [value,title] of [[characterIds.length,'Personagens'],[adversaries.length,'Adversários']]){const item=node('div');item.append(node('strong','',String(value)),node('span','',title));host.append(item);}
+    const help=node('p','',preparation?'Identifique o encontro, selecione o grupo e prepare os adversários. Salve a composição antes de iniciar.':record?.active?'Confronto em andamento. Use a aba Confrontos para consultar fichas, rolar e conduzir os turnos.':'Composição salva. Iniciar abre a iniciativa e as fichas na aba Confrontos.');host.append(help);
+  }
   function renderCharacters() {
+    renderReadiness();
     const host = el('confrontationCharacters'); host.replaceChildren();
     if (!characterIds.length) { host.append(node('p', 'confrontation-empty', 'Nenhum personagem selecionado para este Confronto.')); return; }
     orderedCharacters(characterIds).forEach(id => {
@@ -283,12 +299,14 @@
     });
   }
   function renderAdversaries() {
+    renderReadiness();
     const host = el('confrontationAdversaries'); host.replaceChildren();
     if (!adversaries.length) { host.append(node('li', 'confrontation-empty', 'Nenhum adversário adicionado.')); return; }
     adversaries.forEach((adversary, index) => {
       const row = node('li', 'confrontation-adversary'); row.dataset.adversaryId = adversary.id; row.tabIndex = -1;
       const identity = node('div', 'confrontation-adversary-identity');
       identity.append(node('span', 'confrontation-number', String(index + 1).padStart(2, '0')), node('h5', '', adversary.name));
+      if(adversary.snapshot || adversary.hasSheet)identity.append(node('span','combat-preparation-badge','Ficha completa'));
       const stats = node('div', 'confrontation-adversary-stats');
       const pv = adversary.pvCurrent === undefined ? 'PV não informado' : `PV ${adversary.pvCurrent} / ${adversary.pvMax}`;
       const defense = adversary.defense === undefined ? 'DEF não informada' : `DEF ${adversary.defense}`;
@@ -438,8 +456,10 @@
     el('confrontationAdversaryForm').reset(); el('confrontationAdversaryForm').hidden = false;
     el('confrontationAdversaryFormTitle').textContent = id ? 'Editar adversário' : 'Adicionar adversário';
     const picker = el('confrontationAdversaryCharacter'); picker.replaceChildren(new Option('Escolher uma ficha…', ''));
-    el('confrontationAdversarySource').hidden = Boolean(id);
-    if (!id) {
+    el('confrontationAdversarySource').hidden = false;
+    draft.snapshot = null;
+    draft.sourceLocalId = null;
+    {
       try {
         draft.characters = new Map((services.savedAdversaryCharacters?.() || []).map(entry => [entry.id, entry]));
         draft.characters.forEach(entry => picker.add(new Option(`${entry.name} · Nível ${entry.level}`, entry.id)));
@@ -466,6 +486,7 @@
     if (!entry) return;
     try {
       const values = services.savedAdversaryValues(entry.id);
+      draft.snapshot = values?.snapshot; draft.sourceLocalId = values?.sourceLocalId;
       if (!values) throw new Error('CHARACTER_UNAVAILABLE');
       el('confrontationAdversaryName').value = values.name;
       el('confrontationAdversaryPVCurrent').value = values.pvCurrent ?? '';
@@ -492,6 +513,7 @@
       el('confrontationAdversaryPVCurrent').setAttribute('aria-invalid','true'); el('confrontationAdversaryPVCurrent').focus();
       feedback(errorText(new Error('INVALID_ADVERSARY_PV')), 'error', current.feedback); return;
     }
+    if (current.snapshot) { input.snapshot = current.snapshot; input.sourceLocalId = current.sourceLocalId; }
     if (preparation) {
       if (!services.canPrepare()) return;
       const item = { ...input, id: current.id || 'draft-enemy-' + (++enemySequence) };

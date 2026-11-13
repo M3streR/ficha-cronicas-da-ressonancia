@@ -134,11 +134,12 @@
         el('createMasterConfrontation').disabled = false;
         el('createMasterConfrontation').title = '';
         feedback('Carregando…','masterShieldConfrontationsFeedback');
-        const battles = await services.storage().listConfrontations(id);
+        const battles = (await services.storage().listConfrontations(id)).sort((a,b)=>Number(b.active)-Number(a.active)||b.createdAt.localeCompare(a.createdAt));
         if (!canUse()) return;
         el('masterShieldConfrontationsList').replaceChildren(...battles.map(battle => {
           const row = node('li','','master-combat-row'), identity = node('div',''), actions = node('div','','master-module-actions');
-          identity.append(node('h4',battle.name),node('small',battle.active ? 'Ativo' : 'Preparado · inativo'));
+          row.classList.toggle('is-active',battle.active);
+          identity.append(node('small',battle.active?'EM ANDAMENTO':battle.startedAt?'ENCERRADO · PODE SER RETOMADO':'PREPARADO','master-combat-status'),node('h4',battle.name));
           if (battle.description) identity.append(node('p',battle.description));
           const open = node('button','Abrir composição','btn secondary'); open.type = 'button';
           open.setAttribute('aria-label','Abrir composição: ' + battle.name);
@@ -146,7 +147,9 @@
           const start = node('button',battle.active ? 'Abrir Confronto ativo' : 'Iniciar Confronto','btn'); start.type = 'button';
           start.setAttribute('aria-label', start.textContent + ': ' + battle.name);
           start.addEventListener('click',() => { if (canUse()) void global.ConfrontationsUI.start(battle); });
-          actions.append(open,start); row.append(identity,actions); return row;
+          if(battle.active)start.textContent='Continuar confronto';
+          else if(battle.startedAt)start.textContent='Retomar ou iniciar novamente';
+          actions.append(start,open); row.append(identity,actions); return row;
         }));
         feedback(battles.length ? '' : 'Nenhum Confronto preparado.','masterShieldConfrontationsFeedback');
       }
@@ -205,5 +208,6 @@
     document.querySelectorAll('[data-master-module]').forEach(button => button.addEventListener('click',() => void openModule(button.dataset.masterModule)));
   }
   global.MasterShieldUI = Object.freeze({ initialize, open, reset, requestExit,
+    async editCombat(id) { await open('encounters'); if (allowed()) { await openModule('combats'); await global.ConfrontationsUI.open(id, { preparing:true, returnLabel:'← Voltar ao Confronto', returnTo:()=>navigate('encounters',id) }); } },
     get isUnlocked() { return allowed(); }, executeCombat: id => { if (allowed()) return navigate('encounters', id); } });
 })(window);

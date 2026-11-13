@@ -648,6 +648,7 @@
     if (record.active !== undefined && typeof record.active !== 'boolean') throw new Error('CONFRONTATION_INVALID_RECORD');
     // Legacy records remain intact on disk and are available in Combates, never auto-started.
     return { id: record.id, chronicleId: record.chronicleId, ...confrontationFields(record),
+      ...(record.startedAt ? { startedAt: record.startedAt, endedAt: record.endedAt || null, executionId: record.executionId || null, combatRound: Math.max(1,Number(record.combatRound)||1), combatTurn: Math.max(0,Number(record.combatTurn)||0), initiativeOrder: Array.isArray(record.initiativeOrder)?record.initiativeOrder:[] } : {}),
       active: record.active === true, createdAt: record.createdAt, updatedAt: record.updatedAt };
   }
 
@@ -665,7 +666,7 @@
       throw new TypeError('INVALID_ADVERSARY_PV');
     }
     // Valores acima do máximo são preservados; reduzir o máximo não aplica dano.
-    return { name, ...values };
+    return { name, ...values, ...(input?.snapshot && typeof input.snapshot === 'object' ? { snapshot: JSON.parse(JSON.stringify(input.snapshot)), sourceLocalId: String(input.sourceLocalId || '') } : {}) };
   }
 
   function adversaryRecord(record) {
@@ -736,7 +737,10 @@
       const chronicle = normalizeStoredChronicle(await requestAsPromise(tx.objectStore(CHRONICLES_STORE).get(chronicleId)));
       if (!chronicle) throw new Error('CHRONICLE_NOT_FOUND');
       for (const characterId of selected) {
-        if (!await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([chronicleId, characterId]))) throw new Error('CHARACTER_NOT_IN_CAST');
+        if (!await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([chronicleId, characterId]))) {
+          if (!composition?.includeInCast) throw new Error('CHARACTER_NOT_IN_CAST');
+          tx.objectStore(CAST_LINKS_STORE).add({ chronicleId, characterId });
+        }
       }
       const timestamp = nextConfrontationTimestamp(chronicle);
       const record = { id: createChronicleId(), chronicleId, ...fields, active: false, createdAt: timestamp, updatedAt: timestamp };
@@ -748,11 +752,11 @@
     });
   }
 
-  async function setConfrontationActive(id, active, { expectedUpdatedAt } = {}) {
+  async function setConfrontationActive(id, active, { expectedUpdatedAt, mode = 'resume' } = {}) {
     if (typeof active !== 'boolean') throw new TypeError('INVALID_CONFRONTATION_ACTIVE');
     return runConfrontationTransaction([CHRONICLES_STORE, CONFRONTATIONS_STORE, COMBAT_LINKS_STORE, ADVERSARIES_STORE], 'readwrite', async tx => {
       const context = await readConfrontationContext(tx, id);
-      if (context.confrontation.active === active) return context.confrontation;
+      if (context.confrontation.active === active && (!active || context.confrontation.executionId)) return context.confrontation;
       checkConfrontationVersion(context.confrontation, expectedUpdatedAt);
       if (active) {
         const siblings = await requestAsPromise(tx.objectStore(CONFRONTATIONS_STORE).index('chronicleId').getAll(context.chronicle.id));
@@ -761,8 +765,71 @@
         const enemies = await requestAsPromise(tx.objectStore(ADVERSARIES_STORE).index('confrontationId').count(id));
         if (!characters && !enemies) throw new Error('EMPTY_CONFRONTATION');
       }
-      context.confrontation = { ...context.confrontation, active };
+      const previous = context.confrontation;
+      let execution = {};
+      if (active && (!previous.startedAt || mode === 'restart')) {
+        const ids = await requestAsPromise(tx.objectStore(COMBAT_LINKS_STORE).index('confrontationId').getAll(id));
+        const enemies = await requestAsPromise(tx.objectStore(ADVERSARIES_STORE).index('confrontationId').getAll(id));
+        execution = { executionId: createChronicleId(), startedAt: new Date().toISOString(), endedAt: null, combatRound: 1, combatTurn: 0,
+          initiativeOrder: global.CronicasCombatRules.initiativeOrder([
+            ...ids.map(row => ({kind: 'character', id: row.characterId, snapshot: global.CronicasCombatRules.readLocal(row.characterId)})),
+            ...enemies.map(row => ({kind: 'adversary', id: row.id, snapshot: row.snapshot}))
+          ]) };
+      }
+      context.confrontation = { ...previous, ...execution, active, endedAt: active ? null : new Date().toISOString() };
       return touchConfrontation(tx, context, nextConfrontationTimestamp(context.confrontation, context.chronicle)).confrontation;
+    });
+  }
+
+  async function synchronizeLocalInitiative(tx,context) {
+    if(!context.confrontation.active || !context.confrontation.executionId)return;
+    const record=context.confrontation,old=record.initiativeOrder || [];
+    const characters=await requestAsPromise(tx.objectStore(COMBAT_LINKS_STORE).index('confrontationId').getAll(record.id));
+    const enemies=await requestAsPromise(tx.objectStore(ADVERSARIES_STORE).index('confrontationId').getAll(record.id));
+    const present=new Map([...characters.map(row=>['character:'+row.characterId,{kind:'character',id:row.characterId,initiative:0}]),...enemies.map(row=>['adversary:'+row.id,{kind:'adversary',id:row.id,initiative:0}])]);
+    let selected=null;
+    for(let offset=0;offset<old.length;offset++){
+      const row=old[((record.combatTurn||0)+offset)%old.length];
+      if(present.has(row.kind+':'+row.id)){selected=row;break;}
+    }
+    const order=[];
+    for(const row of old){const key=row.kind+':'+row.id;if(present.has(key)){order.push({...present.get(key),initiative:Number(row.initiative)||0});present.delete(key);}}
+    order.push(...present.values());
+    context.confrontation={...record,initiativeOrder:order,combatTurn:Math.max(0,order.findIndex(row=>row.kind===selected?.kind&&row.id===selected?.id))};
+  }
+
+  async function changeLocalCombat(id, expectedUpdatedAt, change) {
+    return runConfrontationTransaction([CHRONICLES_STORE,CONFRONTATIONS_STORE,COMBAT_LINKS_STORE,ADVERSARIES_STORE],'readwrite',async tx=>{
+      const context = await readConfrontationContext(tx,id);
+      checkConfrontationVersion(context.confrontation,expectedUpdatedAt);
+      if(!context.confrontation.active)throw new Error('CONFRONTATION_NOT_ACTIVE');
+      const characters=await requestAsPromise(tx.objectStore(COMBAT_LINKS_STORE).index('confrontationId').getAll(id));
+      const enemies=await requestAsPromise(tx.objectStore(ADVERSARIES_STORE).index('confrontationId').getAll(id));
+      const present=new Map([...characters.map(row=>['character:'+row.characterId,{kind:'character',id:row.characterId,initiative:0}]),...enemies.map(row=>['adversary:'+row.id,{kind:'adversary',id:row.id,initiative:0}])]);
+      const old=context.confrontation.initiativeOrder || [], current=old[context.confrontation.combatTurn || 0];
+      const order=[];
+      for(const row of old){const key=row.kind+':'+row.id;if(present.has(key)){order.push({...present.get(key),initiative:Number(row.initiative)||0});present.delete(key);}}
+      order.push(...present.values());
+      const at=current?order.findIndex(row=>row.id===current.id&&row.kind===current.kind):-1;
+      context.confrontation={...context.confrontation,initiativeOrder:order,combatTurn:at>=0?at:Math.min(context.confrontation.combatTurn||0,Math.max(0,order.length-1)),combatRound:Math.max(1,context.confrontation.combatRound||1)};
+      context.confrontation=change(context.confrontation);
+      return touchConfrontation(tx,context,nextConfrontationTimestamp(context.confrontation,context.chronicle)).confrontation;
+    });
+  }
+  function setConfrontationInitiative(id, order, expectedUpdatedAt) {
+    return changeLocalCombat(id,expectedUpdatedAt,record=>{
+      const keys=new Set(record.initiativeOrder.map(row=>row.kind+':'+row.id));
+      if(!Array.isArray(order)||order.length!==keys.size||order.some(row=>!keys.delete(row.kind+':'+row.id)||!Number.isSafeInteger(row.initiative)||Math.abs(row.initiative)>999))throw new Error('INVALID_INITIATIVE');
+      const current=record.initiativeOrder[record.combatTurn];
+      return {...record,initiativeOrder:order.map(row=>({kind:row.kind,id:row.id,initiative:row.initiative})),combatTurn:Math.max(0,order.findIndex(row=>row.id===current?.id&&row.kind===current?.kind))};
+    });
+  }
+  function stepConfrontationTurn(id, direction, expectedUpdatedAt) {
+    if(![-1,1].includes(direction))throw new Error('INVALID_TURN_DIRECTION');
+    return changeLocalCombat(id,expectedUpdatedAt,record=>{
+      const count=record.initiativeOrder.length;if(!count)return record;
+      const position=Math.max(0,(record.combatRound-1)*count+record.combatTurn+direction);
+      return {...record,combatRound:Math.floor(position/count)+1,combatTurn:position%count};
     });
   }
 
@@ -786,11 +853,11 @@
     });
   }
 
-  async function replaceConfrontationCharacters(id, characterIds, { expectedCharacterIds } = {}) {
+  async function replaceConfrontationCharacters(id, characterIds, { expectedCharacterIds, includeInCast = false } = {}) {
     const selected = normalizeCharacterIds(characterIds);
     const expected = normalizeCharacterIds(expectedCharacterIds);
     const sameSet = (a, b) => a.length === b.length && a.every(value => b.includes(value));
-    return runConfrontationTransaction([CHRONICLES_STORE, CONFRONTATIONS_STORE, CAST_LINKS_STORE, COMBAT_LINKS_STORE], 'readwrite', async tx => {
+    return runConfrontationTransaction([CHRONICLES_STORE, CONFRONTATIONS_STORE, CAST_LINKS_STORE, COMBAT_LINKS_STORE, ADVERSARIES_STORE], 'readwrite', async tx => {
       const context = await readConfrontationContext(tx, id);
       const links = tx.objectStore(COMBAT_LINKS_STORE);
       const keys = await requestAsPromise(links.index('confrontationId').getAllKeys(id));
@@ -798,11 +865,15 @@
       if (!sameSet(previous, expected)) throw new Error('COMBAT_SELECTION_CONFLICT');
       for (const characterId of selected.filter(value => !previous.includes(value))) {
         const member = await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).get([context.chronicle.id, characterId]));
-        if (!member) throw new Error('CHARACTER_NOT_IN_CAST');
+        if (!member) {
+          if (!includeInCast) throw new Error('CHARACTER_NOT_IN_CAST');
+          tx.objectStore(CAST_LINKS_STORE).add({ chronicleId: context.chronicle.id, characterId });
+        }
       }
       if (sameSet(previous, selected)) return context.confrontation;
       keys.filter(key => !selected.includes(key[1])).forEach(key => links.delete(key));
       selected.filter(value => !previous.includes(value)).forEach(characterId => links.add({ confrontationId: id, characterId }));
+      await synchronizeLocalInitiative(tx,context);
       return touchConfrontation(tx, context, nextConfrontationTimestamp(context.confrontation, context.chronicle)).confrontation;
     });
   }
@@ -817,7 +888,7 @@
 
   async function mutateAdversary(mode, confrontationId, id, input, { expectedUpdatedAt } = {}) {
     const fields = mode === 'delete' ? null : adversaryFields(input);
-    return runConfrontationTransaction([CHRONICLES_STORE, CONFRONTATIONS_STORE, ADVERSARIES_STORE], 'readwrite', async tx => {
+    return runConfrontationTransaction([CHRONICLES_STORE, CONFRONTATIONS_STORE, ADVERSARIES_STORE, COMBAT_LINKS_STORE], 'readwrite', async tx => {
       const context = await readConfrontationContext(tx, confrontationId);
       const store = tx.objectStore(ADVERSARIES_STORE);
       let current;
@@ -830,10 +901,11 @@
       }
       const timestamp = nextConfrontationTimestamp(context.confrontation, context.chronicle, ...(current ? [current] : []));
       const record = mode === 'delete' ? current : { id: current?.id || createChronicleId(), confrontationId,
-        ...fields, createdAt: current?.createdAt || timestamp, updatedAt: timestamp };
+        ...(current?.snapshot ? { snapshot: current.snapshot, sourceLocalId: current.sourceLocalId } : {}), ...fields, createdAt: current?.createdAt || timestamp, updatedAt: timestamp };
       if (mode === 'create') store.add(record);
       else if (mode === 'update') store.put(record);
       else store.delete(id);
+      await synchronizeLocalInitiative(tx,context);
       touchConfrontation(tx, context, timestamp);
       return record;
     });
@@ -918,10 +990,17 @@
   }
   async function listCharacterChronicles(characterId) {
     requiredId(characterId);
-    return runConfrontationTransaction([CHRONICLES_STORE, CAST_LINKS_STORE], 'readonly', async tx => {
+    return runConfrontationTransaction([CHRONICLES_STORE, CAST_LINKS_STORE, CONFRONTATIONS_STORE, COMBAT_LINKS_STORE], 'readonly', async tx => {
       const links = await requestAsPromise(tx.objectStore(CAST_LINKS_STORE).index('characterId').getAll(characterId));
       const records = await Promise.all(links.map(link => requestAsPromise(tx.objectStore(CHRONICLES_STORE).get(link.chronicleId))));
-      return records.map(normalizeStoredChronicle).filter(Boolean).sort((a,b) => a.name.localeCompare(b.name));
+      const destinations=records.map(normalizeStoredChronicle).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name));
+      for(const chronicle of [...destinations]){
+        const combats=await requestAsPromise(tx.objectStore(CONFRONTATIONS_STORE).index('chronicleId').getAll(chronicle.id));
+        for(const combat of combats.filter(row=>row.active&&row.executionId)){
+          if(await requestAsPromise(tx.objectStore(COMBAT_LINKS_STORE).get([combat.id,characterId])))destinations.push({...chronicle,id:`local-combat-roll:${chronicle.id}:${combat.id}:${combat.executionId}`,name:chronicle.name+' · '+combat.name,confrontationId:combat.id});
+        }
+      }
+      return destinations;
     });
   }
   function accessRecord(raw) {
@@ -997,7 +1076,7 @@
       checkPrivateVersion(current, options);
       if (current && JSON.stringify(privateFields(kind, current)) === JSON.stringify(fields)) return current;
       const now = timestampAfter(current?.updatedAt);
-      const record = { id: id || createChronicleId(), chronicleId, ...fields, createdAt: current?.createdAt || now, updatedAt: now };
+      const record = { id: id || createChronicleId(), chronicleId, ...(current?.snapshot ? { snapshot: current.snapshot, sourceLocalId: current.sourceLocalId } : {}), ...fields, createdAt: current?.createdAt || now, updatedAt: now };
       if (current) store.put(record); else store.add(record);
       return record;
     });
@@ -1013,22 +1092,35 @@
   }
   function rollRecord(input) {
     const result = input?.result;
-    if (input?.schemaVersion !== 1 || typeof input.characterName !== 'string' || input.characterName.length > 5000
+    const highest = input?.schemaVersion === 2 && input.resolution === 'highest' && result?.faces === 20 && result?.quantity >= 2;
+    const sum = input?.schemaVersion === 1 && input.resolution === 'sum';
+    if ((!highest && !sum) || typeof input.characterName !== 'string' || input.characterName.length > 5000
       || !Number.isFinite(Date.parse(input.createdAt)) || input.source !== 'quick-dice' || input.category !== 'expression'
-      || input.resolution !== 'sum' || typeof result?.expression !== 'string' || result.expression.length > 32
+      || typeof result?.expression !== 'string' || result.expression.length > 32
       || !Number.isInteger(result.quantity) || result.quantity < 1 || result.quantity > 100
       || !Number.isInteger(result.faces) || result.faces < 2 || result.faces > 1000
       || !Number.isInteger(result.modifier) || Math.abs(result.modifier) > 100000
       || !Array.isArray(result.rolls) || result.rolls.length !== result.quantity
       || result.rolls.some(value => !Number.isInteger(value) || value < 1 || value > result.faces)
-      || result.diceTotal !== result.rolls.reduce((a,b) => a+b,0) || result.total !== result.diceTotal + result.modifier) {
+      || result.diceTotal !== (highest ? Math.max(...result.rolls) : result.rolls.reduce((a,b) => a+b,0)) || result.total !== result.diceTotal + result.modifier
+      || (highest && (result.resolution !== 'highest' || result.natural !== result.diceTotal || result.selectedIndex !== result.rolls.indexOf(result.diceTotal)))
+      || (sum && result.resolution !== undefined && result.resolution !== 'sum')
+      || (sum && result.natural !== undefined && result.natural !== (result.faces === 20 && result.quantity === 1 ? result.rolls[0] : null))
+      || (sum && result.selectedIndex !== undefined && result.selectedIndex !== null)
+      || (input.label !== undefined && (typeof input.label !== 'string' || input.label.length > 100))) {
       throw new Error('INVALID_ROLL_RECORD');
     }
-    // resolution is explicit: future min/max/zero-dice rules need a versioned validator, never a reinterpretation of 2d20.
-    return { id: requiredId(input.id), schemaVersion: 1, characterId: requiredId(input.characterId),
-      characterName: input.characterName, createdAt: input.createdAt, source: 'quick-dice', category: 'expression', resolution: 'sum',
+    // Version 1 remains readable verbatim; version 2 explicitly records the selected d20.
+    return { id: requiredId(input.id), schemaVersion: input.schemaVersion, characterId: requiredId(input.characterId),
+      characterName: input.characterName, createdAt: input.createdAt, source: 'quick-dice', category: 'expression', resolution: input.resolution,
+      ...(input.label ? { label: input.label } : {}),
+      ...(input.confrontationId ? {confrontationId:requiredId(input.confrontationId),executionId:requiredId(input.executionId)} : {}),
       result: { expression: result.expression, quantity: result.quantity, faces: result.faces, modifier: result.modifier,
-        rolls: [...result.rolls], diceTotal: result.diceTotal, total: result.total } };
+        rolls: [...result.rolls],
+        ...(result.resolution ? { resolution: result.resolution } : {}),
+        ...(Object.hasOwn(result, 'natural') ? { natural: result.natural } : {}),
+        ...(Object.hasOwn(result, 'selectedIndex') ? { selectedIndex: result.selectedIndex } : {}),
+        diceTotal: result.diceTotal, total: result.total } };
   }
   async function collectRoll(tx, id) {
     const counts = await Promise.all([CHARACTER_ROLLS, CHRONICLE_ROLLS].map(name =>
@@ -1051,7 +1143,30 @@
     });
     for (const id of ids) await collectRoll(tx, id);
   }
+  async function appendConfrontationRoll(id,input) {
+    const record=rollRecord({...input,confrontationId:id});
+    return runConfrontationTransaction([...HISTORY_STORES,CHRONICLES_STORE,CONFRONTATIONS_STORE,COMBAT_LINKS_STORE,ADVERSARIES_STORE],'readwrite',async tx=>{
+      const previous=await requestAsPromise(tx.objectStore(ROLLS).get(record.id));
+      if(previous){if(JSON.stringify(rollRecord(previous))!==JSON.stringify(record))throw new Error('ROLL_ID_CONFLICT');return {record:previous,chronicleLinked:true,alreadySaved:true};}
+      const {confrontation}=await readConfrontationContext(tx,id);
+      if(!confrontation.active||confrontation.executionId!==record.executionId)throw new Error('CONFRONTATION_EXECUTION_CHANGED');
+      const character=await requestAsPromise(tx.objectStore(COMBAT_LINKS_STORE).get([id,record.characterId]));
+      const enemy=await requestAsPromise(tx.objectStore(ADVERSARIES_STORE).get(record.characterId));
+      if(!character&&enemy?.confrontationId!==id)throw new Error('CHARACTER_NOT_IN_COMBAT');
+      tx.objectStore(ROLLS).add(record);
+      tx.objectStore(CHARACTER_ROLLS).add({characterId:record.characterId,rollId:record.id,createdAt:record.createdAt});
+      tx.objectStore(CHRONICLE_ROLLS).add({chronicleId:confrontation.chronicleId,rollId:record.id,createdAt:record.createdAt});
+      await removeHistoryLinks(tx,CHARACTER_ROLLS,record.characterId,500);await removeHistoryLinks(tx,CHRONICLE_ROLLS,confrontation.chronicleId,2000);
+      return {record,chronicleLinked:true,confrontationId:id};
+    });
+  }
   async function appendRoll(input, chronicleId = null) {
+    if(String(chronicleId).startsWith('local-combat-roll:')){
+      const [,parent,id,executionId]=chronicleId.split(':');
+      if(!parent||!id||!executionId)throw new Error('INVALID_COMBAT_DESTINATION');
+      const confrontation=await getConfrontation(id);if(confrontation.chronicleId!==parent)throw new Error('INVALID_COMBAT_DESTINATION');
+      return appendConfrontationRoll(id,{...input,executionId});
+    }
     const record = rollRecord(input);
     if (chronicleId !== null) requiredId(chronicleId);
     return runConfrontationTransaction([...HISTORY_STORES, CHRONICLES_STORE, CAST_LINKS_STORE], 'readwrite', async tx => {
@@ -1080,7 +1195,7 @@
     if (scope === 'chronicle') return CHRONICLE_ROLLS;
     throw new Error('INVALID_HISTORY_SCOPE');
   }
-  async function listRollHistory(scope, ownerId, { before = null, limit = 50, characterId = '', category = '', includeDestinations = false } = {}) {
+  async function listRollHistory(scope, ownerId, { before = null, limit = 50, characterId = '', category = '', confrontationId = '', executionId = '', includeDestinations = false } = {}) {
     const name = historyStore(scope); requiredId(ownerId);
     limit = Math.max(1, Math.min(50, Math.trunc(limit) || 50));
     const withDestinations = scope === 'character' && includeDestinations;
@@ -1100,7 +1215,7 @@
           read.onsuccess = () => {
             let record;
             try { record = read.result ? rollRecord(read.result) : null; } catch (error) { reject(error); return; }
-            if (record && (!characterId || record.characterId === characterId) && (!category || record.category === category)) {
+            if (record && (!confrontationId || record.confrontationId===confrontationId) && (!executionId || record.executionId===executionId) && (!characterId || record.characterId === characterId) && (!category || record.category === category)) {
               if (records.length === limit) { more = true; resolve(); return; }
               records.push(record); cursorKey = { createdAt: record.createdAt, id: record.id };
             }
@@ -1156,6 +1271,7 @@
     listPrivateEntries, savePrivateEntry, deletePrivateEntry,
     appendRoll, listRollHistory, clearRollHistory, listRollActors,
     getChronicleMasterNote, saveChronicleMasterNote,
+    setConfrontationInitiative, stepConfrontationTurn, appendConfrontationRoll,
     listConfrontations, getConfrontation, createConfrontation, updateConfrontation, deleteConfrontation, setConfrontationActive,
     listConfrontationCharacterIds, replaceConfrontationCharacters, listConfrontationAdversaries,
     createConfrontationAdversary: (confrontationId, input) => mutateAdversary('create', confrontationId, null, input),

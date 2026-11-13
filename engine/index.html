@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="css/account-auth.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/chronicles-online.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/chronicles-sharing.css?v=2026-09-16-dynamic-layout">
-  <link rel="stylesheet" href="css/chronicles-collaboration.css?v=2026-09-11-stable">
-  <link rel="stylesheet" href="css/chronicles-online-combat.css?v=2026-09-11-stable">
+  <link rel="stylesheet" href="css/chronicles-collaboration.css?v=confrontos-v2">
+  <link rel="stylesheet" href="css/chronicles-online-combat.css?v=confrontos-v2">
   <link rel="stylesheet" href="css/chronicles-free-rolls.css?v=2026-09-11-stable">
   <link rel="stylesheet" href="css/final-polish.css?v=2026-09-14-layer-stabilization">
   <link rel="stylesheet" href="css/compact.css?v=2026-09-14-layout-foundation">
@@ -374,7 +374,7 @@
                 <p class="master-shield-eyebrow">Arquivo reservado · armazenamento local</p>
                 <h2 id="masterShieldTitle" tabindex="-1">Escudo do Mestre</h2>
                 <p id="masterShieldChronicleName" class="master-shield-context"></p>
-                <p class="master-shield-metadata"><span id="masterShieldChronicleType"></span><span id="masterShieldChronicleDate"></span></p>
+                <details class="master-shield-details"><summary>Informações da Crônica</summary><p class="master-shield-metadata"><span id="masterShieldChronicleType"></span><span id="masterShieldChronicleDate"></span></p></details>
               </header>
               <div id="masterShieldAccess"></div>
               <div id="masterShieldPrivate" hidden>
@@ -389,7 +389,7 @@
                   <section id="masterHuntersModule" hidden><p id="masterShieldCastFeedback" role="status"></p><ul id="masterShieldCastList"></ul></section>
                   <section id="masterCombatsModule" hidden>
                     <div id="masterCombatsOverview">
-                      <header class="master-combats-heading"><p>Monte a composição, salve e inicie na aba Confrontos.</p><button type="button" class="btn" id="createMasterConfrontation">Criar Confronto</button></header>
+                      <header class="master-combats-heading"><div><span class="chronicles-kicker">Preparação e sessão</span><p>Continue o encontro ativo ou prepare o próximo.</p></div><button type="button" class="btn" id="createMasterConfrontation">Criar Confronto</button></header>
                       <p id="masterShieldConfrontationsFeedback" role="status"></p>
                       <ul id="masterShieldConfrontationsList"></ul>
                     </div>
@@ -429,7 +429,7 @@
                       <div id="confrontationAdversarySource">
                         <label for="confrontationAdversaryCharacter">Usar um personagem salvo</label>
                         <select id="confrontationAdversaryCharacter"><option value="">Escolher uma ficha…</option></select>
-                        <p class="confrontation-help">Preenche nome, PV e DEF pela ficha escolhida. O adversário tem PV próprios neste Confronto; a ficha original permanece preservada.</p>
+                        <p class="confrontation-help">Copia a ficha completa para este Confronto, incluindo Perícias e ações cadastradas. Os recursos do exemplar são independentes; a ficha original permanece preservada.</p>
                       </div>
                       <label for="confrontationAdversaryName">Nome <span class="confrontation-help">obrigatório · até 120 caracteres</span></label><input id="confrontationAdversaryName" required maxlength="120" autocomplete="off" aria-describedby="confrontationAdversaryFeedback">
                       <div class="confrontation-numeric-fields">
@@ -1221,7 +1221,7 @@
   <script src="../account-auth/config.js"></script>
   <script src="../account-auth/runtime.js"></script>
   <script src="offline-auth.js"></script>
-  <script src="js/chronicles-storage.js?v=2026-10-24-confrontation-selection"></script>
+  <script src="js/chronicles-storage.js?v=confrontos-v2"></script>
   <script src="js/chronicle-covers.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-online.js?v=2026-09-11-stable"></script>
   <script src="js/chronicles-sharing.js?v=2026-09-11-stable"></script>
@@ -1230,15 +1230,17 @@
   <script src="js/enchantments.js?v=2026-10-14-four-controls"></script>
   <script src="js/coyote-eyes.js?v=2026-10-10-indexeddb"></script>
   <script src="js/gold-generation.js?v=2026-10-10-defense-unlock"></script>
-  <script src="js/chronicles-collaboration.js?v=2026-10-24-confrontation-selection"></script>
-  <script src="js/chronicles-online-rolls.js?v=2026-09-11-stable"></script>
+  <script src="js/chronicles-collaboration.js?v=confrontos-v2"></script>
+  <script src="js/chronicles-online-rolls.js?v=confrontos-v2"></script>
   <script src="js/chronicles-free-rolls.js?v=2026-09-11-stable"></script>
-  <script src="js/chronicles-online-combat.js?v=2026-09-11-stable"></script>
-  <script src="js/confrontations.js?v=2026-10-24-adversary-picker"></script>
+  <script src="js/combat-roll-outbox.js?v=confrontos-v2"></script>
+  <script src="js/combat-sheet-view.js?v=confrontos-v2"></script>
+  <script src="js/chronicles-online-combat.js?v=confrontos-v2"></script>
+  <script src="js/confrontations.js?v=confrontos-v2"></script>
   <script src="js/master-access.js?v=2026-09-11-stable"></script>
   <script src="js/roll-history-view.js?v=2026-09-11-stable"></script>
-  <script src="js/roll-history.js?v=2026-09-11-stable"></script>
-  <script src="js/master-shield.js?v=2026-09-11-stable"></script>
-  <script src="script.js?v=2026-10-24-batch-import"></script>
+  <script src="js/roll-history.js?v=confrontos-v2"></script>
+  <script src="js/master-shield.js?v=confrontos-v2"></script>
+  <script src="script.js?v=confrontos-v2"></script>
 <script src="engine-adapter.js?v=2026-10-14-four-controls"></script><script src="phone-panels.js"></script></body>
 </html>

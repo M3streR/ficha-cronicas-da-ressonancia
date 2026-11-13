@@ -138,3 +138,6 @@ body.v2-modal-open #complete-engine{position:fixed;inset:0;width:100%;height:100
  .skill-result-number{font-size:46px}
  .skill-result-details{gap:7px 14px;font-size:13px;line-height:1.65;padding-top:11px}
 }
+/* A sheet roll always exposes its actual sharing destination. */
+.skill-roll-sharing{display:flex;gap:.6rem;flex-wrap:wrap;align-items:end;padding:.7rem;margin:.6rem 0;border:1px solid #725689;background:rgba(38,26,54,.6)}.skill-roll-sharing[hidden]{display:none}.skill-roll-sharing label{display:grid;gap:.3rem;flex:1;min-width:0;font-size:.82rem;color:#d3bce3}.skill-roll-sharing select{width:100%;min-height:44px;max-width:100%;font:inherit;background:#1b1428;color:#eee1f9;border:1px solid #765a8e;padding:.45rem}.skill-roll-sharing a{padding:.65rem;color:#e2c4fa;font-size:.85rem}
+@media(max-width:560px){.skill-roll-sharing{display:grid;grid-template-columns:minmax(0,1fr)}.skill-roll-sharing select{font-size:16px}}

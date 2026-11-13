@@ -13,8 +13,8 @@ test('combat: delayed discovery cannot remove a newer subscription or resurrect 
     let resolve;const promise=new Promise(r=>resolve=r);requests.push(resolve);
     const builder=new Proxy({}, {get(_,key){return key==='then'?promise.then.bind(promise):()=>builder;}});return builder;
   }, channel(topic){const c={topic,on(){return this;},subscribe(){channels.add(this);return this;}};return c;},removeChannel(c){channels.delete(c);}};
-  const document={getElementById(){return null;},querySelector(){return null;},querySelectorAll(){return [];}};
-  const window={setTimeout,clearTimeout,addEventListener(){},CronicasSupabase:{ready:Promise.resolve(),getUser:async()=>({id:'u'}),client}};
+  const document={addEventListener(){},getElementById(){return null;},querySelector(){return null;},querySelectorAll(){return [];}};
+  const window={setTimeout,clearTimeout,clearInterval,addEventListener(){},CronicasSupabase:{ready:Promise.resolve(),getUser:async()=>({id:'u'}),client}};
   load('chronicles-online-combat.js',window,document);
   const api=window.ChroniclesOnlineCombat;
   api.applyDetailMode({id:'online:a',remoteId:'a',storage:'online'});await flush();

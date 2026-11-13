@@ -22,7 +22,7 @@
       return { chronicleId: parts[1], characterId: parts[2], confrontationId: null };
     }
     if (parts[0] === 'online-combat-roll' && uuid(parts[1]) && uuid(parts[2]) && uuid(parts[3])) {
-      return { chronicleId: parts[1], confrontationId: parts[2], characterId: parts[3] };
+      return { chronicleId: parts[1], confrontationId: parts[2], characterId: parts[3], executionId: uuid(parts[4]) ? parts[4] : null };
     }
     return null;
   }
@@ -36,7 +36,7 @@
     return {
       id: row.id,
       schemaVersion: 1,
-      characterId: row.online_character_id || `deleted:${row.id}`,
+      characterId: row.online_character_id || row.adversary_id || `deleted:${row.id}`,
       characterName: text(row.character_name) || 'Personagem',
       createdAt: row.created_at,
       source: row.source || 'quick-dice',
@@ -54,6 +54,7 @@
         modifier: Number(row.modifier) || 0,
         total: Number(row.total) || 0
       },
+      executionId: row.execution_id || null,
       confrontationId: row.confrontation_id || null
     };
   }
@@ -67,17 +68,19 @@
       .select('id')
       .eq('owner_id', auth.user.id)
       .eq('source_local_id', localCharacterId);
-    if (characterError || !characters?.length) return [];
+    if (characterError) throw characterError;
+    if (!characters?.length) return [];
     const characterIds = characters.map(row => row.id);
     const { data: links, error: linkError } = await auth.client
       .from('chronicle_cast_members')
       .select('chronicle_id, character_id')
       .in('character_id', characterIds);
-    if (linkError || !links?.length) return [];
+    if (linkError) throw linkError;
+    if (!links?.length) return [];
     const chronicleIds = [...new Set(links.map(row => row.chronicle_id))];
     const [{ data: chronicles, error: chronicleError }, { data: combats, error: combatError }] = await Promise.all([
       auth.client.from('chronicles').select('id, name').in('id', chronicleIds),
-      auth.client.from('chronicle_confrontations').select('id, chronicle_id, name').in('chronicle_id', chronicleIds).eq('active', true)
+      auth.client.from('chronicle_confrontations').select('id, chronicle_id, name, execution_id').in('chronicle_id', chronicleIds).eq('active', true)
     ]);
     if (chronicleError || combatError) throw chronicleError || combatError;
     const characterByChronicle = new Map(links.map(row => [row.chronicle_id, row.character_id]));
@@ -100,7 +103,7 @@
       const characterId = characterByChronicle.get(combat.chronicle_id);
       if (!permittedCombats.has(`${combat.id}:${characterId}`)) return;
       destinations.push({
-        id: `${COMBAT_PREFIX}${combat.chronicle_id}:${combat.id}:${characterId}`,
+        id: `${COMBAT_PREFIX}${combat.chronicle_id}:${combat.id}:${characterId}${combat.execution_id ? ':' + combat.execution_id : ''}`,
         name: `${names.get(combat.chronicle_id) || 'Crônica online'} · Combate ativo`,
         storage: 'online',
         confrontationId: combat.id
@@ -129,7 +132,7 @@
       p_modifier: Number(result.modifier) || 0,
       p_subtotal: Number.isFinite(result.diceTotal) ? result.diceTotal : null,
       p_total: Number(result.total) || 0,
-      p_metadata: { resolution: record.resolution || 'sum' }
+      p_metadata: { resolution: record.resolution || 'sum', ...(record.label ? { label: record.label } : {}), ...(target.executionId ? { executionId: target.executionId } : {}) }
     });
     if (error) throw error;
     return data;
@@ -140,10 +143,11 @@
     const limit = Math.max(1, Math.min(100, Number(options.limit) || 50));
     const { client } = await context();
     let query = client.from('online_roll_records')
-      .select('id, chronicle_id, confrontation_id, online_character_id, author_id, character_name, source, category, expression, dice_count, dice_sides, rolls, modifier, subtotal, total, metadata, created_at')
+      .select('id, chronicle_id, confrontation_id, execution_id, online_character_id, adversary_id, author_id, character_name, source, category, expression, dice_count, dice_sides, rolls, modifier, subtotal, total, metadata, created_at')
       .eq('chronicle_id', remoteId)
       .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1);
     if (options.confrontationId) query = query.eq('confrontation_id', options.confrontationId);
+    if (options.executionId) query = query.eq('execution_id', options.executionId);
     if (options.freeOnly) query = query.is('confrontation_id', null);
     if (options.characterId) query = query.eq('online_character_id', options.characterId);
     if (options.category) query = query.eq('category', options.category);
@@ -161,7 +165,7 @@
     let profiles = new Map();
     if (authorIds.length) {
       const profileResult = await client.from('account_profiles').select('user_id, display_name').in('user_id', authorIds);
-      if (profileResult.error) throw profileResult.error;
+      // Profile labels are optional; a profile failure must not hide valid rolls.
       profiles = new Map((profileResult.data || []).map(row => [row.user_id, text(row.display_name) || neutralName(row.user_id)]));
     }
     const records = rows.slice(0, limit).map(row => normalizeRow(row, profiles));
@@ -188,7 +192,8 @@
         const online = parseDestination(destination);
         if (!online) return base.appendRoll(record, destination);
         await base.appendRoll(record, null);
-        await appendOnlineRoll(record, destination);
+        try { await appendOnlineRoll(record, destination); }
+        catch (error) { const failure = new Error(error?.message || 'ONLINE_ROLL_SEND_FAILED'); failure.localSaved = true; throw failure; }
         return { characterLinked: true, chronicleLinked: true, online: true, confrontationId: online.confrontationId || null };
       },
       async listRollHistory(scope, ownerId, options) {

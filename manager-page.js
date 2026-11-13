@@ -14,7 +14,7 @@ completeMenuToSheetTransition=async function(trigger){
  // Official stores are reused directly; experimental bootstrap is never imported.
 
  showCharacterManagerView();const params=new URL(location.href).searchParams;
- if(params.get('section')==='chronicles')showManagerSection('chronicles',{focusPanel:true});
+ if(params.get('section')==='chronicles'){showManagerSection('chronicles',{focusPanel:true});const id=params.get('chronicle');if(/^[0-9a-f-]{36}$/i.test(id||'')){await openChronicleDetail(params.get('storage')==='local'?id:'online:'+id,1,document.getElementById('openChronicleCreation'));document.getElementById('chronicleTabEncounters').click();}}
  if(params.get('account')==='1')document.querySelector('.manager-account-button')?.click();
  window.managerV2Ready=true;
  }catch(error){showNotification(`Gerenciador experimental: ${error.message}`,'error',12000);}

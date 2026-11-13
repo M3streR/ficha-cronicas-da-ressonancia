@@ -3253,8 +3253,7 @@ function setChronicleDetailSection(
   }
   if (activeSection === 'participants') void renderChronicleParticipants();
   if (activeSection === 'encounters') {
-    if (activeChronicleRecord?.storage === 'online') void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
-    else void window.ConfrontationsUI?.renderIndex();
+    void window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
   }
   if (activeSection === 'free-rolls') void window.ChronicleFreeRolls?.render(activeChronicleRecord);
 }
@@ -3778,8 +3777,7 @@ function bindChronicles() {
         target.focus({ preventScroll: true });
       }
       if (battleId) {
-        if (activeChronicleRecord?.storage === 'online') await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
-        else await window.ConfrontationsUI.open(battleId);
+        await window.ChroniclesOnlineCombat?.render(activeChronicleRecord);
         return;
       }
       try {
@@ -3815,7 +3813,8 @@ function bindChronicles() {
       return {
         name: String(fields.nome || '').trim() || 'Novo personagem',
         ...(hasPV ? { pvCurrent: current, pvMax: maximum } : {}),
-        defense: calculateCharacterDefense(character)
+        defense: calculateCharacterDefense(character),
+        sourceLocalId: id, snapshot: window.ChroniclesCollaboration.sanitizeSnapshot(character)
       };
     },
     selectionHelp: () => activeChronicleRecord?.storage === 'online'
@@ -9716,3 +9715,41 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+window.CronicasCombatRules = Object.freeze({
+ initiativeOrder: participants => participants.map(({kind, id, snapshot}) => {
+   if (!snapshot && kind === 'adversary') return {kind, id, initiative: 0};
+   const quantity = Number(snapshot?.fields?.agilidade);
+   const modifier = graus[snapshot?.skills?.Iniciativa || 'Sem Domínio'];
+   if (!Number.isInteger(quantity) || quantity < 1 || quantity > getAttributeMaximum(Number(snapshot?.fields?.nivel) || 1) || !Number.isFinite(modifier)) {
+     throw new Error('Confira a Agilidade e o grau de Iniciativa nas fichas dos participantes.');
+   }
+   const parsed = parseDiceExpression(`${quantity}d20${modifier ? '+' + modifier : ''}`);
+   const result = rollDiceExpression(parsed, rollDie, { highestD20: true });
+   return {kind, id, initiative: result.total};
+ }).sort((left, right) => right.initiative - left.initiative),
+ localDirectory: getChronicleCharacterDirectory,
+ readLocal: id => { const character=readStoredCharacter(id);return character ? window.ChroniclesCollaboration.sanitizeSnapshot(character) : null; },
+ skills: () => pericias.map(([name, attribute]) => ({ name, attribute, field: ATTRIBUTE_IDS.find(id => getAttributeLabel(id) === attribute) })),
+ bonus: degree => graus[degree] ?? 0,
+ defense: calculateCharacterDefense,
+ abilities: character => getClassOfficialAbilities(character.fields?.classe).filter(item => Number(item.nivel || 1) <= Number(character.fields?.nivel || 1)),
+ openOwn: async (id, onlineId) => {
+   await window.CharacterStorage.refresh();
+   if (!readStoredCharacter(id)) {
+     const user = await window.CronicasSupabase.getUser();
+     if (!user) throw new Error('Entre na conta proprietária desta ficha.');
+     const response = await window.CronicasSupabase.client.from('online_characters').select('id,owner_id,source_local_id,snapshot,thumbnail').eq('id',onlineId).eq('owner_id',user.id).maybeSingle();
+     if (response.error || !response.data || response.data.source_local_id !== id) throw new Error('Não foi possível recuperar sua ficha online.');
+     const raw = { ...response.data.snapshot, photo: response.data.thumbnail || '', notes: [] };
+     const validation = validateImportedSheet(raw);
+     if (!validation.valid) throw new Error('A ficha online precisa ser revisada antes de abrir.');
+     await characterEditAuthority().runExclusive(id, 'restore-online', async () => {
+       await window.CharacterStorage.refresh();
+       if (!readStoredCharacter(id)) await persistNewCharacter(id, validation.normalized, await createCharacterSummary(validation.normalized));
+     });
+   }
+   await openCharacter(id); await completeMenuToSheetTransition();
+ },
+ localAvailable: id => Boolean(readStoredCharacter(id))
+});
