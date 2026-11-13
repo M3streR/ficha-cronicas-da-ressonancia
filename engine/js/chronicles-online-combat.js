@@ -506,13 +506,30 @@
       const card=node('article','online-combat-enemy-control');
       card.append(node('p','combat-defense',enemy.defense !== undefined ? `DEF ${enemy.defense}` : 'DEF não informada'));
       if(enemy.pvMax !== undefined){
-        const label=node('label','online-combat-enemy-pv','PV atual');const input=document.createElement('input');input.type='number';input.min='0';input.step='1';input.value=String(enemy.pvCurrent ?? 0);label.append(input,node('span','',`/ ${enemy.pvMax}`));
-        const save=node('button','btn','Salvar PV');save.type='button';save.addEventListener('click',async()=>{
-          if(pending || !input.reportValidity())return;pending=true;save.disabled=true;
-          try{await combatStorage().updateConfrontationAdversary(full.record.id,enemy.id,{name:enemy.name,pvCurrent:Number(input.value),pvMax:enemy.pvMax,...(enemy.defense !== undefined?{defense:enemy.defense}:{})},{expectedUpdatedAt:enemy.updatedAt});input.dataset.dirty='';await render(currentChronicle);}
+        const current=Number(enemy.pvCurrent ?? 0), max=Number(enemy.pvMax);
+        const resources=node('div','combat-summary-resources combat-manual-resources');
+        const pv=node('div');pv.dataset.resource='pv';
+        pv.append(node('small','','PV'),node('strong','',`${current} / ${max}`));
+        const bar=node('progress');bar.max=Math.max(1,max);bar.value=current;bar.setAttribute('aria-label',`PV: ${current} de ${max}`);pv.append(bar);
+        const quick=node('div','combat-resource-quick');pv.append(quick);resources.append(pv);card.append(resources);
+        const options=node('details','combat-sheet-item');options.append(node('summary','','Ajustar PV'));
+        const label=node('label','online-combat-enemy-pv','PV atual');const input=document.createElement('input');input.type='number';input.min='0';input.step='1';input.required=true;input.value=String(current);label.append(input,node('span','',`/ ${max}`));
+        const save=node('button','btn','Salvar PV');save.type='button';options.append(label,save);card.append(options);
+        const buttons=[];
+        function syncPV(){for(const [button,step] of buttons)button.disabled=pending||input.value!==String(current)||(step<0?current<=0:current>=max);}
+        async function savePV(next){
+          if(pending)return;pending=true;save.disabled=true;input.disabled=true;syncPV();
+          try{await combatStorage().updateConfrontationAdversary(full.record.id,enemy.id,{name:enemy.name,pvCurrent:next,pvMax:enemy.pvMax,...(enemy.defense !== undefined?{defense:enemy.defense}:{})},{expectedUpdatedAt:enemy.updatedAt});input.dataset.dirty='';await render(currentChronicle);}
           catch(_){global.showNotification?.('PV não salvo. Outra tela pode ter atualizado este adversário. Atualize e confira os valores.','error');}
-          finally{pending=false;save.disabled=false;syncCommands();}
-        });card.append(label,save);
+          finally{pending=false;save.disabled=false;input.disabled=false;syncPV();syncCommands();}
+        }
+        for(const [step,caption] of [[-1,'−1'],[1,'+1'],[-5,'−5'],[5,'+5']]){
+          const button=node('button','',caption);button.type='button';button.dataset.direction=step<0?'loss':'gain';button.setAttribute('aria-label',`${step<0?'Diminuir':'Recuperar'} ${Math.abs(step)} PV`);
+          button.dataset.focusKey=`manual-pv:${step}`;
+          button.addEventListener('click',()=>{if(!button.disabled)void savePV(step<0?Math.max(0,current+step):Math.min(max,current+step));});buttons.push([button,step]);quick.append(button);
+        }
+        input.addEventListener('input',syncPV);
+        save.addEventListener('click',()=>{if(input.reportValidity())void savePV(Number(input.value));});syncPV();
       }panel.append(card);
       const free=node('details','combat-sheet-item');free.append(node('summary','','Rolagem livre do adversário'));
       const form=node('form','online-combat-dice-form');const expression=node('input');expression.type='text';expression.placeholder='Ex.: 2d6+3';expression.maxLength=32;expression.required=true;expression.setAttribute('aria-label',`Expressão de ${enemy.name}`);const roll=node('button','btn','Rolar');roll.type='submit';const result=node('p','combat-roll-result');result.setAttribute('role','status');form.append(expression,roll);free.append(form,result);panel.append(free);

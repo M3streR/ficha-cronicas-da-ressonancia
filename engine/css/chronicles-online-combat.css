@@ -250,3 +250,15 @@ body.manager-v2 .online-combat-select:disabled { opacity:1; color:inherit; }
 .online-combat-host[data-viewer-role="player"] .online-combat-layout { grid-template-columns: minmax(0, 1fr); }
 
 .online-combat-host[data-viewer-role="player"] .online-combat-select { cursor: default; }
+
+.combat-resource-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.25rem; margin-top:.2rem; }
+.combat-resource-quick button { min-width:0; min-height:44px; padding:0; font:inherit; font-variant-numeric:tabular-nums; color:#f5e9fc; background:#24172f; border:1px solid #846098; border-radius:5px; cursor:pointer; }
+.combat-resource-quick button[data-direction=loss] { color:#f3b9cd; border-color:#96617c; background:#362135; }
+.combat-resource-quick button[data-direction=gain] { color:#e7ccff; border-color:#9470b2; background:#302040; }
+.combat-resource-quick button[data-direction]:not(:disabled):hover { background:#48305b; }
+.combat-resource-quick button:focus-visible { outline:2px solid #e8c3ff; outline-offset:2px; }
+.combat-resource-quick button:disabled { opacity:.5; cursor:default; }
+.combat-resource-status { min-height:1.25em; margin:-.5rem 0 .75rem; color:#e1c6f1; font-size:.85rem; }
+.combat-resource-status:empty { display:none; }
+
+.combat-manual-resources { grid-template-columns:minmax(0,12rem); }

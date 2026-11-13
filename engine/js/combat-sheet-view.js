@@ -40,7 +40,7 @@
   }
   function create({ snapshot, name, onRoll, ownAction, onResources, resourceVersion = null, onDraftChange = () => {}, defenseValue, state = {}, tab = 'summary', onTab = () => {} }) {
     const host = node('section','combat-sheet-view');
-    const notice = node('p','online-combat-muted',ownAction ? 'Sua ficha no Confronto. Abra para usar os dados, recursos e ações do personagem.' : onRoll ? 'Exemplar independente · ações e recursos deste adversário' : 'Ficha compartilhada para consulta · alterações permanecem com o proprietário');
+    const notice = node('p','online-combat-muted',ownAction ? 'Sua ficha no Confronto. Abra para usar os dados, recursos e ações do personagem.' : onRoll ? 'Adversário independente · os recursos deste exemplar são controlados aqui e não acompanham a ficha de origem.' : 'Ficha compartilhada para consulta · alterações permanecem com o proprietário');
     host.append(notice);
     if (ownAction) {
       const open = node('button','btn combat-open-sheet','Abrir minha ficha no Confronto'); open.type = 'button';
@@ -73,6 +73,13 @@
         const identity = node('div','combat-summary-identity');
         values(identity,Object.fromEntries(['classe','nivel','assinatura','tipoNexo','formaConjuracao','origem','afiliacao'].filter(k => fields[k] !== undefined).map(k => [k,fields[k]])));
         const resources = node('div','combat-summary-resources');
+        const quick = [];
+        const feedback = node('p','combat-resource-status'); feedback.setAttribute('role','status');
+        const keys = ['pv','pn','ps'];
+        const syncQuick = () => quick.forEach(({button,key,maxKey,step}) => {
+          const current = Number(fields[key]), max = Number(fields[maxKey]);
+          button.disabled = !!(state.saving || state.resourceDraft) || (step < 0 ? current <= 0 : current >= max);
+        });
         for (const [prefix,title] of [['pv','PV'],['pn','PN'],['ps','PS']]) {
           const card = node('div'); card.dataset.resource = prefix;
           card.append(node('small','',title),node('strong','',`${fields[prefix+'Atual'] ?? '—'} / ${fields[prefix+'Max'] ?? '—'}`));
@@ -80,10 +87,31 @@
           if (Number.isFinite(current) && max > 0) {
             const bar = node('progress'); bar.max = max; bar.value = Math.max(0,current); bar.setAttribute('aria-label',`${title}: ${current} de ${max}`); card.append(bar);
           }
+          if (onResources && Number.isFinite(current) && Number.isFinite(max)) {
+            const controls = node('div','combat-resource-quick');
+            for (const [step,label] of [[-1,'−1'],[1,'+1'],[-5,'−5'],[5,'+5']]) {
+              const button = node('button','',label); button.type = 'button';
+              const key = prefix+'Atual', maxKey = prefix+'Max';
+              button.dataset.focusKey = `step:${key}:${step}`;
+              button.dataset.direction = step < 0 ? 'loss' : 'gain';
+              button.setAttribute('aria-label',`${step < 0 ? 'Diminuir' : 'Recuperar'} ${Math.abs(step)} ${title}`);
+              quick.push({button,key,maxKey,step}); controls.append(button);
+              button.addEventListener('click', () => {
+                const current = Number(fields[key]), max = Number(fields[maxKey]);
+                const next = step < 0 ? Math.max(0,current+step) : Math.min(max,current+step);
+                if (button.disabled || next === current) return;
+                const changes = Object.fromEntries(keys.flatMap(k => ['Atual','Max'].map(suffix => [k+suffix,String(fields[k+suffix] ?? (k === 'pv' && suffix === 'Max' ? 1 : 0))])));
+                changes[key] = String(next);
+                void saveResources(changes, resourceVersion, Number(defense ?? 0), button.dataset.focusKey, `${title}: ${next} de ${max}.`);
+              });
+            }
+            card.append(controls);
+          }
           resources.append(card);
         }
         const defense = defenseValue ?? global.CronicasCombatRules?.defense?.(snapshot), def = node('div');
         def.append(node('small','','DEF'),node('strong','',Number.isFinite(defense)?defense:'—')); resources.append(def); body.append(resources);
+        if (onResources) { feedback.textContent = state.resourceFeedback || ''; body.append(feedback); }
         const attributes = node('div','combat-summary-attributes');
         for (const [key,title] of [['forca','FOR'],['vigor','VIG'],['agilidade','AGI'],['intelecto','INT'],['presenca','PRE']]) {
           const item = node('div'); item.append(node('small','',title),node('b','',fields[key] ?? '—')); attributes.append(item);
@@ -97,7 +125,12 @@
           const details = node('details','combat-sheet-item'); details.append(node('summary','','Informações complementares')); values(details,extra); body.append(details);
         }
         if (onResources) {
+          const options = node('details','combat-sheet-item combat-resource-options');
+          options.open = !!(state.resourceDraft || state.resourceOptionsOpen);
+          options.addEventListener('toggle', () => { if (options.isConnected) state.resourceOptionsOpen = options.open; });
+          const summary = node('summary','','Ajustar valores e defesa'); summary.dataset.focusKey = 'resource-options';
           const form = node('form','combat-resource-editor');
+          options.append(summary,form); body.append(options);
           const editable = ['pv', 'pn', 'ps'].flatMap(resource => [
             {key: resource + 'Atual', label: resource.toUpperCase() + ' atual', value: fields[resource+'Atual'] ?? 0, min: 0},
             {key: resource + 'Max', label: resource.toUpperCase() + ' máximo', value: fields[resource+'Max'] ?? 1, min: resource === 'pv' ? 1 : 0}
@@ -119,7 +152,7 @@
               }
               state.resourceDraft.values[key] = input.value;
               input.dataset.dirty = 'true';
-              onDraftChange();
+              syncQuick(); onDraftChange();
             });
             if (state.resourceDraft) input.dataset.dirty = 'true';
             field.append(input);
@@ -128,31 +161,40 @@
           const save = node('button','btn','Salvar recursos'); save.type = 'submit'; form.append(save);
           const discard=node('button','btn secondary','Descartar alterações');discard.type='button';discard.dataset.focusKey='discard-resources';discard.addEventListener('click',()=>{if(state.saving)return;delete state.resourceDraft;draw('summary');onDraftChange();});form.append(discard);
           save.dataset.focusKey='save-resources';
-          const status = node('p'); status.setAttribute('role','status');
-          form.addEventListener('submit',async e => {
-            e.preventDefault(); if (state.saving || !form.reportValidity()) return; state.saving=true;save.disabled = true;discard.disabled=true;nav.querySelectorAll('button').forEach(b=>b.disabled=true);onDraftChange();
-            try {
-              const {defense: savedDefense, ...changes} = Object.fromEntries([...form.querySelectorAll('input')].map(i => [i.name,i.value]));
-              const receipt=await onResources(changes,state.resourceDraft?.expectedUpdatedAt ?? resourceVersion, Number(savedDefense));if(receipt?.updatedAt)resourceVersion=receipt.updatedAt;Object.assign(snapshot.fields,changes);delete state.resourceDraft;
-              form.querySelectorAll('[data-dirty]').forEach(i => delete i.dataset.dirty); status.textContent = 'Recursos do exemplar salvos.';
-              defenseValue = Number(savedDefense);
-              def.querySelector('strong').textContent = String(defenseValue);
-              for (const prefix of ['pv', 'pn', 'ps']) {
-                const card = resources.querySelector(`[data-resource=${prefix}]`);
-                const current = changes[prefix + 'Atual'], max = changes[prefix + 'Max'];
-                card.querySelector('strong').textContent = `${current} / ${max}`;
-                const bar = card.querySelector('progress');
-                if (bar && Number(max) > 0) {
-                  bar.max = Number(max);
-                  bar.value = Number(current);
-                  bar.setAttribute('aria-label', `${prefix.toUpperCase()}: ${current} de ${max}`);
-                } else if (bar) {
-                  bar.remove();
-                }
-              }
-            } catch (_) { status.textContent = 'Não foi possível salvar. Atualize para conferir alterações em outra tela.'; }
-            finally { state.saving=false;save.disabled = false;discard.disabled=false;nav.querySelectorAll('button').forEach(b=>b.disabled=false);onDraftChange(); }
-          }); body.append(form,status);
+          form.addEventListener('submit', e => {
+            e.preventDefault();
+            if (state.saving || !form.reportValidity()) return;
+            const {defense: savedDefense, ...changes} = Object.fromEntries([...form.querySelectorAll('input')].map(i => [i.name,i.value]));
+            void saveResources(changes,state.resourceDraft?.expectedUpdatedAt ?? resourceVersion,Number(savedDefense),save.dataset.focusKey,'Recursos do adversário salvos.');
+          });
+        }
+        syncQuick();
+        async function saveResources(changes, expected, savedDefense, focusKey, message) {
+          if (state.saving) return;
+          state.saving = true;
+          const previousFocus = document.activeElement?.dataset.focusKey === focusKey;
+          const controls = [...body.querySelectorAll('form input, form button'),...nav.querySelectorAll('button')];
+          controls.forEach(control => control.disabled = true);
+          syncQuick(); feedback.textContent = 'Salvando…'; onDraftChange();
+          try {
+            const receipt = await onResources(changes,expected,savedDefense);
+            if (receipt?.updatedAt) resourceVersion = receipt.updatedAt;
+            Object.assign(fields,changes); snapshot.fields = fields; defenseValue = savedDefense;
+            delete state.resourceDraft;
+            state.resourceFeedback = message;
+            state.saving = false;
+            draw('summary');
+            if (previousFocus && document.activeElement === document.body) {
+              const buttons = [...body.querySelectorAll('button')];
+              (buttons.find(button => button.dataset.focusKey === focusKey && !button.disabled)
+                || buttons.find(button => button.dataset.focusKey?.startsWith(focusKey.slice(0,focusKey.lastIndexOf(':')+1)) && !button.disabled))?.focus();
+            }
+          } catch (_) {
+            state.resourceFeedback = 'Não foi possível salvar. Atualize o confronto e confira os valores.';
+            feedback.textContent = state.resourceFeedback;
+          } finally {
+            state.saving = false; controls.forEach(control => control.disabled = false); syncQuick(); onDraftChange();
+          }
         }
         return;
       }
