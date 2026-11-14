@@ -4013,6 +4013,10 @@ function bindCharacterManager() {
   });
 }
 
+function isEmbeddedCharacterSheet() {
+  return window.frameElement?.id === 'complete-engine';
+}
+
 async function startV3CharacterMigration() {
   try {
     const result = await migrateV3CharacterToManager();
@@ -4020,7 +4024,7 @@ async function startV3CharacterMigration() {
     discardPendingSave();
     activeCharacterId = null;
     storageMode = 'closed';
-    showCharacterManagerView();
+    if (!isEmbeddedCharacterSheet()) showCharacterManagerView();
     if (result.status === 'completed') {
       showNotification('Sua ficha anterior foi adicionada com segurança à futura lista de personagens.');
     }
@@ -9664,7 +9668,7 @@ async function init() {
     setStatus('Armazenamento precisa de revisão', 'error');
     showNotification(window.CharacterStorage.message(event.detail), 'error', 12000);
   });
-  window.addEventListener('cronicas:character-storage-refreshed', () => { const managerView=document.getElementById('characterManagerView');if (managerView && !managerView.hidden) renderCharacterManager(); });
+  window.addEventListener('cronicas:character-storage-refreshed', () => { const managerView=document.getElementById('characterManagerView');if (!isEmbeddedCharacterSheet() && managerView && !managerView.hidden) renderCharacterManager(); });
   bindModalSystem();
   bindQuickDice();
   buildSkills();
@@ -9683,8 +9687,10 @@ async function init() {
   bindMobileResourceBar();
   bindContentNavigation();
   bindHeaderActions();
-  bindChronicles();
-  bindCharacterManager();
+  if (!isEmbeddedCharacterSheet()) {
+    bindChronicles();
+    bindCharacterManager();
+  }
   captureInitialFieldValues();
   restoreState(loadSavedState());
   if (storageAvailable) setStatus('Salvo neste navegador');

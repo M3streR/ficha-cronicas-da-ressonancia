@@ -1,4 +1,4 @@
-@font-face{font-family:Cinzel;src:url('../assets/fonts/Cinzel.ttf')}@font-face{font-family:Spectral;src:url('../assets/fonts/Spectral-Regular.ttf')}
+@font-face{font-family:Cinzel;src:url('../assets/fonts/Cinzel.woff2') format('woff2')}@font-face{font-family:Spectral;src:url('../assets/fonts/Spectral-Regular.woff2') format('woff2')}
 body.manager-v2{--manager-violet:#c894ed;--manager-line:#a075c34d;--manager-muted:#b4aac6;--manager-gutter:30px;background:#080b17;color:#f2eaf9;font:15px/1.5 system-ui,sans-serif;min-width:0;overflow-x:clip}
 body.manager-v2 #characterManagerView{display:block;position:relative;isolation:isolate;min-height:100dvh;width:100%;max-width:none;margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
 body.manager-v2 #characterManagerView[hidden]{display:none}

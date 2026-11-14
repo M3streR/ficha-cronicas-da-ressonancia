@@ -1,4 +1,4 @@
-@font-face{font-family:Cinzel;src:url('assets/fonts/Cinzel.ttf')}@font-face{font-family:Spectral;src:url('assets/fonts/Spectral-Regular.ttf')}
+@font-face{font-family:Cinzel;src:url('assets/fonts/Cinzel.woff2') format('woff2')}@font-face{font-family:Spectral;src:url('assets/fonts/Spectral-Regular.woff2') format('woff2')}
 body{background:transparent!important;font-family:Spectral,Georgia,serif!important;--color-bg-primary:#080e1a;--color-bg-secondary:#101426;--color-surface-primary:#14152a;--color-accent:#be94e5;--color-text-primary:#f4e7fc}
 body.v2-embedded:not(.manager-view-open) .site-header,body.v2-embedded .mobile-section-nav,body.v2-embedded .mobile-resource-bar,body.v2-embedded .content-tab-nav,body.v2-embedded .site-watermark,body.v2-embedded .sheet-mobile-menu{display:none!important}
 /* Outer 2.0 navigation replaces the duplicate brand/mobile navigation only.

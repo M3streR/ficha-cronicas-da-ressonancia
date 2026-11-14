@@ -1,4 +1,4 @@
-@font-face{font-family:Cinzel;src:url('../assets/fonts/Cinzel.ttf')}
+@font-face{font-family:Cinzel;src:url('../assets/fonts/Cinzel.woff2') format('woff2')}
 :root{color-scheme:dark;color:#faf2ff;font-family:Arial,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}body{position:relative}
 .surface{position:absolute;left:0;top:0;width:160px;height:272px;transform-origin:0 0;isolation:isolate}.portrait{position:absolute;left:0;top:112px;width:160px;height:160px;transform-origin:0 0;isolation:isolate;border-radius:3px;clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px);overflow:hidden;background:radial-gradient(ellipse at 50% 28%,#39304e,#171121 75%)}
 #portrait-image{position:absolute;inset:3px;width:154px;height:154px;object-fit:cover;object-position:var(--image-x,50%) var(--image-y,50%);transform:scale(var(--image-zoom,1));transform-origin:var(--image-x,50%) var(--image-y,50%)}
